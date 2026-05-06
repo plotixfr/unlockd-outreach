@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// claude-sonnet-4-20250514 is not a valid model ID for the Claude 4 series.
+// Correct format for Claude 4.x is without the date suffix.
+const MODEL = "claude-sonnet-4-6";
+
 const SYSTEM_PROMPT = `Tu es un expert en développement web haut de gamme. Tu travailles pour Unlockd.art, un studio parisien qui crée des sites web premium pour l'hôtellerie, l'architecture et l'immobilier. Tu dois écrire des cold emails très personnalisés, courts, professionnels et élégants. Jamais agressifs. Toujours en français impeccable.`;
 
 const NICHE_FR: Record<string, string> = {
@@ -30,103 +34,159 @@ function buildPrompt(prospect: {
     .filter(Boolean)
     .join(", ");
 
-  return `Génère 4 cold emails pour ce prospect. Retourne UNIQUEMENT un tableau JSON valide, sans markdown, sans explication.
+  return `Génère 4 cold emails pour ce prospect. Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après, sans markdown.
 
 Prospect:
-- Nom de l'entreprise: ${prospect.firmaNaziv}
+- Nom: ${prospect.firmaNaziv}
 - Contact: ${contact || "Non renseigné"}
 - Secteur: ${nicheLabel}
 - Ville: ${prospect.grad}
-- Site web: ${prospect.website || "Non renseigné"}
+- Site web: ${prospect.website || "Pas de site"}
 - Instagram: ${prospect.instagram || "Non renseigné"}
 - Description: ${prospect.opisFirme || "Non renseigné"}
-- Qualité du site actuel (1=très mauvais, 5=excellent): ${prospect.kvalitetSajta ?? "Non évalué"}
+- Qualité du site (1=très mauvais, 5=excellent): ${prospect.kvalitetSajta ?? "Non évalué"}
 - Notes: ${prospect.napomena || "Aucune"}
 
-Types d'emails à générer:
-1. "initial" — Courte introduction, observation concrète sur leur site actuel (ou absence de site), proposition de valeur claire d'Unlockd.art
-2. "follow1" — Angle différent: ce qu'ils perdent concrètement sans un site web premium (réservations, clients premium, image de marque)
-3. "follow2" — Preuve sociale: exemple de réalisation d'Unlockd.art dans leur secteur (${nicheLabel}), résultat concret
-4. "follow3" — Email final très court et direct, simple oui/non, pas de pression
+Types:
+1. "initial" — Introduction courte, observation concrète sur leur site/absence de site, valeur d'Unlockd.art
+2. "follow1" — Ce qu'ils perdent sans un site premium (réservations, clients haut de gamme, image)
+3. "follow2" — Preuve sociale dans leur secteur (${nicheLabel}), résultat concret d'Unlockd.art
+4. "follow3" — Email final très court, simple oui/non
 
-Format JSON attendu (respecte exactement cette structure):
-[
-  {"tip": "initial", "subject": "...", "body": "<p>...</p>"},
-  {"tip": "follow1", "subject": "...", "body": "<p>...</p>"},
-  {"tip": "follow2", "subject": "...", "body": "<p>...</p>"},
-  {"tip": "follow3", "subject": "...", "body": "<p>...</p>"}
-]
+Format attendu (JSON pur, pas de markdown):
+[{"tip":"initial","subject":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","body":"<p>...</p>"}]
 
-Règles strictes:
-- Français impeccable, ton premium et professionnel
-- Corps en HTML simple (balises p, br, strong uniquement)
-- Maximum 120 mots par email
-- Personnalise avec le nom de l'entreprise et le secteur
+Règles:
+- Français impeccable, ton premium
+- HTML simple: p, br, strong uniquement
+- Max 120 mots par email
 - Signature: <p><strong>Temim</strong><br>Unlockd.art — Sites web premium</p>
-- Ne jamais mentionner de prix ni de tarifs`;
+- Ne jamais mentionner de prix`;
+}
+
+function extractJsonArray(text: string): string {
+  // Strip markdown code fences
+  let s = text.trim().replace(/^```(?:json)?\n?/m, "").replace(/\n?```$/m, "");
+  // Find the first [ ... ] block
+  const start = s.indexOf("[");
+  const end = s.lastIndexOf("]");
+  if (start !== -1 && end !== -1 && end > start) {
+    s = s.slice(start, end + 1);
+  }
+  return s.trim();
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { prospectId, regenerate = false } = body;
-
-  if (!prospectId) {
-    return NextResponse.json({ error: "prospectId manquant" }, { status: 400 });
-  }
-
-  const prospect = await prisma.prospect.findUnique({
-    where: { id: prospectId },
-    include: { emails: true },
-  });
-
-  if (!prospect) {
-    return NextResponse.json({ error: "Prospect introuvable" }, { status: 404 });
-  }
-
-  if (prospect.emails.length > 0 && !regenerate) {
-    return NextResponse.json({ emails: prospect.emails });
-  }
-
-  if (regenerate && prospect.emails.length > 0) {
-    await prisma.email.deleteMany({ where: { prospectId } });
-  }
-
-  const message = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildPrompt(prospect) }],
-  });
-
-  const content = message.content[0];
-  if (content.type !== "text") {
-    return NextResponse.json(
-      { error: "Réponse invalide de Claude" },
-      { status: 500 }
-    );
-  }
-
-  let emailData: Array<{ tip: string; subject: string; body: string }>;
   try {
-    const raw = content.text.trim().replace(/^```json?\n?/, "").replace(/\n?```$/, "");
-    emailData = JSON.parse(raw);
-    if (!Array.isArray(emailData) || emailData.length !== 4) {
-      throw new Error("Format inattendu");
+    let body: { prospectId?: string; regenerate?: boolean };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: "Neispravan JSON request" },
+        { status: 400 }
+      );
     }
-  } catch {
+
+    const { prospectId, regenerate = false } = body;
+    if (!prospectId) {
+      return NextResponse.json(
+        { error: "prospectId je obavezan" },
+        { status: 400 }
+      );
+    }
+
+    const prospect = await prisma.prospect.findUnique({
+      where: { id: prospectId },
+      include: { emails: true },
+    });
+
+    if (!prospect) {
+      return NextResponse.json(
+        { error: "Prospect nije pronađen" },
+        { status: 404 }
+      );
+    }
+
+    // Return existing emails if not regenerating
+    if (prospect.emails.length > 0 && !regenerate) {
+      return NextResponse.json({ emails: prospect.emails });
+    }
+
+    // Delete existing before regenerate
+    if (regenerate && prospect.emails.length > 0) {
+      await prisma.email.deleteMany({ where: { prospectId } });
+    }
+
+    // Call Claude
+    let message: Anthropic.Message;
+    try {
+      message = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: buildPrompt(prospect) }],
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Anthropic API greška";
+      console.error("[generate] Anthropic error:", err);
+      return NextResponse.json(
+        { error: `Greška pri pozivu Claude API: ${msg}` },
+        { status: 502 }
+      );
+    }
+
+    const content = message.content[0];
+    if (!content || content.type !== "text") {
+      return NextResponse.json(
+        { error: "Claude nije vratio tekstualni odgovor" },
+        { status: 502 }
+      );
+    }
+
+    // Parse JSON from Claude response
+    let emailData: Array<{ tip: string; subject: string; body: string }>;
+    try {
+      const raw = extractJsonArray(content.text);
+      emailData = JSON.parse(raw);
+      if (!Array.isArray(emailData) || emailData.length === 0) {
+        throw new Error("Response nije niz");
+      }
+      // Validate shape of each email
+      emailData = emailData.map((e) => ({
+        tip: String(e.tip ?? "initial"),
+        subject: String(e.subject ?? ""),
+        body: String(e.body ?? ""),
+      }));
+    } catch {
+      console.error("[generate] JSON parse error. Raw:", content.text.slice(0, 500));
+      return NextResponse.json(
+        {
+          error: "Claude je vratio odgovor koji nije validan JSON. Pokušajte ponovo.",
+          debug:
+            process.env.NODE_ENV === "development"
+              ? content.text.slice(0, 300)
+              : undefined,
+        },
+        { status: 502 }
+      );
+    }
+
+    // Save emails to DB
+    const emails = await Promise.all(
+      emailData.map((e) =>
+        prisma.email.create({
+          data: { prospectId, tip: e.tip, subject: e.subject, body: e.body },
+        })
+      )
+    );
+
+    return NextResponse.json({ emails });
+  } catch (err) {
+    console.error("[generate] Unhandled error:", err);
     return NextResponse.json(
-      { error: "Impossible de parser la réponse Claude" },
+      { error: "Serverska greška pri generisanju emailova" },
       { status: 500 }
     );
   }
-
-  const emails = await Promise.all(
-    emailData.map((e) =>
-      prisma.email.create({
-        data: { prospectId, tip: e.tip, subject: e.subject, body: e.body },
-      })
-    )
-  );
-
-  return NextResponse.json({ emails });
 }

@@ -24,6 +24,8 @@ interface ParsedRow {
 interface UploadResult {
   created: number;
   skipped: number;
+  invalidCount: number;
+  invalid: { row: number; error: string }[];
 }
 
 export default function UploadPage() {
@@ -77,9 +79,19 @@ export default function UploadPage() {
 
     try {
       const res = await fetch("/api/prospects/upload", { method: "POST", body: formData });
-      const data = await res.json();
+      let data: Partial<UploadResult> & { error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Server nije vratio validan odgovor — pokušajte ponovo");
+      }
       if (!res.ok) throw new Error(data.error || "Greška pri uploadu");
-      setResult({ created: data.created, skipped: data.skipped });
+      setResult({
+        created: data.created ?? 0,
+        skipped: data.skipped ?? 0,
+        invalidCount: data.invalidCount ?? 0,
+        invalid: data.invalid ?? [],
+      });
       setUploadState("success");
       setFile(null);
       setPreview([]);
@@ -114,7 +126,19 @@ export default function UploadPage() {
             {result.skipped > 0 && (
               <>, <span className="font-bold">{result.skipped}</span> preskočeno (duplikati)</>
             )}
+            {result.invalidCount > 0 && (
+              <>, <span className="text-amber-400 font-bold">{result.invalidCount}</span> redova preskočeno (validacija)</>
+            )}
           </p>
+          {result.invalid.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {result.invalid.slice(0, 5).map((inv) => (
+                <p key={inv.row} className="text-amber-400/70 text-xs">
+                  Red {inv.row}: {inv.error}
+                </p>
+              ))}
+            </div>
+          )}
           <div className="flex gap-3 mt-3">
             <Link href="/prospects" className="text-emerald-400 text-sm hover:text-emerald-300 transition-colors">
               Pogledaj prospekte →

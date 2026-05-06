@@ -22,11 +22,16 @@ export function GenerateEmailsButton({ prospectId, hasEmails }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prospectId, regenerate }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur");
+      let data: { error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Greška pri generisanju emailova — pokušajte ponovo");
+      }
+      if (!res.ok) throw new Error(data.error || "Greška pri generisanju emailova");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Greška pri generisanju emailova");
     } finally {
       setLoading(false);
     }

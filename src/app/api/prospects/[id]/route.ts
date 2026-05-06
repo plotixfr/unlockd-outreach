@@ -6,17 +6,38 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const { status } = await req.json();
+  try {
+    const { id } = await params;
 
-  if (!STATUSI.includes(status)) {
-    return NextResponse.json({ error: "Status invalide" }, { status: 400 });
+    let status: string;
+    try {
+      const body = await req.json();
+      status = body?.status;
+    } catch {
+      return NextResponse.json(
+        { error: "Neispravan JSON request" },
+        { status: 400 }
+      );
+    }
+
+    if (!(STATUSI as readonly string[]).includes(status)) {
+      return NextResponse.json(
+        { error: `Status mora biti: ${STATUSI.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    const prospect = await prisma.prospect.update({
+      where: { id },
+      data: { status },
+    });
+
+    return NextResponse.json({ prospect });
+  } catch (err) {
+    console.error("[prospects/id] Unhandled error:", err);
+    return NextResponse.json(
+      { error: "Serverska greška pri ažuriranju statusa" },
+      { status: 500 }
+    );
   }
-
-  const prospect = await prisma.prospect.update({
-    where: { id },
-    data: { status },
-  });
-
-  return NextResponse.json({ prospect });
 }

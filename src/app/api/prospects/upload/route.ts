@@ -4,23 +4,60 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { NISE, STATUSI } from "@/lib/constants";
 
+// PapaParse returns "" for empty cells; Zod enums don't accept "".
+// This helper converts empty string → undefined so optional() works.
+const optStr = z
+  .string()
+  .optional()
+  .transform((v) => v || undefined);
+
 const ProspectRowSchema = z.object({
-  firmaNaziv: z.string().min(1),
-  kontaktIme: z.string().optional(),
-  kontaktPozicija: z.string().optional(),
-  email: z.string().email(),
-  website: z.string().optional(),
-  instagram: z.string().optional(),
-  nisa: z.enum(NISE),
-  grad: z.string().min(1),
-  opisFirme: z.string().optional(),
+  firmaNaziv: z.string().min(1, "firmaNaziv je obavezno"),
+  kontaktIme: optStr,
+  kontaktPozicija: optStr,
+  email: z.string().email("Neispravan email"),
+  website: optStr,
+  instagram: optStr,
+  // Accept case-insensitive nisa values and common French/English variants
+  nisa: z
+    .string()
+    .min(1, "nisa je obavezno")
+    .transform((v) => {
+      const map: Record<string, string> = {
+        hotel: "Hotel",
+        hôtel: "Hotel",
+        hotellerie: "Hotel",
+        hôtellerie: "Hotel",
+        restaurant: "Restaurant",
+        restauration: "Restaurant",
+        architecture: "Architecture",
+        property: "Property",
+        immobilier: "Property",
+        "real estate": "Property",
+      };
+      return map[v.toLowerCase().trim()] ?? v;
+    })
+    .pipe(z.enum(NISE, { error: `nisa mora biti: ${NISE.join(", ")}` })),
+  grad: z.string().min(1, "grad je obavezno"),
+  opisFirme: optStr,
+  // Clamp kvalitetSajta to 1–5, skip invalid/missing silently
   kvalitetSajta: z
     .string()
     .optional()
-    .transform((v) => (v ? parseInt(v, 10) : undefined))
-    .refine((v) => v === undefined || (v >= 1 && v <= 5)),
-  napomena: z.string().optional(),
-  status: z.enum(STATUSI).optional().default("New"),
+    .transform((v) => {
+      if (!v) return undefined;
+      const n = parseInt(v, 10);
+      if (isNaN(n)) return undefined;
+      return Math.min(5, Math.max(1, n));
+    }),
+  napomena: optStr,
+  // Accept any status from enum or default to New
+  status: z
+    .string()
+    .optional()
+    .transform((v) =>
+      v && (STATUSI as readonly string[]).includes(v) ? v : "New"
+    ),
 });
 
 export async function POST(req: NextRequest) {
@@ -29,41 +66,49 @@ export async function POST(req: NextRequest) {
     try {
       formData = await req.formData();
     } catch {
-      return NextResponse.json({ error: "Neispravan request format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Neispravan multipart request" },
+        { status: 400 }
+      );
     }
 
     const file = formData.get("file");
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "Fajl nije pronađen u request-u" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Fajl nije pronađen u request-u" },
+        { status: 400 }
+      );
     }
 
     let text: string;
     try {
       text = await file.text();
     } catch {
-      return NextResponse.json({ error: "Greška pri čitanju fajla" }, { status: 400 });
-    }
-
-    if (!text.trim()) {
-      return NextResponse.json({ error: "Fajl je prazan" }, { status: 400 });
-    }
-
-    const { data, errors } = Papa.parse<Record<string, string>>(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (h) => h.trim(),
-      transform: (v) => v.trim(),
-    });
-
-    if (errors.length > 0 && data.length === 0) {
       return NextResponse.json(
-        { error: "CSV greška: " + errors[0].message },
+        { error: "Greška pri čitanju fajla" },
         { status: 400 }
       );
     }
 
+    // Strip BOM if present
+    const cleanText = text.replace(/^﻿/, "").trim();
+    if (!cleanText) {
+      return NextResponse.json({ error: "Fajl je prazan" }, { status: 400 });
+    }
+
+    const { data, errors } = Papa.parse<Record<string, string>>(cleanText, {
+      header: true,
+      skipEmptyLines: "greedy",
+      transformHeader: (h) => h.trim(),
+      transform: (v) => v.trim(),
+    });
+
     if (data.length === 0) {
-      return NextResponse.json({ error: "CSV fajl nema podataka" }, { status: 400 });
+      const csvError = errors[0]?.message ?? "Nema podataka";
+      return NextResponse.json(
+        { error: `CSV greška: ${csvError}` },
+        { status: 400 }
+      );
     }
 
     const valid: z.infer<typeof ProspectRowSchema>[] = [];
@@ -74,18 +119,25 @@ export async function POST(req: NextRequest) {
       if (result.success) {
         valid.push(result.data);
       } else {
-        invalid.push({ row: i + 2, error: result.error.issues[0].message });
+        const firstError = result.error.issues[0];
+        invalid.push({
+          row: i + 2,
+          error: `${firstError.path.join(".")}: ${firstError.message}`,
+        });
       }
     }
 
     if (valid.length === 0) {
       return NextResponse.json(
-        { error: "Nema validnih redova", invalid: invalid.slice(0, 5) },
+        {
+          error: `Nema validnih redova od ${data.length} ukupno`,
+          invalid: invalid.slice(0, 10),
+        },
         { status: 400 }
       );
     }
 
-    // Find existing emails to count skips
+    // Bulk existence check to count skips
     const incomingEmails = valid.map((r) => r.email);
     const existing = await prisma.prospect.findMany({
       where: { email: { in: incomingEmails } },
@@ -102,28 +154,29 @@ export async function POST(req: NextRequest) {
         await prisma.prospect.create({
           data: {
             firmaNaziv: row.firmaNaziv,
-            kontaktIme: row.kontaktIme || null,
-            kontaktPozicija: row.kontaktPozicija || null,
+            kontaktIme: row.kontaktIme ?? null,
+            kontaktPozicija: row.kontaktPozicija ?? null,
             email: row.email,
-            website: row.website || null,
-            instagram: row.instagram || null,
+            website: row.website ?? null,
+            instagram: row.instagram ?? null,
             nisa: row.nisa,
             grad: row.grad,
-            opisFirme: row.opisFirme || null,
+            opisFirme: row.opisFirme ?? null,
             kvalitetSajta: row.kvalitetSajta ?? null,
-            napomena: row.napomena || null,
-            status: row.status,
+            napomena: row.napomena ?? null,
+            status: row.status ?? "New",
           },
         });
         created++;
       } catch {
-        // Race condition duplicate — count as skipped
+        // Race-condition duplicate — silently skip
       }
     }
 
     return NextResponse.json({
       created,
       skipped: skipped + (toCreate.length - created),
+      invalidCount: invalid.length,
       invalid: invalid.slice(0, 10),
     });
   } catch (err) {
