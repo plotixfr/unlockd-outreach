@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { STATUS_BOJE } from "@/lib/constants";
@@ -14,6 +15,12 @@ interface Prospect {
   status: string;
   createdAt: Date;
   _count: { emails: number };
+}
+
+interface MenuPos {
+  id: string;
+  top: number;
+  right: number;
 }
 
 interface Props {
@@ -32,7 +39,7 @@ export function ProspectsTable({ prospects }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState<string | null>(null);
   const [bulkError, setBulkError] = useState("");
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -40,26 +47,34 @@ export function ProspectsTable({ prospects }: Props) {
   const [follow1Days, setFollow1Days] = useState(4);
   const [follow2Days, setFollow2Days] = useState(5);
   const [follow3Days, setFollow3Days] = useState(7);
-  const menuRef = useRef<HTMLDivElement>(null);
 
+  // Close portal menu on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenu(null);
-      }
+    if (!menuPos) return;
+    const handler = () => setMenuPos(null);
+    const timer = setTimeout(() => document.addEventListener("click", handler), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handler);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [menuPos]);
+
+  const handleMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
+    e.stopPropagation();
+    if (menuPos?.id === id) { setMenuPos(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const dropdownH = 88;
+    const top =
+      window.innerHeight - rect.bottom > dropdownH
+        ? rect.bottom + 4
+        : rect.top - dropdownH - 4;
+    setMenuPos({ id, top, right: window.innerWidth - rect.right });
+  };
 
   const allSelected = prospects.length > 0 && selected.size === prospects.length;
 
   const toggleAll = () => {
-    if (allSelected) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(prospects.map((p) => p.id)));
-    }
+    setSelected(allSelected ? new Set() : new Set(prospects.map((p) => p.id)));
   };
 
   const toggle = (id: string) => {
@@ -82,7 +97,7 @@ export function ProspectsTable({ prospects }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ids: selectedIds, ...extra }),
       });
-      let data: { error?: string; generated?: number; failed?: string[]; scheduled?: number; skipped?: string[]; deleted?: number } = {};
+      let data: { error?: string } = {};
       try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }
       if (!res.ok) throw new Error(data.error || "Greška");
       if (action === "delete") setSelected(new Set());
@@ -107,7 +122,7 @@ export function ProspectsTable({ prospects }: Props) {
     try {
       const res = await fetch(`/api/prospects/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) {
-        const d = await res.json().catch(() => ({})) as { error?: string };
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(d.error || "Greška pri brisanju");
       }
       router.refresh();
@@ -197,7 +212,10 @@ export function ProspectsTable({ prospects }: Props) {
               </tr>
             ) : (
               prospects.map((p) => (
-                <tr key={p.id} className={`hover:bg-[#1a1a28] transition-colors group ${selected.has(p.id) ? "bg-blue-950/20" : ""}`}>
+                <tr
+                  key={p.id}
+                  className={`hover:bg-[#1a1a28] transition-colors group ${selected.has(p.id) ? "bg-blue-950/20" : ""}`}
+                >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -218,7 +236,9 @@ export function ProspectsTable({ prospects }: Props) {
                   <td className="px-4 py-3 text-zinc-400">{p.nisa}</td>
                   <td className="px-4 py-3 text-zinc-400">{p.grad}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BOJE[p.status] ?? "bg-zinc-700 text-zinc-200"}`}>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BOJE[p.status] ?? "bg-zinc-700 text-zinc-200"}`}
+                    >
                       {p.status}
                     </span>
                   </td>
@@ -231,33 +251,14 @@ export function ProspectsTable({ prospects }: Props) {
                     {new Date(p.createdAt).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="relative" ref={openMenu === p.id ? menuRef : null}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === p.id ? null : p.id); }}
-                        className="text-zinc-600 hover:text-zinc-300 transition-colors p-1 rounded"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-                      {openMenu === p.id && (
-                        <div className="absolute right-0 top-full mt-1 w-36 bg-[#1a1a28] border border-[#2a2a3e] rounded-lg shadow-xl z-20 overflow-hidden">
-                          <Link
-                            href={`/prospects/${p.id}/edit`}
-                            onClick={() => setOpenMenu(null)}
-                            className="flex items-center gap-2 px-3 py-2.5 text-sm text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
-                          >
-                            Uredi
-                          </Link>
-                          <button
-                            onClick={() => { setDeleteTarget({ id: p.id, name: p.firmaNaziv }); setOpenMenu(null); }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
-                          >
-                            Obriši
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => handleMenuToggle(e, p.id)}
+                      className="text-zinc-600 hover:text-zinc-300 transition-colors p-1 rounded"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
                   </td>
                 </tr>
               ))
@@ -265,6 +266,41 @@ export function ProspectsTable({ prospects }: Props) {
           </tbody>
         </table>
       </div>
+
+      {/* Portal dropdown — rendered outside overflow container.
+          menuPos is null on SSR so document.body is never accessed server-side. */}
+      {menuPos &&
+        createPortal(
+          <div
+            style={{
+              position: "fixed",
+              top: menuPos.top,
+              right: menuPos.right,
+              zIndex: 9999,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-36 bg-[#1a1a28] border border-[#2a2a3e] rounded-lg shadow-2xl overflow-hidden"
+          >
+            <Link
+              href={`/prospects/${menuPos.id}/edit`}
+              onClick={() => setMenuPos(null)}
+              className="flex items-center px-3 py-2.5 text-sm text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
+            >
+              Uredi
+            </Link>
+            <button
+              onClick={() => {
+                const p = prospects.find((x) => x.id === menuPos.id);
+                if (p) setDeleteTarget({ id: p.id, name: p.firmaNaziv });
+                setMenuPos(null);
+              }}
+              className="w-full flex items-center px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
+            >
+              Obriši
+            </button>
+          </div>,
+          document.body
+        )}
 
       {/* Single delete confirmation */}
       {deleteTarget && (
