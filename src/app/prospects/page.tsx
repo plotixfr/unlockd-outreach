@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { NISE, STATUSI, STATUS_BOJE } from "@/lib/constants";
+import { NISE, STATUSI } from "@/lib/constants";
+import { ProspectsTable } from "@/components/ProspectsTable";
 
 export default async function ProspectsPage({
   searchParams,
@@ -105,7 +106,7 @@ export default async function ProspectsPage({
         </div>
       </div>
 
-      {/* Search — form GET */}
+      {/* Search */}
       <form method="GET" action="/prospects">
         {nisa && <input type="hidden" name="nisa" value={nisa} />}
         {status && <input type="hidden" name="status" value={status} />}
@@ -118,70 +119,19 @@ export default async function ProspectsPage({
         />
       </form>
 
-      {/* Tabela */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-[#1f1f2e]">
-              {["Firma", "Email", "Niša", "Grad", "Status", "Emails", "Kreiran"].map((h) => (
-                <th
-                  key={h}
-                  className="text-left px-4 py-3 text-zinc-500 text-xs uppercase tracking-wider font-medium"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#1f1f2e]">
-            {prospects.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-zinc-600 text-sm">
-                  {search || nisa || status
-                    ? "Nema prospekata za ove filtere."
-                    : "Nema prospekata. Uploaduj CSV da počneš."}
-                </td>
-              </tr>
-            ) : (
-              prospects.map((p) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-[#1a1a28] transition-colors group"
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/prospects/${p.id}`}
-                      className="text-white font-medium group-hover:text-blue-400 transition-colors"
-                    >
-                      {p.firmaNaziv}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-400">{p.email}</td>
-                  <td className="px-4 py-3 text-zinc-400">{p.nisa}</td>
-                  <td className="px-4 py-3 text-zinc-400">{p.grad}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BOJE[p.status] ?? "bg-zinc-700 text-zinc-200"}`}
-                    >
-                      {p.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-zinc-500">
-                    {p._count.emails > 0 ? (
-                      <span className="text-blue-400">{p._count.emails}/4</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-zinc-600 text-xs">
-                    {new Date(p.createdAt).toLocaleDateString("fr-FR")}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {prospects.length === 0 && !search && !nisa && !status ? (
+        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-12 text-center">
+          <p className="text-zinc-500 text-sm">Nema prospekata. Uploaduj CSV da počneš.</p>
+          <Link
+            href="/upload"
+            className="mt-3 inline-block text-blue-500 text-sm hover:text-blue-400 transition-colors"
+          >
+            Upload CSV →
+          </Link>
+        </div>
+      ) : (
+        <ProspectsTable prospects={prospects} />
+      )}
     </div>
   );
 }

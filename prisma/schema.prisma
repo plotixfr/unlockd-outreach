@@ -8,27 +8,31 @@ datasource db {
 }
 
 model Prospect {
-  id               String    @id @default(cuid())
-  firmaNaziv       String
-  kontaktIme       String?
-  kontaktPozicija  String?
-  email            String    @unique
-  website          String?
-  instagram        String?
-  nisa             String
-  grad             String
-  opisFirme        String?
-  kvalitetSajta    Int?
-  napomena         String?
-  status           String    @default("New")
-  datumPrvogMaila  DateTime?
-  datumFollowUp1   DateTime?
-  datumFollowUp2   DateTime?
-  datumFollowUp3   DateTime?
-  datumOdgovora    DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  emails           Email[]
+  id                String    @id @default(cuid())
+  firmaNaziv        String
+  kontaktIme        String?
+  kontaktPozicija   String?
+  email             String    @unique
+  website           String?
+  instagram         String?
+  nisa              String
+  grad              String
+  opisFirme         String?
+  kvalitetSajta     Int?
+  napomena          String?
+  status            String    @default("New")
+  datumPrvogMaila   DateTime?
+  datumFollowUp1    DateTime?
+  datumFollowUp2    DateTime?
+  datumFollowUp3    DateTime?
+  datumOdgovora     DateTime?
+  scheduledInitial  DateTime?
+  scheduledFollow1  DateTime?
+  scheduledFollow2  DateTime?
+  scheduledFollow3  DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  emails            Email[]
 }
 
 model Email {

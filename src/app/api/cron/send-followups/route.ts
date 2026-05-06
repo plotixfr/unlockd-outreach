@@ -4,37 +4,15 @@ import { prisma } from "@/lib/prisma";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FOLLOWUP_RULES = [
-  {
-    requiredStatus: "Emailed",
-    dateField: "datumPrvogMaila" as const,
-    daysWait: 4,
-    emailTip: "follow1",
-    newStatus: "Follow1",
-    statusField: "datumFollowUp1" as const,
-  },
-  {
-    requiredStatus: "Follow1",
-    dateField: "datumFollowUp1" as const,
-    daysWait: 5,
-    emailTip: "follow2",
-    newStatus: "Follow2",
-    statusField: "datumFollowUp2" as const,
-  },
-  {
-    requiredStatus: "Follow2",
-    dateField: "datumFollowUp2" as const,
-    daysWait: 7,
-    emailTip: "follow3",
-    newStatus: "Follow3",
-    statusField: "datumFollowUp3" as const,
-  },
-] as const;
-
-function daysAgo(days: number): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d;
+async function sendEmail(to: string, subject: string, html: string) {
+  const { error } = await resend.emails.send({
+    from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
+    to: [to],
+    bcc: ["temim.fr@gmail.com"],
+    subject,
+    html,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function GET(req: NextRequest) {
@@ -45,18 +23,100 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const now = new Date();
     const results: { rule: string; sent: number; errors: string[] }[] = [];
 
-    for (const rule of FOLLOWUP_RULES) {
+    // ── Rule 0: Send initial for Scheduled prospects ──
+    {
+      let sent = 0;
+      const errors: string[] = [];
+      try {
+        const prospects = await prisma.prospect.findMany({
+          where: {
+            status: "Scheduled",
+            scheduledInitial: { lte: now },
+            emails: { some: { tip: "initial", poslat: false } },
+          },
+          include: {
+            emails: { where: { tip: "initial", poslat: false } },
+          },
+        });
+
+        for (const prospect of prospects) {
+          const email = prospect.emails[0];
+          if (!email) continue;
+          try {
+            await sendEmail(prospect.email, email.subject, email.body);
+            const sentAt = new Date();
+            await prisma.email.update({
+              where: { id: email.id },
+              data: { poslat: true, poslatAt: sentAt },
+            });
+            await prisma.prospect.update({
+              where: { id: prospect.id },
+              data: { status: "Emailed", datumPrvogMaila: sentAt },
+            });
+            sent++;
+          } catch (e) {
+            errors.push(`${prospect.email}: ${e instanceof Error ? e.message : "Greška"}`);
+          }
+        }
+      } catch (e) {
+        errors.push(`DB query failed: ${e instanceof Error ? e.message : "Greška"}`);
+      }
+      results.push({ rule: "initial", sent, errors });
+    }
+
+    // ── Rules 1-3: Send follow-ups ──
+    const followupRules = [
+      {
+        requiredStatus: "Emailed",
+        scheduledDateField: "scheduledFollow1" as const,
+        relativeDateField: "datumPrvogMaila" as const,
+        relativeDaysWait: 4,
+        emailTip: "follow1",
+        newStatus: "Follow1",
+        sentDateField: "datumFollowUp1" as const,
+      },
+      {
+        requiredStatus: "Follow1",
+        scheduledDateField: "scheduledFollow2" as const,
+        relativeDateField: "datumFollowUp1" as const,
+        relativeDaysWait: 5,
+        emailTip: "follow2",
+        newStatus: "Follow2",
+        sentDateField: "datumFollowUp2" as const,
+      },
+      {
+        requiredStatus: "Follow2",
+        scheduledDateField: "scheduledFollow3" as const,
+        relativeDateField: "datumFollowUp2" as const,
+        relativeDaysWait: 7,
+        emailTip: "follow3",
+        newStatus: "Follow3",
+        sentDateField: "datumFollowUp3" as const,
+      },
+    ] as const;
+
+    for (const rule of followupRules) {
       let sent = 0;
       const errors: string[] = [];
 
       try {
+        const daysAgoDate = new Date(now.getTime() - rule.relativeDaysWait * 86400000);
+
+        // Prospects due via scheduled date OR via relative delay from last send
         const prospects = await prisma.prospect.findMany({
           where: {
             status: rule.requiredStatus,
-            [rule.dateField]: { lte: daysAgo(rule.daysWait), not: null },
             emails: { some: { tip: rule.emailTip, poslat: false } },
+            OR: [
+              { [rule.scheduledDateField]: { lte: now, not: null } },
+              {
+                [rule.scheduledDateField]: null,
+                [rule.relativeDateField]: { lte: daysAgoDate, not: null },
+              },
+            ],
           },
           include: {
             emails: { where: { tip: rule.emailTip, poslat: false } },
@@ -66,39 +126,24 @@ export async function GET(req: NextRequest) {
         for (const prospect of prospects) {
           const followupEmail = prospect.emails[0];
           if (!followupEmail) continue;
-
           try {
-            const { error } = await resend.emails.send({
-              from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
-              to: [prospect.email],
-              bcc: ["temim.fr@gmail.com"],
-              subject: followupEmail.subject,
-              html: followupEmail.body,
-            });
-
-            if (error) throw new Error(error.message);
-
-            const now = new Date();
+            await sendEmail(prospect.email, followupEmail.subject, followupEmail.body);
+            const sentAt = new Date();
             await prisma.email.update({
               where: { id: followupEmail.id },
-              data: { poslat: true, poslatAt: now },
+              data: { poslat: true, poslatAt: sentAt },
             });
             await prisma.prospect.update({
               where: { id: prospect.id },
-              data: { status: rule.newStatus, [rule.statusField]: now },
+              data: { status: rule.newStatus, [rule.sentDateField]: sentAt },
             });
-
             sent++;
           } catch (e) {
-            errors.push(
-              `${prospect.email}: ${e instanceof Error ? e.message : "Greška"}`
-            );
+            errors.push(`${prospect.email}: ${e instanceof Error ? e.message : "Greška"}`);
           }
         }
       } catch (e) {
-        errors.push(
-          `DB query failed: ${e instanceof Error ? e.message : "Greška"}`
-        );
+        errors.push(`DB query failed: ${e instanceof Error ? e.message : "Greška"}`);
       }
 
       results.push({ rule: rule.emailTip, sent, errors });
@@ -110,9 +155,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, totalSent, results });
   } catch (err) {
     console.error("[cron] Unhandled error:", err);
-    return NextResponse.json(
-      { error: "Serverska greška u cron job-u" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Serverska greška u cron job-u" }, { status: 500 });
   }
 }

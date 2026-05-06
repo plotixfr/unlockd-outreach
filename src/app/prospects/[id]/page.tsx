@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { GenerateEmailsButton } from "@/components/GenerateEmailsButton";
 import { SendEmailButton } from "@/components/SendEmailButton";
 import { StatusSelector } from "@/components/StatusSelector";
+import { DeleteProspectButton } from "@/components/DeleteProspectButton";
+import { CampaignScheduler } from "@/components/CampaignScheduler";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -44,6 +46,18 @@ export default async function ProspectDetailPage({
   if (!prospect) notFound();
 
   const { emails } = prospect;
+  const hasEmails = emails.length > 0;
+  const isScheduled = prospect.status === "Scheduled";
+
+  const scheduledDates =
+    prospect.scheduledInitial
+      ? {
+          initial: prospect.scheduledInitial,
+          follow1: prospect.scheduledFollow1,
+          follow2: prospect.scheduledFollow2,
+          follow3: prospect.scheduledFollow3,
+        }
+      : undefined;
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -62,7 +76,20 @@ export default async function ProspectDetailPage({
           <h1 className="text-2xl font-semibold text-white">{prospect.firmaNaziv}</h1>
           <p className="text-zinc-500 text-sm mt-1">{prospect.email}</p>
         </div>
-        <StatusSelector prospectId={prospect.id} currentStatus={prospect.status} />
+        <div className="flex items-center gap-2 shrink-0">
+          <StatusSelector prospectId={prospect.id} currentStatus={prospect.status} />
+          <Link
+            href={`/prospects/${id}/edit`}
+            className="text-zinc-400 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-[#1a1a28] transition-colors"
+          >
+            Uredi
+          </Link>
+          <DeleteProspectButton
+            prospectId={prospect.id}
+            firmaNaziv={prospect.firmaNaziv}
+            redirectAfter
+          />
+        </div>
       </div>
 
       {/* Info grid */}
@@ -71,10 +98,7 @@ export default async function ProspectDetailPage({
         <InfoRow label="Grad" value={prospect.grad} />
         <InfoRow label="Kontakt" value={prospect.kontaktIme} />
         <InfoRow label="Pozicija" value={prospect.kontaktPozicija} />
-        <InfoRow
-          label="Website"
-          value={prospect.website}
-        />
+        <InfoRow label="Website" value={prospect.website} />
         <InfoRow label="Instagram" value={prospect.instagram} />
         <InfoRow
           label="Kvalitet sajta"
@@ -94,7 +118,7 @@ export default async function ProspectDetailPage({
         )}
       </div>
 
-      {/* Datumi */}
+      {/* Datumi slanja */}
       {(prospect.datumPrvogMaila ||
         prospect.datumFollowUp1 ||
         prospect.datumFollowUp2 ||
@@ -144,11 +168,22 @@ export default async function ProspectDetailPage({
         </div>
       )}
 
+      {/* Campaign Scheduler */}
+      <div className="space-y-3">
+        <h2 className="text-white font-medium">Raspored kampanje</h2>
+        <CampaignScheduler
+          prospectId={prospect.id}
+          hasEmails={hasEmails}
+          isScheduled={isScheduled}
+          scheduledDates={scheduledDates}
+        />
+      </div>
+
       {/* Email sekcija */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-white font-medium">Kampanja emails</h2>
-          <GenerateEmailsButton prospectId={prospect.id} hasEmails={emails.length > 0} />
+          <GenerateEmailsButton prospectId={prospect.id} hasEmails={hasEmails} />
         </div>
 
         {emails.length === 0 ? (
@@ -183,7 +218,6 @@ function EmailCard({
 }) {
   return (
     <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
-      {/* Card header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f2e]">
         <div className="flex items-center gap-3">
           <span
@@ -204,8 +238,6 @@ function EmailCard({
           <SendEmailButton emailId={email.id} poslat={email.poslat} />
         </div>
       </div>
-
-      {/* Email body */}
       <div
         className="px-5 py-4 text-sm text-zinc-300 leading-relaxed prose prose-invert prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: email.body }}
