@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Prospect {
+  id               String    @id @default(cuid())
+  firmaNaziv       String
+  kontaktIme       String?
+  kontaktPozicija  String?
+  email            String    @unique
+  website          String?
+  instagram        String?
+  nisa             String
+  grad             String
+  opisFirme        String?
+  kvalitetSajta    Int?
+  napomena         String?
+  status           String    @default("New")
+  datumPrvogMaila  DateTime?
+  datumFollowUp1   DateTime?
+  datumFollowUp2   DateTime?
+  datumFollowUp3   DateTime?
+  datumOdgovora    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  emails           Email[]
+}
+
+model Email {
+  id          String    @id @default(cuid())
+  prospectId  String
+  prospect    Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  tip         String
+  subject     String
+  body        String    @db.Text
+  poslat      Boolean   @default(false)
+  poslatAt    DateTime?
+  otvoren     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
