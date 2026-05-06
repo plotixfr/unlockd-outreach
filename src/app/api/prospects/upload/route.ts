@@ -111,6 +111,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log(`[upload] Parsed ${data.length} rows from CSV`);
+
     const valid: z.infer<typeof ProspectRowSchema>[] = [];
     const invalid: { row: number; error: string }[] = [];
 
@@ -126,6 +128,8 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+
+    console.log(`[upload] Valid: ${valid.length} | Invalid: ${invalid.length} | Total: ${data.length}`);
 
     if (valid.length === 0) {
       return NextResponse.json(
@@ -173,6 +177,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log(`[upload] Created: ${created} | Skipped (dup): ${skipped} | Skipped (race): ${toCreate.length - created}`);
     return NextResponse.json({
       created,
       skipped: skipped + (toCreate.length - created),
