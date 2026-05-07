@@ -9,6 +9,7 @@ import { CampaignScheduler } from "@/components/CampaignScheduler";
 import { ReplyButton } from "@/components/ReplyButton";
 import { ConversionButton } from "@/components/ConversionButton";
 import { EmailPreviewButton } from "@/components/EmailPreviewButton";
+import { SubjectSelector } from "@/components/SubjectSelector";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -254,6 +255,8 @@ function EmailCard({
     id: string;
     tip: string;
     subject: string;
+    subjectB: string | null;
+    activeSubject: string;
     body: string;
     poslat: boolean;
     poslatAt: Date | null;
@@ -263,18 +266,24 @@ function EmailCard({
   prospectEmail: string;
   fromEmail: string;
 }) {
+  const activeSubjectText =
+    email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
+
   return (
     <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f2e]">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-start justify-between px-5 py-4 border-b border-[#1f1f2e] gap-3">
+        <div className="flex items-start gap-3 min-w-0">
           <span
-            className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${TIP_COLORS[email.tip] ?? "bg-zinc-700 text-zinc-200"}`}
+            className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 mt-0.5 ${TIP_COLORS[email.tip] ?? "bg-zinc-700 text-zinc-200"}`}
           >
             {TIP_LABELS[email.tip] ?? email.tip}
           </span>
-          <p className="text-zinc-300 text-sm font-medium truncate">
-            {email.subject}
-          </p>
+          <SubjectSelector
+            emailId={email.id}
+            subject={email.subject}
+            subjectB={email.subjectB}
+            activeSubject={email.activeSubject}
+          />
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {email.poslatAt && (
@@ -299,7 +308,7 @@ function EmailCard({
             </span>
           )}
           <EmailPreviewButton
-            subject={email.subject}
+            subject={activeSubjectText}
             body={email.body}
             tip={email.tip}
             prospectEmail={prospectEmail}

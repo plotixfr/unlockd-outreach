@@ -3,6 +3,14 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
+
+function buildHtml(body: string, emailId: string, prospectId: string): string {
+  const pixel = `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`;
+  const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.</p>`;
+  return body + pixel + unsubscribe;
+}
 
 async function sendEmail(to: string, subject: string, html: string) {
   const { error } = await resend.emails.send({
@@ -46,7 +54,10 @@ export async function GET(req: NextRequest) {
           const email = prospect.emails[0];
           if (!email) continue;
           try {
-            await sendEmail(prospect.email, email.subject, email.body);
+            const subjectToSend =
+              email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
+            const html = buildHtml(email.body, email.id, prospect.id);
+            await sendEmail(prospect.email, subjectToSend, html);
             const sentAt = new Date();
             await prisma.email.update({
               where: { id: email.id },
@@ -127,7 +138,12 @@ export async function GET(req: NextRequest) {
           const followupEmail = prospect.emails[0];
           if (!followupEmail) continue;
           try {
-            await sendEmail(prospect.email, followupEmail.subject, followupEmail.body);
+            const subjectToSend =
+              followupEmail.activeSubject === "B" && followupEmail.subjectB
+                ? followupEmail.subjectB
+                : followupEmail.subject;
+            const html = buildHtml(followupEmail.body, followupEmail.id, prospect.id);
+            await sendEmail(prospect.email, subjectToSend, html);
             const sentAt = new Date();
             await prisma.email.update({
               where: { id: followupEmail.id },

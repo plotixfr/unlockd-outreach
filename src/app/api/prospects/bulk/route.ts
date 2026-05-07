@@ -18,9 +18,9 @@ function buildPrompt(p: { firmaNaziv: string; kontaktIme: string | null; kontakt
   const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ");
   return `Génère 4 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact || "N/A"}. Site: ${p.website || "Pas de site"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5.
 
-Types: "initial","follow1","follow2","follow3". Règles: français, HTML simple, max 120 mots, signature Temim/Unlockd.art.
+Types: "initial","follow1","follow2","follow3". Règles: français, HTML simple, max 120 mots, pas de signature. Deux lignes d'objet par email ("subject" version A, "subjectB" version B) pour A/B testing.
 
-Return ONLY: [{"tip":"initial","subject":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","body":"<p>...</p>"}]`;
+Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
 }
 
 function extractJsonArray(text: string): string {
@@ -79,12 +79,12 @@ export async function POST(req: NextRequest) {
           if (!content || content.type !== "text") throw new Error("No text content");
 
           const cleaned = extractJsonArray(content.text);
-          const emailData: Array<{ tip: string; subject: string; body: string }> = JSON.parse(cleaned);
+          const emailData: Array<{ tip: string; subject: string; subjectB?: string; body: string }> = JSON.parse(cleaned);
 
           await Promise.all(
             emailData.map((e) =>
               prisma.email.create({
-                data: { prospectId: prospect.id, tip: e.tip, subject: e.subject, body: e.body },
+                data: { prospectId: prospect.id, tip: e.tip, subject: e.subject, subjectB: e.subjectB ?? null, body: e.body },
               })
             )
           );

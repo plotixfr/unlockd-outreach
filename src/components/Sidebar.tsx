@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: "⬛" },
   { href: "/prospects", label: "Prospects", icon: "◈" },
   { href: "/upload", label: "Upload CSV", icon: "↑" },
+  { href: "/revenue", label: "Revenue", icon: "€" },
+  { href: "/warmup", label: "Warmup", icon: "🔥" },
   { href: "/settings", label: "Settings", icon: "⚙" },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST", redirect: "manual" });
+    router.push("/login");
+    router.refresh();
+  };
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-56 bg-[#111118] border-r border-[#1f1f2e] flex flex-col z-50">
@@ -41,6 +50,16 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="px-3 pb-3">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-500 hover:text-red-400 hover:bg-[#1a1a28] transition-colors"
+        >
+          <span className="text-xs">↪</span>
+          Odjavi se
+        </button>
+      </div>
 
       <div className="px-5 py-4 border-t border-[#1f1f2e]">
         <p className="text-zinc-600 text-xs">unlockd.art</p>

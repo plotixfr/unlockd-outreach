@@ -59,12 +59,14 @@ export async function POST(req: NextRequest) {
     }
 
     const html = buildHtml(email.body, email.id, email.prospect.id);
+    const subjectToSend =
+      email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
     const { data, error } = await resend.emails.send({
       from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
       to: [email.prospect.email],
       bcc: ["temim.fr@gmail.com"],
-      subject: email.subject,
+      subject: subjectToSend,
       html,
     });
 

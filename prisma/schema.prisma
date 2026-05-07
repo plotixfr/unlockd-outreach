@@ -45,9 +45,11 @@ model Email {
   body        String    @db.Text
   poslat      Boolean   @default(false)
   poslatAt    DateTime?
-  otvoren     Boolean   @default(false)
-  otvorenAt   DateTime?
-  createdAt   DateTime  @default(now())
+  otvoren       Boolean   @default(false)
+  otvorenAt     DateTime?
+  subjectB      String?   @db.Text
+  activeSubject String    @default("A")
+  createdAt     DateTime  @default(now())
 }
 
 model Conversion {

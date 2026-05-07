@@ -57,9 +57,10 @@ Règles:
 - Maximum 120 mots par email
 - Ne jamais mentionner de prix
 - Ne pas ajouter de signature, de nom ni de nom de société à la fin. L'email se termine par la dernière phrase du message. Aucun saut de ligne final.
+- Générer deux lignes d'objet pour chaque email : "subject" (version A) et "subjectB" (version B) — tons légèrement différents pour A/B testing
 
 Return ONLY the JSON array, nothing else:
-[{"tip":"initial","subject":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","body":"<p>...</p>"}]`;
+[{"tip":"initial","subject":"Ligne objet A...","subjectB":"Ligne objet B...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
 }
 
 function extractJsonArray(text: string): string {
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest) {
     console.log("[generate] Raw response (first 300):", rawText.slice(0, 300));
 
     // ── 7. Parse JSON ──
-    let emailData: Array<{ tip: string; subject: string; body: string }>;
+    let emailData: Array<{ tip: string; subject: string; subjectB: string | null; body: string }>;
     try {
       const cleaned = extractJsonArray(rawText);
       console.log("[generate] Cleaned JSON (first 200):", cleaned.slice(0, 200));
@@ -173,6 +174,7 @@ export async function POST(req: NextRequest) {
       emailData = emailData.map((e) => ({
         tip: String(e.tip ?? "initial"),
         subject: String(e.subject ?? ""),
+        subjectB: e.subjectB ? String(e.subjectB) : null,
         body: String(e.body ?? ""),
       }));
       console.log("[generate] Parsed", emailData.length, "emails OK");
@@ -189,7 +191,7 @@ export async function POST(req: NextRequest) {
     const emails = await Promise.all(
       emailData.map((e) =>
         prisma.email.create({
-          data: { prospectId, tip: e.tip, subject: e.subject, body: e.body },
+          data: { prospectId, tip: e.tip, subject: e.subject, subjectB: e.subjectB ?? null, body: e.body },
         })
       )
     );
