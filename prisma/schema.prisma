@@ -30,9 +30,10 @@ model Prospect {
   scheduledFollow1  DateTime?
   scheduledFollow2  DateTime?
   scheduledFollow3  DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
   emails            Email[]
+  conversions       Conversion[]
 }
 
 model Email {
@@ -45,5 +46,16 @@ model Email {
   poslat      Boolean   @default(false)
   poslatAt    DateTime?
   otvoren     Boolean   @default(false)
+  otvorenAt   DateTime?
   createdAt   DateTime  @default(now())
+}
+
+model Conversion {
+  id                 String   @id @default(cuid())
+  prospectId         String
+  prospect           Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  vrijednostProjekta Float
+  datumKonverzije    DateTime
+  napomena           String?
+  createdAt          DateTime @default(now())
 }

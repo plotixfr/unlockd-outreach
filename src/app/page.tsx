@@ -13,7 +13,6 @@ function utcMidnight(offsetDays = 0): Date {
 
 export default async function DashboardPage() {
   const todayStart = utcMidnight();
-  const weekStart = utcMidnight(-7);
   const fourteenDaysAgo = utcMidnight(-14);
 
   const [
@@ -22,7 +21,9 @@ export default async function DashboardPage() {
     replied,
     converted,
     emailsToday,
-    emailsThisWeek,
+    totalSent,
+    totalOpened,
+    conversionSum,
     recentEmails,
     upcomingProspects,
     recentReplies,
@@ -33,7 +34,9 @@ export default async function DashboardPage() {
     prisma.prospect.count({ where: { status: "Replied" } }),
     prisma.prospect.count({ where: { status: "Converted" } }),
     prisma.email.count({ where: { poslat: true, poslatAt: { gte: todayStart } } }),
-    prisma.email.count({ where: { poslat: true, poslatAt: { gte: weekStart } } }),
+    prisma.email.count({ where: { poslat: true } }),
+    prisma.email.count({ where: { otvorenAt: { not: null } } }),
+    prisma.conversion.aggregate({ _sum: { vrijednostProjekta: true } }),
     prisma.email.findMany({
       where: { poslat: true, poslatAt: { gte: fourteenDaysAgo } },
       select: { poslatAt: true },
@@ -52,6 +55,9 @@ export default async function DashboardPage() {
     }),
     ...PIPELINE_ORDER.map((s) => prisma.prospect.count({ where: { status: s } })),
   ]);
+
+  const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+  const totalConversionEur = conversionSum._sum.vrijednostProjekta ?? 0;
 
   const activeCampaigns =
     pipelineCounts[PIPELINE_ORDER.indexOf("Emailed")] +
@@ -86,12 +92,22 @@ export default async function DashboardPage() {
   const maxCount = Math.max(...pipeline.map((p) => p.count), 1);
 
   const statCards = [
-    { label: "Ukupno prospekata", value: total, color: "text-white" },
-    { label: "Zakazano", value: scheduled, color: "text-sky-400" },
-    { label: "Aktivne kampanje", value: activeCampaigns, color: "text-blue-400" },
-    { label: "Odgovorili", value: replied, color: "text-emerald-400" },
-    { label: "Konvertovani", value: converted, color: "text-green-400" },
-    { label: "Emailovi ove sedmice", value: emailsThisWeek, color: "text-violet-400" },
+    { label: "Ukupno prospekata", value: total, color: "text-white", sub: null },
+    { label: "Zakazano", value: scheduled, color: "text-sky-400", sub: null },
+    { label: "Aktivne kampanje", value: activeCampaigns, color: "text-blue-400", sub: null },
+    { label: "Odgovorili", value: replied, color: "text-emerald-400", sub: null },
+    {
+      label: "Open rate",
+      value: `${openRate}%`,
+      color: openRate >= 30 ? "text-emerald-400" : openRate > 0 ? "text-yellow-400" : "text-zinc-500",
+      sub: `${totalOpened} / ${totalSent} poslanih`,
+    },
+    {
+      label: "Ukupno konverzija",
+      value: totalConversionEur > 0 ? `${totalConversionEur.toLocaleString("fr-FR")} €` : `${converted}`,
+      color: "text-green-400",
+      sub: totalConversionEur > 0 ? `${converted} klijent${converted === 1 ? "" : "a"}` : null,
+    },
   ];
 
   return (
@@ -115,10 +131,11 @@ export default async function DashboardPage() {
 
       {/* 6 Stat cards */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {statCards.map(({ label, value, color }) => (
+        {statCards.map(({ label, value, color, sub }) => (
           <div key={label} className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">{label}</p>
             <p className={`text-3xl font-bold ${color}`}>{value}</p>
+            {sub && <p className="text-zinc-600 text-xs mt-1">{sub}</p>}
           </div>
         ))}
       </div>

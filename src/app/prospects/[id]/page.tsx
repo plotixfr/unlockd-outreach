@@ -6,6 +6,9 @@ import { SendEmailButton } from "@/components/SendEmailButton";
 import { StatusSelector } from "@/components/StatusSelector";
 import { DeleteProspectButton } from "@/components/DeleteProspectButton";
 import { CampaignScheduler } from "@/components/CampaignScheduler";
+import { ReplyButton } from "@/components/ReplyButton";
+import { ConversionButton } from "@/components/ConversionButton";
+import { EmailPreviewButton } from "@/components/EmailPreviewButton";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -40,7 +43,10 @@ export default async function ProspectDetailPage({
 
   const prospect = await prisma.prospect.findUnique({
     where: { id },
-    include: { emails: { orderBy: { createdAt: "asc" } } },
+    include: {
+      emails: { orderBy: { createdAt: "asc" } },
+      conversions: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
 
   if (!prospect) notFound();
@@ -48,6 +54,7 @@ export default async function ProspectDetailPage({
   const { emails } = prospect;
   const hasEmails = emails.length > 0;
   const isScheduled = prospect.status === "Scheduled";
+  const fromEmail = process.env.FROM_EMAIL ?? "temim@unlockd.art";
 
   const scheduledDates =
     prospect.scheduledInitial
@@ -76,8 +83,10 @@ export default async function ProspectDetailPage({
           <h1 className="text-2xl font-semibold text-white">{prospect.firmaNaziv}</h1>
           <p className="text-zinc-500 text-sm mt-1">{prospect.email}</p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <StatusSelector prospectId={prospect.id} currentStatus={prospect.status} />
+          <ReplyButton prospectId={prospect.id} currentStatus={prospect.status} />
+          <ConversionButton prospectId={prospect.id} currentStatus={prospect.status} />
           <Link
             href={`/prospects/${id}/edit`}
             className="text-zinc-400 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-[#1a1a28] transition-colors"
@@ -117,6 +126,33 @@ export default async function ProspectDetailPage({
           </div>
         )}
       </div>
+
+      {/* Conversion info */}
+      {prospect.conversions[0] && (
+        <div className="rounded-xl bg-green-950/30 border border-green-800/40 p-5">
+          <p className="text-green-300 font-medium text-sm mb-2">Konvertovan ✓</p>
+          <div className="flex flex-wrap gap-5 text-sm">
+            <div>
+              <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Vrijednost projekta</p>
+              <p className="text-green-300 font-semibold">
+                {prospect.conversions[0].vrijednostProjekta.toLocaleString("fr-FR")} €
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Datum konverzije</p>
+              <p className="text-zinc-300">
+                {new Date(prospect.conversions[0].datumKonverzije).toLocaleDateString("fr-FR")}
+              </p>
+            </div>
+            {prospect.conversions[0].napomena && (
+              <div>
+                <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Napomena</p>
+                <p className="text-zinc-300">{prospect.conversions[0].napomena}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Datumi slanja */}
       {(prospect.datumPrvogMaila ||
@@ -195,7 +231,12 @@ export default async function ProspectDetailPage({
         ) : (
           <div className="space-y-4">
             {emails.map((email) => (
-              <EmailCard key={email.id} email={email} />
+              <EmailCard
+                key={email.id}
+                email={email}
+                prospectEmail={prospect.email}
+                fromEmail={fromEmail}
+              />
             ))}
           </div>
         )}
@@ -206,6 +247,8 @@ export default async function ProspectDetailPage({
 
 function EmailCard({
   email,
+  prospectEmail,
+  fromEmail,
 }: {
   email: {
     id: string;
@@ -214,27 +257,54 @@ function EmailCard({
     body: string;
     poslat: boolean;
     poslatAt: Date | null;
+    otvoren: boolean;
+    otvorenAt: Date | null;
   };
+  prospectEmail: string;
+  fromEmail: string;
 }) {
   return (
     <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f2e]">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <span
-            className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${TIP_COLORS[email.tip] ?? "bg-zinc-700 text-zinc-200"}`}
+            className={`text-xs px-2.5 py-0.5 rounded-full font-medium shrink-0 ${TIP_COLORS[email.tip] ?? "bg-zinc-700 text-zinc-200"}`}
           >
             {TIP_LABELS[email.tip] ?? email.tip}
           </span>
-          <p className="text-zinc-300 text-sm font-medium truncate max-w-sm">
+          <p className="text-zinc-300 text-sm font-medium truncate">
             {email.subject}
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {email.poslatAt && (
             <span className="text-zinc-600 text-xs">
               {new Date(email.poslatAt).toLocaleDateString("fr-FR")}
             </span>
           )}
+          {email.poslat && (
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                email.otvoren
+                  ? "bg-emerald-950/60 text-emerald-400"
+                  : "bg-zinc-800 text-zinc-500"
+              }`}
+              title={
+                email.otvorenAt
+                  ? `Otvoreno: ${new Date(email.otvorenAt).toLocaleString("fr-FR")}`
+                  : undefined
+              }
+            >
+              {email.otvoren ? "Otvoreno ✓" : "Nije otvoreno"}
+            </span>
+          )}
+          <EmailPreviewButton
+            subject={email.subject}
+            body={email.body}
+            tip={email.tip}
+            prospectEmail={prospectEmail}
+            fromEmail={fromEmail}
+          />
           <SendEmailButton emailId={email.id} poslat={email.poslat} />
         </div>
       </div>

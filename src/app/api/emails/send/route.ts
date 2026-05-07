@@ -3,6 +3,8 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
 
 const TIP_STATUS: Record<string, { status: string; field: string }> = {
   initial: { status: "Emailed", field: "datumPrvogMaila" },
@@ -10,6 +12,12 @@ const TIP_STATUS: Record<string, { status: string; field: string }> = {
   follow2: { status: "Follow2", field: "datumFollowUp2" },
   follow3: { status: "Follow3", field: "datumFollowUp3" },
 };
+
+function buildHtml(body: string, emailId: string, prospectId: string): string {
+  const pixel = `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`;
+  const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.</p>`;
+  return body + pixel + unsubscribe;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,12 +58,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const html = buildHtml(email.body, email.id, email.prospect.id);
+
     const { data, error } = await resend.emails.send({
       from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
       to: [email.prospect.email],
       bcc: ["temim.fr@gmail.com"],
       subject: email.subject,
-      html: email.body,
+      html,
     });
 
     if (error) {

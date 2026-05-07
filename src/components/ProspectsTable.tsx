@@ -42,6 +42,7 @@ export function ProspectsTable({ prospects }: Props) {
   const [menuPos, setMenuPos] = useState<MenuPos | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [replyingId, setReplyingId] = useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduledInitial, setScheduledInitial] = useState(defaultInitial());
   const [follow1Days, setFollow1Days] = useState(4);
@@ -114,6 +115,19 @@ export function ProspectsTable({ prospects }: Props) {
       scheduleData: { scheduledInitial, follow1Days, follow2Days, follow3Days },
     });
     setShowScheduleModal(false);
+  };
+
+  const handleReply = async (id: string) => {
+    setReplyingId(id);
+    try {
+      const res = await fetch(`/api/prospects/${id}/reply`, { method: "POST" });
+      if (!res.ok) throw new Error("Greška");
+      router.refresh();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Greška");
+    } finally {
+      setReplyingId(null);
+    }
   };
 
   const handleSingleDelete = async () => {
@@ -288,6 +302,17 @@ export function ProspectsTable({ prospects }: Props) {
             >
               Uredi
             </Link>
+            <button
+              onClick={() => {
+                const id = menuPos.id;
+                setMenuPos(null);
+                handleReply(id);
+              }}
+              disabled={replyingId === menuPos.id}
+              className="w-full flex items-center px-3 py-2.5 text-sm text-emerald-400 hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors disabled:opacity-50"
+            >
+              Označi kao odgovoreno
+            </button>
             <button
               onClick={() => {
                 const p = prospects.find((x) => x.id === menuPos.id);
