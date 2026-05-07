@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { STATUS_BOJE, PIPELINE_ORDER } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 function utcMidnight(offsetDays = 0): Date {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
@@ -10,11 +12,9 @@ function utcMidnight(offsetDays = 0): Date {
 }
 
 export default async function DashboardPage() {
-  const now = new Date();
   const todayStart = utcMidnight();
   const weekStart = utcMidnight(-7);
   const fourteenDaysAgo = utcMidnight(-14);
-  const nextWeek = utcMidnight(7);
 
   const [
     total,
@@ -39,13 +39,10 @@ export default async function DashboardPage() {
       select: { poslatAt: true },
     }),
     prisma.prospect.findMany({
-      where: {
-        status: "Scheduled",
-        scheduledInitial: { gte: now, lte: nextWeek },
-      },
+      where: { status: "Scheduled" },
       select: { id: true, firmaNaziv: true, scheduledInitial: true, nisa: true, grad: true },
       orderBy: { scheduledInitial: "asc" },
-      take: 6,
+      take: 8,
     }),
     prisma.prospect.findMany({
       where: { status: { in: ["Replied", "Converted"] } },
