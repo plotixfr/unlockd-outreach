@@ -55,8 +55,8 @@ Règles:
 - Français impeccable, ton premium
 - Corps HTML: balises p, br, strong uniquement
 - Maximum 120 mots par email
-- Signature: <p><strong>Temim</strong><br>Unlockd.art — Sites web premium</p>
 - Ne jamais mentionner de prix
+- Ne pas ajouter de signature, de nom ni de nom de société à la fin. L'email se termine par la dernière phrase du message. Aucun saut de ligne final.
 
 Return ONLY the JSON array, nothing else:
 [{"tip":"initial","subject":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","body":"<p>...</p>"}]`;
