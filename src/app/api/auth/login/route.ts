@@ -31,6 +31,12 @@ export async function POST(req: NextRequest) {
   const expectedPass = process.env.ADMIN_PASSWORD;
   const secret = process.env.SESSION_SECRET || expectedPass;
 
+  console.log("[login] ADMIN_USERNAME defined:", !!expectedUser, "| value:", JSON.stringify(expectedUser));
+  console.log("[login] ADMIN_PASSWORD defined:", !!expectedPass, "| length:", expectedPass?.length ?? 0);
+  console.log("[login] SESSION_SECRET defined:", !!process.env.SESSION_SECRET);
+  console.log("[login] incoming username:", JSON.stringify(username));
+  console.log("[login] username match:", username === expectedUser, "| password match:", password === expectedPass);
+
   if (
     !username ||
     !password ||
@@ -40,6 +46,15 @@ export async function POST(req: NextRequest) {
     username !== expectedUser ||
     password !== expectedPass
   ) {
+    console.log("[login] Auth failed — reasons:", {
+      noUsername: !username,
+      noPassword: !password,
+      noExpectedUser: !expectedUser,
+      noExpectedPass: !expectedPass,
+      noSecret: !secret,
+      usernameMismatch: username !== expectedUser,
+      passwordMismatch: password !== expectedPass,
+    });
     return NextResponse.json({ error: "Pogrešni kredencijali" }, { status: 401 });
   }
 
