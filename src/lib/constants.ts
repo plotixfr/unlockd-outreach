@@ -11,6 +11,7 @@ export const STATUSI = [
   "Replied",
   "Converted",
   "Unsubscribed",
+  "Bounced",
 ] as const;
 export type Status = (typeof STATUSI)[number];
 
@@ -24,6 +25,7 @@ export const STATUS_BOJE: Record<string, string> = {
   Replied: "bg-emerald-900 text-emerald-200",
   Converted: "bg-green-900 text-green-200",
   Unsubscribed: "bg-red-900 text-red-300",
+  Bounced: "bg-red-950 text-red-400",
 };
 
 export const PIPELINE_ORDER: Status[] = [

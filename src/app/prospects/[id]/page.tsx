@@ -10,6 +10,8 @@ import { ReplyButton } from "@/components/ReplyButton";
 import { ConversionButton } from "@/components/ConversionButton";
 import { EmailPreviewButton } from "@/components/EmailPreviewButton";
 import { SubjectSelector } from "@/components/SubjectSelector";
+import { NotesSection } from "@/components/NotesSection";
+import { ReminderForm } from "@/components/ReminderForm";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -47,6 +49,7 @@ export default async function ProspectDetailPage({
     include: {
       emails: { orderBy: { createdAt: "asc" } },
       conversions: { orderBy: { createdAt: "desc" }, take: 1 },
+      notes: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -204,6 +207,16 @@ export default async function ProspectDetailPage({
           )}
         </div>
       )}
+
+      {/* Reminder */}
+      <ReminderForm
+        prospectId={prospect.id}
+        initialDatum={prospect.podsjetnikDatum}
+        initialNapomena={prospect.podsjetnikNapomena}
+      />
+
+      {/* Notes */}
+      <NotesSection prospectId={prospect.id} initialNotes={prospect.notes} />
 
       {/* Campaign Scheduler */}
       <div className="space-y-3">

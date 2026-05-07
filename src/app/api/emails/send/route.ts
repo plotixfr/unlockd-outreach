@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.email.update({
       where: { id: emailId },
-      data: { poslat: true, poslatAt: now },
+      data: { poslat: true, poslatAt: now, resendId: data?.id ?? null },
     });
 
     if (mapping) {

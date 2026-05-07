@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { STATUS_BOJE } from "@/lib/constants";
+import { QuickStatusBadge } from "@/components/QuickStatusBadge";
 
 interface Prospect {
   id: string;
@@ -250,11 +250,7 @@ export function ProspectsTable({ prospects }: Props) {
                   <td className="px-4 py-3 text-zinc-400">{p.nisa}</td>
                   <td className="px-4 py-3 text-zinc-400">{p.grad}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BOJE[p.status] ?? "bg-zinc-700 text-zinc-200"}`}
-                    >
-                      {p.status}
-                    </span>
+                    <QuickStatusBadge prospectId={p.id} status={p.status} />
                   </td>
                   <td className="px-4 py-3 text-zinc-500">
                     {p._count.emails > 0 ? (

@@ -7,7 +7,8 @@ function isPublic(pathname: string): boolean {
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/track/open/") ||
-    pathname.startsWith("/api/unsubscribe/")
+    pathname.startsWith("/api/unsubscribe/") ||
+    pathname.startsWith("/api/webhooks/")
   );
 }
 

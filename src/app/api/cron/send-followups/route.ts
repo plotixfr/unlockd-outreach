@@ -12,8 +12,8 @@ function buildHtml(body: string, emailId: string, prospectId: string): string {
   return body + pixel + unsubscribe;
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  const { error } = await resend.emails.send({
+async function sendEmail(to: string, subject: string, html: string): Promise<string | null> {
+  const { data, error } = await resend.emails.send({
     from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
     to: [to],
     bcc: ["temim.fr@gmail.com"],
@@ -21,6 +21,7 @@ async function sendEmail(to: string, subject: string, html: string) {
     html,
   });
   if (error) throw new Error(error.message);
+  return data?.id ?? null;
 }
 
 export async function GET(req: NextRequest) {
@@ -57,11 +58,11 @@ export async function GET(req: NextRequest) {
             const subjectToSend =
               email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
             const html = buildHtml(email.body, email.id, prospect.id);
-            await sendEmail(prospect.email, subjectToSend, html);
+            const resendId = await sendEmail(prospect.email, subjectToSend, html);
             const sentAt = new Date();
             await prisma.email.update({
               where: { id: email.id },
-              data: { poslat: true, poslatAt: sentAt },
+              data: { poslat: true, poslatAt: sentAt, resendId },
             });
             await prisma.prospect.update({
               where: { id: prospect.id },
@@ -143,11 +144,11 @@ export async function GET(req: NextRequest) {
                 ? followupEmail.subjectB
                 : followupEmail.subject;
             const html = buildHtml(followupEmail.body, followupEmail.id, prospect.id);
-            await sendEmail(prospect.email, subjectToSend, html);
+            const resendId = await sendEmail(prospect.email, subjectToSend, html);
             const sentAt = new Date();
             await prisma.email.update({
               where: { id: followupEmail.id },
-              data: { poslat: true, poslatAt: sentAt },
+              data: { poslat: true, poslatAt: sentAt, resendId },
             });
             await prisma.prospect.update({
               where: { id: prospect.id },

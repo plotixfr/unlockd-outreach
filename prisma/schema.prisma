@@ -26,14 +26,17 @@ model Prospect {
   datumFollowUp2    DateTime?
   datumFollowUp3    DateTime?
   datumOdgovora     DateTime?
-  scheduledInitial  DateTime?
-  scheduledFollow1  DateTime?
-  scheduledFollow2  DateTime?
-  scheduledFollow3  DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  emails            Email[]
-  conversions       Conversion[]
+  scheduledInitial   DateTime?
+  scheduledFollow1   DateTime?
+  scheduledFollow2   DateTime?
+  scheduledFollow3   DateTime?
+  podsjetnikDatum    DateTime?
+  podsjetnikNapomena String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  emails             Email[]
+  conversions        Conversion[]
+  notes              Note[]
 }
 
 model Email {
@@ -49,6 +52,7 @@ model Email {
   otvorenAt     DateTime?
   subjectB      String?   @db.Text
   activeSubject String    @default("A")
+  resendId      String?
   createdAt     DateTime  @default(now())
 }
 
@@ -60,4 +64,12 @@ model Conversion {
   datumKonverzije    DateTime
   napomena           String?
   createdAt          DateTime @default(now())
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  prospectId String
+  prospect   Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  tekst      String   @db.Text
+  createdAt  DateTime @default(now())
 }
