@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { NISE, STATUSI } from "@/lib/constants";
+import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
+
+export const dynamic = "force-dynamic";
 
 export default async function ProspectsPage({
   searchParams,
@@ -22,20 +24,27 @@ export default async function ProspectsPage({
   if (nisa) where.nisa = nisa;
   if (status) where.status = status;
 
-  const prospects = await prisma.prospect.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      firmaNaziv: true,
-      email: true,
-      nisa: true,
-      grad: true,
-      status: true,
-      createdAt: true,
-      _count: { select: { emails: true } },
-    },
-  });
+  const [prospects, niseGroups] = await Promise.all([
+    prisma.prospect.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        firmaNaziv: true,
+        email: true,
+        nisa: true,
+        grad: true,
+        status: true,
+        createdAt: true,
+        _count: { select: { emails: true } },
+      },
+    }),
+    prisma.prospect.groupBy({
+      by: ["nisa"],
+      orderBy: { nisa: "asc" },
+    }),
+  ]);
+  const availableNise = niseGroups.map((g) => g.nisa);
 
   const makeHref = (key: string, value: string, current: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
@@ -75,7 +84,7 @@ export default async function ProspectsPage({
           >
             Sve niše
           </Link>
-          {NISE.map((n) => (
+          {availableNise.map((n) => (
             <Link
               key={n}
               href={makeHref("nisa", n, currentFilters)}

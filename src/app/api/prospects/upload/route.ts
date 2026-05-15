@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Papa from "papaparse";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { NISE, STATUSI } from "@/lib/constants";
+import { STATUSI } from "@/lib/constants";
 
 // PapaParse returns "" for empty cells; Zod enums don't accept "".
 // This helper converts empty string → undefined so optional() works.
@@ -11,6 +11,25 @@ const optStr = z
   .optional()
   .transform((v) => v || undefined);
 
+// Common aliases get normalised to a canonical label so the dashboard filters
+// don't fragment ("hotel" vs "Hôtel" vs "hotellerie"). Anything not in the map
+// is passed through as-is — Claude handles arbitrary niches at generation time.
+const NICHE_ALIAS: Record<string, string> = {
+  hotel: "Hotel",
+  hôtel: "Hotel",
+  hotellerie: "Hotel",
+  hôtellerie: "Hotel",
+  restaurant: "Restaurant",
+  restauration: "Restaurant",
+  architecture: "Architecture",
+  architecte: "Architecture",
+  property: "Property",
+  propriete: "Property",
+  propriété: "Property",
+  immobilier: "Property",
+  "real estate": "Property",
+};
+
 const ProspectRowSchema = z.object({
   firmaNaziv: z.string().min(1, "firmaNaziv je obavezno"),
   kontaktIme: optStr,
@@ -18,26 +37,15 @@ const ProspectRowSchema = z.object({
   email: z.string().email("Neispravan email"),
   website: optStr,
   instagram: optStr,
-  // Accept case-insensitive nisa values and common French/English variants
+  // Niche is free-form: any non-empty string is accepted. Known aliases are
+  // normalised so the dashboard filters stay consistent.
   nisa: z
     .string()
     .min(1, "nisa je obavezno")
     .transform((v) => {
-      const map: Record<string, string> = {
-        hotel: "Hotel",
-        hôtel: "Hotel",
-        hotellerie: "Hotel",
-        hôtellerie: "Hotel",
-        restaurant: "Restaurant",
-        restauration: "Restaurant",
-        architecture: "Architecture",
-        property: "Property",
-        immobilier: "Property",
-        "real estate": "Property",
-      };
-      return map[v.toLowerCase().trim()] ?? v;
-    })
-    .pipe(z.enum(NISE, { error: `nisa mora biti: ${NISE.join(", ")}` })),
+      const trimmed = v.trim();
+      return NICHE_ALIAS[trimmed.toLowerCase()] ?? trimmed;
+    }),
   grad: z.string().min(1, "grad je obavezno"),
   opisFirme: optStr,
   // Clamp kvalitetSajta to 1–5, skip invalid/missing silently

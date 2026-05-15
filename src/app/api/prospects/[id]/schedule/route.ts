@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { processDueEmails } from "@/lib/sendEmail";
+
+const SEND_NOW_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(
   req: NextRequest,
@@ -58,8 +61,22 @@ export async function POST(
       },
     });
 
+    // If the start time is now or already in the past (within 10 min window),
+    // trigger sending immediately so the user doesn't wait for the daily cron.
+    let sentNow = 0;
+    const dueNow = initial.getTime() <= Date.now() + SEND_NOW_WINDOW_MS;
+    if (dueNow) {
+      try {
+        const { totalSent } = await processDueEmails({ onlyProspectIds: [id] });
+        sentNow = totalSent;
+      } catch (e) {
+        console.error("[schedule] auto-send failed:", e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
+      sentNow,
       dates: { initial, follow1, follow2, follow3 },
     });
   } catch (err) {

@@ -1,5 +1,16 @@
-export const NISE = ["Hotel", "Restaurant", "Architecture", "Property"] as const;
-export type Nisa = (typeof NISE)[number];
+// Suggested niches — used as fallback labels in the upload guide. The actual
+// niche field on Prospect is a free-form string; CSV uploads accept any value
+// and the dashboard filter now reads distinct niches from the DB.
+export const NISE_PREDLOZENE = [
+  "Hotel",
+  "Restaurant",
+  "Architecture",
+  "Property",
+] as const;
+
+// Kept for any legacy imports that still expect this name.
+export const NISE = NISE_PREDLOZENE;
+export type Nisa = string;
 
 export const STATUSI = [
   "New",

@@ -20,10 +20,12 @@ interface Props {
 const TIP_LABELS = ["Email 1 — Initial", "Email 2 — Follow-up", "Email 3 — Preuve sociale", "Email 4 — Final"];
 
 function defaultInitial(): string {
+  // "Now" in local time. The schedule endpoint sends immediately for any
+  // scheduledInitial within +10min, so the default is fire-on-click.
   const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(9, 0, 0, 0);
-  return d.toISOString().slice(0, 16);
+  d.setSeconds(0, 0);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function fmtDate(d: Date | null | undefined): string {
@@ -41,6 +43,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<ScheduledDates | null>(null);
+  const [sentNow, setSentNow] = useState(0);
   const router = useRouter();
 
   if (!hasEmails) {
@@ -83,7 +86,9 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
     const dates = [success.initial, success.follow1, success.follow2, success.follow3];
     return (
       <div className="rounded-xl bg-emerald-950/40 border border-emerald-800/40 p-5 space-y-3">
-        <p className="text-emerald-300 font-medium text-sm">Kampanja pokrenuta</p>
+        <p className="text-emerald-300 font-medium text-sm">
+          {sentNow > 0 ? "Prvi email poslan — kampanja pokrenuta" : "Kampanja zakazana"}
+        </p>
         <div className="space-y-1.5">
           {dates.map((d, i) => (
             <div key={i} className="flex items-center gap-3 text-sm">
@@ -92,6 +97,11 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
             </div>
           ))}
         </div>
+        {sentNow > 0 && (
+          <p className="text-emerald-400/80 text-xs">
+            Follow-up emailovi će ići automatski po rasporedu — bez ručnih klikova.
+          </p>
+        )}
       </div>
     );
   }
@@ -105,7 +115,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scheduledInitial, follow1Days, follow2Days, follow3Days }),
       });
-      let data: { success?: boolean; dates?: Record<string, string>; error?: string } = {};
+      let data: { success?: boolean; dates?: Record<string, string>; sentNow?: number; error?: string } = {};
       try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }
       if (!res.ok) throw new Error(data.error || "Greška");
       const d = data.dates!;
@@ -113,6 +123,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
         initial: new Date(d.initial), follow1: new Date(d.follow1),
         follow2: new Date(d.follow2), follow3: new Date(d.follow3),
       });
+      setSentNow(data.sentNow ?? 0);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Greška");
@@ -182,7 +193,9 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
         className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
       >
         {loading && <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-        {loading ? "Zakazivanje..." : "Pokreni kampanju"}
+        {loading
+          ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Slanje..." : "Zakazivanje...")
+          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Pošalji odmah i zakaži follow-up" : "Pokreni kampanju")}
       </button>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Papa from "papaparse";
 import Link from "next/link";
-import { NISE } from "@/lib/constants";
+import { NISE_PREDLOZENE } from "@/lib/constants";
 
 const CSV_KOLONE = [
   "firmaNaziv", "kontaktIme", "kontaktPozicija", "email",
@@ -266,8 +266,7 @@ export default function UploadPage() {
           ))}
         </div>
         <p className="text-zinc-600 text-xs mt-3">
-          Polje <code className="text-zinc-400">nisa</code> mora biti:{" "}
-          {NISE.join(", ")} — Duplikati (isti email) se automatski preskaču.
+          Polje <code className="text-zinc-400">nisa</code> prihvata bilo koju vrijednost (npr. {NISE_PREDLOZENE.join(", ")}, Spa, Avocat, Boutique…). Claude prilagođava email tonu svakog sektora. Duplikati (isti email) se automatski preskaču.
         </p>
       </div>
     </div>

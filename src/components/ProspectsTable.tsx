@@ -28,10 +28,11 @@ interface Props {
 }
 
 function defaultInitial(): string {
+  // "Now" — bulk schedule will auto-send for any prospect whose initial is due.
   const d = new Date();
-  d.setDate(d.getDate() + 1);
-  d.setHours(9, 0, 0, 0);
-  return d.toISOString().slice(0, 16);
+  d.setSeconds(0, 0);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function ProspectsTable({ prospects }: Props) {
@@ -89,7 +90,7 @@ export function ProspectsTable({ prospects }: Props) {
 
   const selectedIds = Array.from(selected);
 
-  const bulkAction = async (action: string, extra?: Record<string, unknown>) => {
+  const bulkAction = async (action: string, extra?: Record<string, unknown>): Promise<{ error?: string; sentNow?: number; scheduled?: number; generated?: number; deleted?: number }> => {
     setBulkLoading(action);
     setBulkError("");
     try {
@@ -98,23 +99,30 @@ export function ProspectsTable({ prospects }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ids: selectedIds, ...extra }),
       });
-      let data: { error?: string } = {};
+      let data: { error?: string; sentNow?: number; scheduled?: number; generated?: number; deleted?: number } = {};
       try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }
       if (!res.ok) throw new Error(data.error || "Greška");
       if (action === "delete") setSelected(new Set());
       router.refresh();
+      return data;
     } catch (e) {
       setBulkError(e instanceof Error ? e.message : "Greška");
+      return {};
     } finally {
       setBulkLoading(null);
     }
   };
 
   const handleBulkSchedule = async () => {
-    await bulkAction("schedule", {
+    const result = await bulkAction("schedule", {
       scheduleData: { scheduledInitial, follow1Days, follow2Days, follow3Days },
     });
     setShowScheduleModal(false);
+    if (result.sentNow && result.sentNow > 0) {
+      setBulkError(""); // Clear any prior error.
+      // Lightweight inline confirmation — keep alert() out of the way.
+      console.log(`[bulk schedule] ${result.sentNow} initial emails sent immediately`);
+    }
   };
 
   const handleReply = async (id: string) => {
@@ -414,7 +422,9 @@ export function ProspectsTable({ prospects }: Props) {
                 {bulkLoading === "schedule" && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                {bulkLoading === "schedule" ? "Zakazivanje..." : "Pokreni kampanje"}
+                {bulkLoading === "schedule"
+                  ? (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Slanje..." : "Zakazivanje...")
+                  : (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Pošalji odmah i zakaži follow-up" : "Pokreni kampanje")}
               </button>
             </div>
           </div>

@@ -1,34 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray } from "@/lib/emailPrompt";
+import { processDueEmails } from "@/lib/sendEmail";
 
 const MODEL = "claude-sonnet-4-6";
-
-const SYSTEM_PROMPT = `Tu es un expert en développement web haut de gamme. Tu travailles pour Unlockd.art, un studio parisien qui crée des sites web premium pour l'hôtellerie, l'architecture et l'immobilier. Tu dois écrire des cold emails très personnalisés, courts, professionnels et élégants. Jamais agressifs. Toujours en français impeccable.
-
-IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
-
-const NICHE_FR: Record<string, string> = {
-  Hotel: "hôtellerie", Restaurant: "restauration",
-  Architecture: "architecture", Property: "immobilier",
-};
-
-function buildPrompt(p: { firmaNaziv: string; kontaktIme: string | null; kontaktPozicija: string | null; nisa: string; grad: string; website: string | null; instagram: string | null; opisFirme: string | null; kvalitetSajta: number | null; napomena: string | null }) {
-  const nicheLabel = NICHE_FR[p.nisa] ?? p.nisa;
-  const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ");
-  return `Génère 4 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact || "N/A"}. Site: ${p.website || "Pas de site"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5.
-
-Types: "initial","follow1","follow2","follow3". Règles: français, HTML simple, max 120 mots, pas de signature. Deux lignes d'objet par email ("subject" version A, "subjectB" version B) pour A/B testing.
-
-Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
-}
-
-function extractJsonArray(text: string): string {
-  const s = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-  const start = s.indexOf("[");
-  const end = s.lastIndexOf("]");
-  return start !== -1 && end > start ? s.slice(start, end + 1) : s;
-}
+const SEND_NOW_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,34 +42,52 @@ export async function POST(req: NextRequest) {
       let generated = 0;
       const failed: string[] = [];
 
-      for (const prospect of prospects) {
-        try {
-          await prisma.email.deleteMany({ where: { prospectId: prospect.id } });
+      // Run with limited concurrency so 50-prospect uploads finish without
+      // tripping the 10s function timeout AND without spamming Anthropic.
+      const concurrency = 3;
+      let i = 0;
+      const workers = Array.from({ length: Math.min(concurrency, prospects.length) }, async () => {
+        while (true) {
+          const idx = i++;
+          if (idx >= prospects.length) return;
+          const prospect = prospects[idx];
+          try {
+            await prisma.email.deleteMany({ where: { prospectId: prospect.id } });
 
-          const message = await anthropic.messages.create({
-            model: MODEL, max_tokens: 4096,
-            system: SYSTEM_PROMPT,
-            messages: [{ role: "user", content: buildPrompt(prospect) }],
-          });
+            const message = await anthropic.messages.create({
+              model: MODEL,
+              max_tokens: 4096,
+              system: EMAIL_SYSTEM_PROMPT,
+              messages: [{ role: "user", content: buildEmailPrompt(prospect, { compact: true }) }],
+            });
 
-          const content = message.content[0];
-          if (!content || content.type !== "text") throw new Error("No text content");
+            const content = message.content[0];
+            if (!content || content.type !== "text") throw new Error("No text content");
 
-          const cleaned = extractJsonArray(content.text);
-          const emailData: Array<{ tip: string; subject: string; subjectB?: string; body: string }> = JSON.parse(cleaned);
+            const cleaned = extractJsonArray(content.text);
+            const emailData: Array<{ tip: string; subject: string; subjectB?: string; body: string }> =
+              JSON.parse(cleaned);
 
-          await Promise.all(
-            emailData.map((e) =>
-              prisma.email.create({
-                data: { prospectId: prospect.id, tip: e.tip, subject: e.subject, subjectB: e.subjectB ?? null, body: e.body },
-              })
-            )
-          );
-          generated++;
-        } catch (e) {
-          failed.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "Greška"}`);
+            await Promise.all(
+              emailData.map((e) =>
+                prisma.email.create({
+                  data: {
+                    prospectId: prospect.id,
+                    tip: e.tip,
+                    subject: e.subject,
+                    subjectB: e.subjectB ?? null,
+                    body: e.body,
+                  },
+                })
+              )
+            );
+            generated++;
+          } catch (e) {
+            failed.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "Greška"}`);
+          }
         }
-      }
+      });
+      await Promise.all(workers);
 
       return NextResponse.json({ success: true, generated, failed });
     }
@@ -120,6 +115,7 @@ export async function POST(req: NextRequest) {
 
       let scheduled = 0;
       const skipped: string[] = [];
+      const scheduledIds: string[] = [];
 
       for (const p of prospects) {
         const hasCampaign = p.emails.some((e) => e.tip === "initial");
@@ -129,12 +125,31 @@ export async function POST(req: NextRequest) {
         }
         await prisma.prospect.update({
           where: { id: p.id },
-          data: { status: "Scheduled", scheduledInitial: initial, scheduledFollow1: follow1, scheduledFollow2: follow2, scheduledFollow3: follow3 },
+          data: {
+            status: "Scheduled",
+            scheduledInitial: initial,
+            scheduledFollow1: follow1,
+            scheduledFollow2: follow2,
+            scheduledFollow3: follow3,
+          },
         });
         scheduled++;
+        scheduledIds.push(p.id);
       }
 
-      return NextResponse.json({ success: true, scheduled, skipped });
+      // Send any campaigns whose initial is due now (or within 10 min).
+      let sentNow = 0;
+      const dueNow = initial.getTime() <= Date.now() + SEND_NOW_WINDOW_MS;
+      if (dueNow && scheduledIds.length > 0) {
+        try {
+          const { totalSent } = await processDueEmails({ onlyProspectIds: scheduledIds });
+          sentNow = totalSent;
+        } catch (e) {
+          console.error("[bulk schedule] auto-send failed:", e);
+        }
+      }
+
+      return NextResponse.json({ success: true, scheduled, skipped, sentNow });
     }
 
     return NextResponse.json({ error: "Nepoznata akcija" }, { status: 400 });
