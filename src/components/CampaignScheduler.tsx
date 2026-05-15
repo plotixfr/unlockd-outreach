@@ -110,10 +110,14 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
     setLoading(true);
     setError("");
     try {
+      // datetime-local strings have no timezone. Browsers parse them as the
+      // user's local TZ; Vercel parses them as UTC. Convert to absolute ISO
+      // here so the server sees the user's intent regardless of where it runs.
+      const scheduledInitialIso = new Date(scheduledInitial).toISOString();
       const res = await fetch(`/api/prospects/${prospectId}/schedule`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduledInitial, follow1Days, follow2Days, follow3Days }),
+        body: JSON.stringify({ scheduledInitial: scheduledInitialIso, follow1Days, follow2Days, follow3Days }),
       });
       let data: { success?: boolean; dates?: Record<string, string>; sentNow?: number; error?: string } = {};
       try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }

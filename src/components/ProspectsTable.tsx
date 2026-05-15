@@ -114,13 +114,16 @@ export function ProspectsTable({ prospects }: Props) {
   };
 
   const handleBulkSchedule = async () => {
+    // datetime-local → absolute ISO so the server doesn't reinterpret the
+    // user's local time as UTC (which would push it hours into the future
+    // and skip the auto-send window).
+    const scheduledInitialIso = new Date(scheduledInitial).toISOString();
     const result = await bulkAction("schedule", {
-      scheduleData: { scheduledInitial, follow1Days, follow2Days, follow3Days },
+      scheduleData: { scheduledInitial: scheduledInitialIso, follow1Days, follow2Days, follow3Days },
     });
     setShowScheduleModal(false);
     if (result.sentNow && result.sentNow > 0) {
       setBulkError(""); // Clear any prior error.
-      // Lightweight inline confirmation — keep alert() out of the way.
       console.log(`[bulk schedule] ${result.sentNow} initial emails sent immediately`);
     }
   };
