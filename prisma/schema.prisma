@@ -73,3 +73,10 @@ model Note {
   tekst      String   @db.Text
   createdAt  DateTime @default(now())
 }
+
+model NicheTemplate {
+  nisa       String   @id
+  promptHint String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ClearDatabaseButton } from "@/components/ClearDatabaseButton";
+import { NicheTemplatesEditor } from "@/components/NicheTemplatesEditor";
+
+export const dynamic = "force-dynamic";
 
 function StatusDot({ ok }: { ok: boolean }) {
   return (
@@ -26,6 +29,8 @@ export default async function SettingsPage() {
   const resendKey = !!process.env.RESEND_API_KEY;
   const fromEmail = process.env.FROM_EMAIL || "temim@unlockd.art";
   const cronSecret = !!process.env.CRON_SECRET;
+  const imapConfigured = !!(process.env.IMAP_USER && process.env.IMAP_PASSWORD);
+  const dailyCap = Number(process.env.DAILY_SEND_CAP ?? 30);
 
   const [totalProspects, totalEmails, sentEmails, scheduledProspects] = await Promise.all([
     prisma.prospect.count(),
@@ -54,11 +59,20 @@ export default async function SettingsPage() {
           <Row label="Cron secret">
             <StatusDot ok={cronSecret} />
           </Row>
+          <Row label="IMAP reply detection">
+            <StatusDot ok={imapConfigured} />
+          </Row>
           <Row label="From email">
             <span className="text-zinc-300 text-sm font-mono">{fromEmail}</span>
           </Row>
+          <Row label="Daily send cap">
+            <span className="text-zinc-300 text-sm font-mono">{dailyCap} /dan</span>
+          </Row>
         </div>
       </div>
+
+      {/* Niche templates */}
+      <NicheTemplatesEditor />
 
       {/* Cron info */}
       <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">

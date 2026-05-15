@@ -50,14 +50,20 @@ export interface PromptProspect {
   napomena: string | null;
 }
 
-export function buildEmailPrompt(p: PromptProspect, opts: { compact?: boolean } = {}): string {
+export function buildEmailPrompt(
+  p: PromptProspect,
+  opts: { compact?: boolean; nicheHint?: string | null } = {}
+): string {
   const nicheLabel = niceNicheLabel(p.nisa);
   const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ") || "Non renseigné";
+  const hintBlock = opts.nicheHint?.trim()
+    ? `\n\nInstructions spécifiques pour le secteur "${nicheLabel}" (à respecter scrupuleusement):\n${opts.nicheHint.trim()}`
+    : "";
 
   if (opts.compact) {
     return `Génère 4 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Pas de site"}. Instagram: ${p.instagram || "N/A"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5. Notes: ${p.napomena || "Aucune"}.
 
-Types: "initial","follow1","follow2","follow3". Adapte ton, références et arguments au secteur "${nicheLabel}". Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email, pas de prix, pas de signature ni nom de société à la fin. Pour chaque email, deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing.
+Types: "initial","follow1","follow2","follow3". Adapte ton, références et arguments au secteur "${nicheLabel}". Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email, pas de prix, pas de signature ni nom de société à la fin. Pour chaque email, deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing.${hintBlock}
 
 Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
   }
@@ -87,7 +93,7 @@ Règles:
 - Maximum 120 mots par email
 - Ne jamais mentionner de prix
 - Ne pas ajouter de signature, de nom ni de nom de société à la fin. L'email se termine par la dernière phrase du message. Aucun saut de ligne final.
-- Générer deux lignes d'objet pour chaque email : "subject" (version A) et "subjectB" (version B) — tons légèrement différents pour A/B testing
+- Générer deux lignes d'objet pour chaque email : "subject" (version A) et "subjectB" (version B) — tons légèrement différents pour A/B testing${hintBlock}
 
 Return ONLY the JSON array, nothing else:
 [{"tip":"initial","subject":"Ligne objet A...","subjectB":"Ligne objet B...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;

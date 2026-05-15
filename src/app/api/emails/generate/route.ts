@@ -48,7 +48,13 @@ export async function POST(req: NextRequest) {
       await prisma.email.deleteMany({ where: { prospectId } });
     }
 
-    console.log("[generate] Calling model:", MODEL, "| prospect:", prospect.firmaNaziv, "| niche:", prospect.nisa);
+    const nicheTemplate = await prisma.nicheTemplate.findUnique({ where: { nisa: prospect.nisa } });
+    console.log(
+      "[generate] Calling model:", MODEL,
+      "| prospect:", prospect.firmaNaziv,
+      "| niche:", prospect.nisa,
+      "| hint:", nicheTemplate ? "yes" : "no"
+    );
 
     let message: Anthropic.Message;
     try {
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
         model: MODEL,
         max_tokens: 4096,
         system: EMAIL_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildEmailPrompt(prospect) }],
+        messages: [{ role: "user", content: buildEmailPrompt(prospect, { nicheHint: nicheTemplate?.promptHint }) }],
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

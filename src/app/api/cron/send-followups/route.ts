@@ -9,9 +9,16 @@ async function run(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { totalSent, results } = await processDueEmails();
-    console.log(`[cron] send-followups: ${totalSent} emails sent`, results);
-    return NextResponse.json({ ok: true, totalSent, results });
+    // Cron sweep respects Paris business hours + the daily send cap to protect
+    // deliverability. Manual triggers from the UI bypass business hours.
+    const { totalSent, totalSkipped, capRemaining, results } = await processDueEmails({
+      enforceBusinessHours: true,
+    });
+    console.log(
+      `[cron] send-followups: ${totalSent} sent, ${totalSkipped} skipped, ${capRemaining} cap remaining`,
+      results
+    );
+    return NextResponse.json({ ok: true, totalSent, totalSkipped, capRemaining, results });
   } catch (err) {
     console.error("[cron] Unhandled error:", err);
     return NextResponse.json({ error: "Serverska greška u cron job-u" }, { status: 500 });

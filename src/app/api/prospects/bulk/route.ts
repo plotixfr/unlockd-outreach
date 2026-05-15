@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
       const prospects = await prisma.prospect.findMany({
         where: { id: { in: ids } },
       });
+      const nichesInBatch = Array.from(new Set(prospects.map((p) => p.nisa)));
+      const hintRows = await prisma.nicheTemplate.findMany({
+        where: { nisa: { in: nichesInBatch } },
+      });
+      const hintByNiche = new Map(hintRows.map((h) => [h.nisa, h.promptHint]));
 
       let generated = 0;
       const failed: string[] = [];
@@ -58,7 +63,10 @@ export async function POST(req: NextRequest) {
               model: MODEL,
               max_tokens: 4096,
               system: EMAIL_SYSTEM_PROMPT,
-              messages: [{ role: "user", content: buildEmailPrompt(prospect, { compact: true }) }],
+              messages: [{
+                role: "user",
+                content: buildEmailPrompt(prospect, { compact: true, nicheHint: hintByNiche.get(prospect.nisa) ?? null }),
+              }],
             });
 
             const content = message.content[0];

@@ -12,6 +12,7 @@ import { EmailPreviewButton } from "@/components/EmailPreviewButton";
 import { SubjectSelector } from "@/components/SubjectSelector";
 import { NotesSection } from "@/components/NotesSection";
 import { ReminderForm } from "@/components/ReminderForm";
+import { EmailEditor } from "@/components/EmailEditor";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -334,6 +335,15 @@ function EmailCard({
         className="px-5 py-4 text-sm text-zinc-300 leading-relaxed prose prose-invert prose-sm max-w-none"
         dangerouslySetInnerHTML={{ __html: email.body }}
       />
+      <div className="px-5 py-3 border-t border-[#1f1f2e] bg-[#0c0c12]">
+        <EmailEditor
+          emailId={email.id}
+          initialSubject={email.subject}
+          initialSubjectB={email.subjectB}
+          initialBody={email.body}
+          poslat={email.poslat}
+        />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { checkReplies } from "@/lib/checkReplies";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SUMMARY_TO = "temim.fr@gmail.com";
@@ -95,6 +96,19 @@ export async function GET(req: NextRequest) {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayEnd = new Date(todayStart.getTime() + 86400000);
 
+  // Pull replies first so today's summary reflects auto-detected ones too.
+  let replyCheck: Awaited<ReturnType<typeof checkReplies>> | null = null;
+  try {
+    replyCheck = await checkReplies();
+    if (replyCheck.configured) {
+      console.log(
+        `[daily-summary] reply check: scanned=${replyCheck.scanned} matched=${replyCheck.matched} errors=${replyCheck.errors.length}`
+      );
+    }
+  } catch (e) {
+    console.error("[daily-summary] reply check threw:", e);
+  }
+
   const [emailsSent, emailsOpened, emailsBounced, newProspects, replies, reminders] =
     await Promise.all([
       prisma.email.count({ where: { poslatAt: { gte: yesterday } } }),
@@ -160,5 +174,15 @@ export async function GET(req: NextRequest) {
   }
 
   console.log("[daily-summary] Sent. emailsSent:", emailsSent, "replies:", replies.length, "reminders:", reminders.length);
-  return NextResponse.json({ ok: true, emailsSent, emailsOpened, openRate, emailsBounced, newProspects, replies: replies.length, reminders: reminders.length });
+  return NextResponse.json({
+    ok: true,
+    emailsSent,
+    emailsOpened,
+    openRate,
+    emailsBounced,
+    newProspects,
+    replies: replies.length,
+    reminders: reminders.length,
+    replyCheck,
+  });
 }

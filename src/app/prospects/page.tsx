@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
+import { FilterActions } from "@/components/FilterActions";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,9 @@ export default async function ProspectsPage({
           className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
         />
       </form>
+
+      {/* Filter-aware bulk actions (export, generate-all, delete-all) */}
+      <FilterActions filter={{ search, nisa, status }} total={prospects.length} />
 
       {prospects.length === 0 && !search && !nisa && !status ? (
         <div className="rounded-xl border border-dashed border-[#1f1f2e] p-12 text-center">
