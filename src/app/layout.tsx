@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -26,11 +26,19 @@ export default async function RootLayout({
 }>) {
   const cookieStore = await cookies();
   const hasSession = cookieStore.has("unlockd_session");
+  const hdrs = await headers();
+  const pathname = hdrs.get("x-pathname") || "";
+  // Pages that should render edge-to-edge without the operator sidebar even
+  // when Temim is logged in: the public audit widget and the printable
+  // brief/proposal documents.
+  const standalone =
+    pathname.startsWith("/audit") ||
+    /^\/prospects\/[^/]+\/(brief|proposal)/.test(pathname);
 
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="bg-[#07070b] text-[#f4f4f6] min-h-screen antialiased">
-        {hasSession ? (
+        {hasSession && !standalone ? (
           <div className="flex min-h-screen print:block">
             <div className="print:hidden">
               <Sidebar />

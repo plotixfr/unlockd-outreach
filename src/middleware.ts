@@ -9,7 +9,10 @@ function isPublic(pathname: string): boolean {
     pathname.startsWith("/api/track/open/") ||
     pathname.startsWith("/api/track/calendly/") ||
     pathname.startsWith("/api/unsubscribe/") ||
-    pathname.startsWith("/api/webhooks/")
+    pathname.startsWith("/api/webhooks/") ||
+    pathname === "/audit" ||
+    pathname.startsWith("/audit/") ||
+    pathname.startsWith("/api/audit/")
   );
 }
 
@@ -28,10 +31,18 @@ async function computeToken(secret: string, username: string): Promise<string> {
     .join("");
 }
 
+function passthrough(req: NextRequest, pathname: string): NextResponse {
+  // Expose the current pathname to server components via headers() so the
+  // root layout can decide whether to wrap with the sidebar.
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers } });
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (isPublic(pathname)) return NextResponse.next();
+  if (isPublic(pathname)) return passthrough(req, pathname);
 
   const cookie = req.cookies.get(COOKIE)?.value;
   const secret = process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD;
@@ -48,7 +59,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  return NextResponse.next();
+  return passthrough(req, pathname);
 }
 
 export const config = {
