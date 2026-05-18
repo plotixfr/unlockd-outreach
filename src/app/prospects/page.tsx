@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
 import { FilterActions } from "@/components/FilterActions";
+import { ScoreUnscoredButton } from "@/components/ScoreUnscoredButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +26,10 @@ export default async function ProspectsPage({
   if (nisa) where.nisa = nisa;
   if (status) where.status = status;
 
-  const [prospects, niseGroups] = await Promise.all([
+  const [prospects, niseGroups, unscoredCount] = await Promise.all([
     prisma.prospect.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ qualityScore: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       select: {
         id: true,
         firmaNaziv: true,
@@ -36,6 +37,7 @@ export default async function ProspectsPage({
         nisa: true,
         grad: true,
         status: true,
+        qualityScore: true,
         createdAt: true,
         _count: { select: { emails: true } },
       },
@@ -44,6 +46,7 @@ export default async function ProspectsPage({
       by: ["nisa"],
       orderBy: { nisa: "asc" },
     }),
+    prisma.prospect.count({ where: { qualityScore: null } }),
   ]);
   const availableNise = niseGroups.map((g) => g.nisa);
 
@@ -131,6 +134,17 @@ export default async function ProspectsPage({
 
       {/* Filter-aware bulk actions (export, generate-all, delete-all) */}
       <FilterActions filter={{ search, nisa, status }} total={prospects.length} />
+
+      {/* Quality scoring — backfill score for prospects added before this feature */}
+      {unscoredCount > 0 && (
+        <div className="flex items-center justify-between rounded-xl bg-[#111118] border border-[#1f1f2e] px-4 py-3">
+          <p className="text-zinc-400 text-sm">
+            <span className="text-emerald-400 font-medium">{unscoredCount}</span> prospekata bez quality score-a.
+            <span className="text-zinc-600 ml-2 text-xs">Sortiraj po score-u prije slanja da ne trošiš dnevni cap na loš fit.</span>
+          </p>
+          <ScoreUnscoredButton unscoredCount={unscoredCount} />
+        </div>
+      )}
 
       {prospects.length === 0 && !search && !nisa && !status ? (
         <div className="rounded-xl border border-dashed border-[#1f1f2e] p-12 text-center">

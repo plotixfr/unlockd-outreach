@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray } from "@/lib/emailPrompt";
+import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
+import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
+import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
 
 const MODEL = "claude-sonnet-4-6";
 // Re-scrape if the cached snapshot is older than this — sites change.
 const SNAPSHOT_TTL_DAYS = 30;
+const PSI_TTL_DAYS = 14;
+const DM_TTL_DAYS = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -51,37 +55,102 @@ export async function POST(req: NextRequest) {
       await prisma.email.deleteMany({ where: { prospectId } });
     }
 
-    // ── Site snapshot ──
-    // Cached if recent; otherwise scrape now (with hard timeout in scrapeSite).
-    // Re-generation is allowed to force a re-scrape via the `rescrape` flag.
+    // ── Enrichment fan-out ──
+    // Cached unless stale or `rescrape` forces. All three calls run in parallel
+    // so the slowest one (PSI, ~10-20s) doesn't add to total latency.
     let snapshot: SiteSnapshot | null = null;
+    let pagespeed: PageSpeedSnapshot | null = null;
+    let decisionMakers: DecisionMakerResult | null = null;
+
     if (prospect.website) {
-      const stale =
+      const now = Date.now();
+      const siteStale =
         !prospect.siteSnapshotAt ||
-        Date.now() - prospect.siteSnapshotAt.getTime() > SNAPSHOT_TTL_DAYS * 86400000;
-      if (rescrape || stale || !prospect.siteSnapshot) {
-        try {
-          snapshot = await scrapeSite(prospect.website);
-          await prisma.prospect.update({
-            where: { id: prospectId },
-            data: {
-              siteSnapshot: snapshot as unknown as object,
-              siteSnapshotAt: new Date(),
-            },
-          });
-          console.log(
-            "[generate] scraped site:", prospect.website,
-            "| ok:", snapshot.ok,
-            "| status:", snapshot.status,
-            "| signals:", JSON.stringify(snapshot.signals)
-          );
-        } catch (e) {
-          console.error("[generate] scrape failed (non-fatal):", e);
-        }
-      } else {
-        snapshot = prospect.siteSnapshot as unknown as SiteSnapshot;
+        now - prospect.siteSnapshotAt.getTime() > SNAPSHOT_TTL_DAYS * 86400000;
+      const psiStale =
+        !prospect.pagespeedAt ||
+        now - prospect.pagespeedAt.getTime() > PSI_TTL_DAYS * 86400000;
+      // Decision makers don't have their own *At column — bucket them with the
+      // site snapshot's TTL since they share the same scrape lifecycle.
+      const dmStale =
+        !prospect.siteSnapshotAt ||
+        now - prospect.siteSnapshotAt.getTime() > DM_TTL_DAYS * 86400000 ||
+        !prospect.decisionMakers;
+
+      // Reuse cached unless explicit rescrape or staleness.
+      snapshot = rescrape || siteStale || !prospect.siteSnapshot
+        ? null
+        : (prospect.siteSnapshot as unknown as SiteSnapshot);
+      pagespeed = rescrape || psiStale || !prospect.pagespeed
+        ? null
+        : (prospect.pagespeed as unknown as PageSpeedSnapshot);
+      decisionMakers = rescrape || dmStale
+        ? null
+        : (prospect.decisionMakers as unknown as DecisionMakerResult);
+
+      const [siteResult, psiResult, dmResult] = await Promise.all([
+        snapshot ? Promise.resolve(snapshot) : scrapeSite(prospect.website).catch((e) => {
+          console.error("[generate] scrape error:", e);
+          return null;
+        }),
+        pagespeed ? Promise.resolve(pagespeed) : fetchPageSpeed(prospect.website).catch((e) => {
+          console.error("[generate] PSI error:", e);
+          return null;
+        }),
+        decisionMakers ? Promise.resolve(decisionMakers) : findDecisionMakers(prospect.website).catch((e) => {
+          console.error("[generate] DM error:", e);
+          return null;
+        }),
+      ]);
+      snapshot = siteResult;
+      pagespeed = psiResult;
+      decisionMakers = dmResult;
+
+      // Persist freshly fetched data. We do this opportunistically — if one of
+      // the three fields didn't refresh we just leave the existing value alone.
+      const updateData: Record<string, unknown> = {};
+      if (siteResult && (rescrape || siteStale || !prospect.siteSnapshot)) {
+        updateData.siteSnapshot = siteResult;
+        updateData.siteSnapshotAt = new Date();
       }
+      if (psiResult && (rescrape || psiStale || !prospect.pagespeed)) {
+        updateData.pagespeed = psiResult;
+        updateData.pagespeedAt = new Date();
+      }
+      if (dmResult && (rescrape || dmStale)) {
+        updateData.decisionMakers = dmResult;
+      }
+      if (Object.keys(updateData).length > 0) {
+        await prisma.prospect.update({ where: { id: prospectId }, data: updateData });
+      }
+
+      console.log(
+        "[generate] enrichment:",
+        "| site:", snapshot?.ok ? "ok" : "no",
+        "| psi:", pagespeed?.ok ? `${pagespeed.performanceScore}/100` : "no",
+        "| dm:", decisionMakers?.people?.length ?? 0
+      );
     }
+
+    // Pull the most relevant case study for this niche (and fall back to any
+    // active one if the niche doesn't have a dedicated study yet).
+    const caseStudyRow =
+      (await prisma.caseStudy.findFirst({
+        where: { nisa: prospect.nisa, active: true },
+        orderBy: { updatedAt: "desc" },
+      })) ??
+      (await prisma.caseStudy.findFirst({
+        where: { active: true },
+        orderBy: { updatedAt: "desc" },
+      }));
+    const caseStudy: PromptCaseStudy | null = caseStudyRow
+      ? {
+          title: caseStudyRow.title,
+          summary: caseStudyRow.summary,
+          metricLabel: caseStudyRow.metricLabel,
+          metricValue: caseStudyRow.metricValue,
+        }
+      : null;
 
     const nicheTemplate = await prisma.nicheTemplate.findUnique({ where: { nisa: prospect.nisa } });
     console.log(
@@ -89,7 +158,7 @@ export async function POST(req: NextRequest) {
       "| prospect:", prospect.firmaNaziv,
       "| niche:", prospect.nisa,
       "| hint:", nicheTemplate ? "yes" : "no",
-      "| snapshot:", snapshot?.ok ? "yes" : "no"
+      "| caseStudy:", caseStudy ? "yes" : "no"
     );
 
     let message: Anthropic.Message;
@@ -104,6 +173,9 @@ export async function POST(req: NextRequest) {
             content: buildEmailPrompt(prospect, {
               nicheHint: nicheTemplate?.promptHint,
               siteSnapshot: snapshot,
+              pagespeed,
+              decisionMakers,
+              caseStudy,
             }),
           },
         ],
@@ -162,7 +234,6 @@ export async function POST(req: NextRequest) {
             subject: e.subject,
             subjectB: e.subjectB ?? null,
             body: e.body,
-            // Randomize A/B at creation so dispatch doesn't need to flip a coin.
             activeSubject: e.subjectB && Math.random() < 0.5 ? "B" : "A",
           },
         })

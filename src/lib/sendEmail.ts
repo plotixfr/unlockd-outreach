@@ -2,6 +2,23 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { signatureHtml, signatureText } from "@/lib/signature";
 
+/**
+ * Returns a thum.io screenshot URL for the prospect's site. We use thum.io's
+ * unauthenticated tier — they cache by URL, so opens of the same email don't
+ * re-render. Returns null when the site URL is missing or malformed.
+ */
+function siteScreenshotUrl(siteUrl: string | null | undefined): string | null {
+  if (!siteUrl) return null;
+  try {
+    // thum.io ignores protocol if missing; we still pass a clean URL.
+    const u = new URL(/^https?:\/\//i.test(siteUrl) ? siteUrl : `https://${siteUrl}`);
+    return `https://image.thum.io/get/png/width/600/${u.toString()}`;
+  } catch {
+    return null;
+  }
+}
+
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
@@ -35,13 +52,31 @@ function buildHtml(
   body: string,
   emailId: string,
   prospectId: string,
-  opts: { includePixel: boolean }
+  opts: { includePixel: boolean; siteUrl?: string | null; includeScreenshot: boolean }
 ): string {
   const pixel = opts.includePixel
     ? `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`
     : "";
   const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.</p>`;
-  return body + signatureHtml() + pixel + unsubscribe;
+
+  // Inline site screenshot — only on the initial email. A visual reminder of
+  // their current site, sitting just below the message, dramatically lifts
+  // reply rate in our tests vs. a pure-text email.
+  const screenshotUrl = opts.includeScreenshot ? siteScreenshotUrl(opts.siteUrl) : null;
+  const screenshotBlock = screenshotUrl
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;border-collapse:collapse;">
+  <tr>
+    <td style="padding:12px;background:#f7f7f7;border:1px solid #e5e5e5;border-radius:8px;">
+      <a href="${opts.siteUrl}" style="text-decoration:none;">
+        <img src="${screenshotUrl}" alt="${opts.siteUrl}" width="560" style="display:block;max-width:100%;height:auto;border-radius:4px;border:1px solid #e5e5e5;" />
+      </a>
+      <p style="margin:8px 0 0;font-size:11px;color:#888;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Aperçu actuel : <a href="${opts.siteUrl}" style="color:#888;text-decoration:underline;">${opts.siteUrl}</a></p>
+    </td>
+  </tr>
+</table>`
+    : "";
+
+  return body + screenshotBlock + signatureHtml(prospectId) + pixel + unsubscribe;
 }
 
 /**
@@ -54,7 +89,7 @@ function buildText(body: string, prospectId: string): string {
   return [
     text,
     "",
-    signatureText(),
+    signatureText(prospectId),
     "",
     `Désabonnement : ${SITE_URL}/api/unsubscribe/${prospectId}`,
   ].join("\n");
@@ -150,7 +185,11 @@ export async function sendOneEmail(
   const baseSubject =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
-  const html = buildHtml(email.body, email.id, email.prospect.id, { includePixel: isInitial });
+  const html = buildHtml(email.body, email.id, email.prospect.id, {
+    includePixel: isInitial,
+    siteUrl: email.prospect.website,
+    includeScreenshot: isInitial && !!email.prospect.website,
+  });
   const text = buildText(email.body, email.prospect.id);
 
   // Threading: follow-ups attach to the initial's Message-ID and reuse "Re: <subject>"
@@ -393,8 +432,8 @@ export async function sendTestEmail(
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
   // Test sends include the signature but omit the tracking pixel + unsubscribe
   // (we don't want test opens to skew metrics, and the recipient is the user).
-  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml()}`;
-  const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText()}`;
+  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml(email.prospect.id)}`;
+  const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText(email.prospect.id)}`;
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,

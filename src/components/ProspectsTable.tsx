@@ -13,6 +13,7 @@ interface Prospect {
   nisa: string;
   grad: string;
   status: string;
+  qualityScore: number | null;
   createdAt: Date;
   _count: { emails: number };
 }
@@ -218,7 +219,7 @@ export function ProspectsTable({ prospects }: Props) {
                   className="rounded border-zinc-700 bg-transparent accent-blue-600 cursor-pointer"
                 />
               </th>
-              {["Firma", "Email", "Niša", "Grad", "Status", "Emails", "Kreiran", ""].map((h) => (
+              {["Firma", "Email", "Niša", "Grad", "Score", "Status", "Emails", "Kreiran", ""].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 text-zinc-500 text-xs uppercase tracking-wider font-medium"
@@ -231,7 +232,7 @@ export function ProspectsTable({ prospects }: Props) {
           <tbody className="divide-y divide-[#1f1f2e]">
             {prospects.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-zinc-600 text-sm">
+                <td colSpan={10} className="px-4 py-12 text-center text-zinc-600 text-sm">
                   Nema prospekata za ove filtere.
                 </td>
               </tr>
@@ -260,6 +261,25 @@ export function ProspectsTable({ prospects }: Props) {
                   <td className="px-4 py-3 text-zinc-400">{p.email}</td>
                   <td className="px-4 py-3 text-zinc-400">{p.nisa}</td>
                   <td className="px-4 py-3 text-zinc-400">{p.grad}</td>
+                  <td className="px-4 py-3">
+                    {p.qualityScore !== null ? (
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          p.qualityScore >= 8
+                            ? "bg-emerald-950/60 text-emerald-300"
+                            : p.qualityScore >= 6
+                              ? "bg-yellow-950/60 text-yellow-300"
+                              : p.qualityScore >= 4
+                                ? "bg-orange-950/60 text-orange-300"
+                                : "bg-red-950/60 text-red-400"
+                        }`}
+                      >
+                        {p.qualityScore}/10
+                      </span>
+                    ) : (
+                      <span className="text-zinc-700 text-xs">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <QuickStatusBadge prospectId={p.id} status={p.status} />
                   </td>

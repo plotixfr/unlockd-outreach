@@ -1,5 +1,6 @@
 import { ImapFlow } from "imapflow";
 import { prisma } from "@/lib/prisma";
+import { analyzeReply, prospectActionFor } from "@/lib/replyClassifier";
 
 /**
  * Pulls recent INBOX messages over IMAP and:
@@ -59,7 +60,16 @@ export async function checkReplies(): Promise<{
           status: { in: ["Emailed", "Follow1", "Follow2", "Follow3", "Replied"] },
           datumPrvogMaila: { not: null },
         },
-        select: { id: true, email: true, datumPrvogMaila: true, status: true },
+        select: {
+          id: true,
+          email: true,
+          datumPrvogMaila: true,
+          status: true,
+          firmaNaziv: true,
+          nisa: true,
+          grad: true,
+          kontaktIme: true,
+        },
       });
       if (sentProspects.length === 0)
         return { configured: true, scanned: uids.length, matched: 0, saved: 0, errors };
@@ -84,25 +94,73 @@ export async function checkReplies(): Promise<{
         const body = extractPlainBody(msg.source) ?? "";
         const subject = msg.envelope?.subject ?? null;
 
+        // Skip if we've already saved this UID.
+        const existing = await prisma.reply.findUnique({ where: { imapUid: uidKey } });
+        if (existing) continue;
+
+        // Classify + draft a response via Claude (best-effort, never blocks save).
+        let classification: string | null = null;
+        let draft: string | null = null;
+        let prospectAction: ReturnType<typeof prospectActionFor> = null;
         try {
-          // Persist the reply (idempotent on imapUid)
-          await prisma.reply.upsert({
-            where: { imapUid: uidKey },
-            create: {
+          const initialEmail = await prisma.email.findFirst({
+            where: { prospectId: prospect.id, tip: "initial" },
+            select: { subject: true, subjectB: true, activeSubject: true, body: true },
+          });
+          const initSubject =
+            initialEmail
+              ? initialEmail.activeSubject === "B" && initialEmail.subjectB
+                ? initialEmail.subjectB
+                : initialEmail.subject
+              : null;
+          const analysis = await analyzeReply({
+            prospectName: prospect.firmaNaziv,
+            niche: prospect.nisa,
+            city: prospect.grad,
+            contactFirstName: prospect.kontaktIme?.split(/\s+/)[0] ?? null,
+            originalSubject: initSubject,
+            originalBody: initialEmail?.body ?? null,
+            replyBody: body,
+          });
+          if (analysis) {
+            classification = analysis.classification;
+            draft = analysis.draft || null;
+            const msgDate = messageDate instanceof Date ? messageDate : new Date(messageDate);
+            prospectAction = prospectActionFor(analysis.classification, msgDate);
+          }
+        } catch (e) {
+          console.warn("[checkReplies] classify failed (continuing):", e);
+        }
+
+        try {
+          await prisma.reply.create({
+            data: {
               prospectId: prospect.id,
               fromAddr,
               subject,
               body,
               receivedAt: messageDate,
               imapUid: uidKey,
+              classification,
+              draft,
             },
-            update: {},
           });
           saved++;
 
-          // Promote prospect to Replied unless they're already further down the
-          // funnel (Converted shouldn't drop back to Replied).
-          if (prospect.status !== "Replied") {
+          // Apply the classifier's recommended prospect update. Don't downgrade
+          // someone who's already Converted, and don't push a status that's
+          // weaker than where they are.
+          if (prospectAction && prospect.status !== "Converted") {
+            await prisma.prospect.update({
+              where: { id: prospect.id },
+              data: prospectAction,
+            });
+            if (prospectAction.status === "Replied" && prospect.status !== "Replied") {
+              matched++;
+            }
+          } else if (!prospectAction && prospect.status !== "Replied") {
+            // No classifier output (offline / quota) — fall back to old
+            // behaviour: any matched reply means "Replied".
             await prisma.prospect.update({
               where: { id: prospect.id },
               data: { status: "Replied", datumOdgovora: messageDate },

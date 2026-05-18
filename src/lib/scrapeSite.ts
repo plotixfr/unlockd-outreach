@@ -146,8 +146,29 @@ function extractBodyText(html: string): string | null {
   return clean(stripped, 1200);
 }
 
-async function fetchWithLimits(
-  url: string
+/**
+ * Translates Node's opaque fetch errors into actionable messages. The native
+ * fetch wraps the actual cause in error.cause; without unwrapping it, every
+ * problem (DNS, TLS, connection refused, abort) just reads "fetch failed".
+ */
+function explainFetchError(e: unknown): string {
+  if (!(e instanceof Error)) return "fetch error";
+  const cause = (e as Error & { cause?: { code?: string; message?: string } }).cause;
+  const code = cause?.code;
+  if (e.name === "AbortError") return `Timeout (>${FETCH_TIMEOUT_MS}ms)`;
+  if (code === "ENOTFOUND") return "Domena ne postoji (DNS fail)";
+  if (code === "ECONNREFUSED") return "Konekcija odbijena";
+  if (code === "ECONNRESET") return "Konekcija prekinuta";
+  if (code === "ETIMEDOUT" || code === "UND_ERR_CONNECT_TIMEOUT") return "Konekcija timeout";
+  if (code === "DEPTH_ZERO_SELF_SIGNED_CERT" || code === "CERT_HAS_EXPIRED") return "TLS/cert problem";
+  if (code?.startsWith("ERR_TLS") || cause?.message?.includes("TLS")) return "TLS handshake fail";
+  if (cause?.message) return cause.message;
+  return e.message || "fetch error";
+}
+
+async function fetchOnce(
+  url: string,
+  userAgent: string
 ): Promise<{ html: string; status: number; finalUrl: string } | { error: string; status: number | null }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
@@ -157,13 +178,15 @@ async function fetchWithLimits(
       redirect: "follow",
       signal: ctrl.signal,
       headers: {
-        "User-Agent": USER_AGENT,
-        Accept: "text/html,application/xhtml+xml",
+        "User-Agent": userAgent,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate",
+        "Cache-Control": "no-cache",
       },
     });
     if (!res.ok) {
-      return { error: `HTTP ${res.status}`, status: res.status };
+      return { error: `HTTP ${res.status} ${res.statusText}`.trim(), status: res.status };
     }
     const reader = res.body?.getReader();
     if (!reader) {
@@ -193,11 +216,58 @@ async function fetchWithLimits(
     const html = new TextDecoder("utf-8", { fatal: false }).decode(buf);
     return { html, status: res.status, finalUrl: res.url };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "fetch error";
-    return { error: msg, status: null };
+    return { error: explainFetchError(e), status: null };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Multi-attempt fetch: tries the requested URL, then falls back to a desktop
+ * Chrome UA (some hosts block our identifying UA), then http:// if the original
+ * was https:// (a surprising number of small business sites still don't have
+ * working TLS on the apex domain). Returns the first successful response.
+ */
+async function fetchWithLimits(
+  url: string
+): Promise<{ html: string; status: number; finalUrl: string } | { error: string; status: number | null; attempts: string[] }> {
+  const attempts: string[] = [];
+  const chromeUa =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+  const tries: { url: string; ua: string; label: string }[] = [
+    { url, ua: USER_AGENT, label: "primary UA" },
+    { url, ua: chromeUa, label: "desktop Chrome UA" },
+  ];
+  // If https failed entirely, try plain http as a last resort.
+  if (url.startsWith("https://")) {
+    tries.push({ url: url.replace(/^https:/, "http:"), ua: chromeUa, label: "http fallback" });
+  }
+  // And try the apex (www <-> non-www) in case one is broken
+  try {
+    const u = new URL(url);
+    if (u.hostname.startsWith("www.")) {
+      const apex = `${u.protocol}//${u.hostname.slice(4)}${u.pathname}${u.search}`;
+      tries.push({ url: apex, ua: chromeUa, label: "non-www" });
+    } else {
+      const www = `${u.protocol}//www.${u.hostname}${u.pathname}${u.search}`;
+      tries.push({ url: www, ua: chromeUa, label: "www variant" });
+    }
+  } catch {
+    // ignore
+  }
+
+  let lastErr: { error: string; status: number | null } = { error: "Nepoznata greška", status: null };
+  for (const t of tries) {
+    const out = await fetchOnce(t.url, t.ua);
+    if ("html" in out) {
+      attempts.push(`OK ${t.label}: ${t.url}`);
+      return out;
+    }
+    attempts.push(`${t.label} (${t.url}): ${out.error}`);
+    lastErr = out;
+  }
+  return { ...lastErr, attempts };
 }
 
 /**
@@ -231,6 +301,9 @@ export async function scrapeSite(rawUrl: string): Promise<SiteSnapshot> {
 
   const result = await fetchWithLimits(url);
   if ("error" in result) {
+    const attemptsLog = result.attempts?.length
+      ? ` [pokušaji: ${result.attempts.join(" | ")}]`
+      : "";
     return {
       url,
       fetchedAt,
@@ -247,7 +320,7 @@ export async function scrapeSite(rawUrl: string): Promise<SiteSnapshot> {
       h2s: [],
       bodyText: null,
       signals: emptySignals(),
-      error: result.error,
+      error: `${result.error}${attemptsLog}`,
     };
   }
 

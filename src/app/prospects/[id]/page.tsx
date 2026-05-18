@@ -14,6 +14,8 @@ import { NotesSection } from "@/components/NotesSection";
 import { ReminderForm } from "@/components/ReminderForm";
 import { EmailEditor } from "@/components/EmailEditor";
 import { ScoutingReport } from "@/components/ScoutingReport";
+import { ReplyDraftPanel } from "@/components/ReplyDraftPanel";
+import { DealEditor } from "@/components/DealEditor";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
 const TIP_LABELS: Record<string, string> = {
@@ -56,6 +58,8 @@ export default async function ProspectDetailPage({
       replies: { orderBy: { receivedAt: "desc" } },
     },
   });
+
+  const calendlyClickedEmail = prospect?.emails.find((e) => e.calendlyClicked);
 
   if (!prospect) notFound();
 
@@ -134,6 +138,20 @@ export default async function ProspectDetailPage({
           </div>
         )}
       </div>
+
+      {/* Calendly click signal — hot lead alert */}
+      {calendlyClickedEmail?.calendlyClickedAt && prospect.status !== "Converted" && (
+        <div className="rounded-xl bg-amber-950/30 border border-amber-700/50 p-4 flex items-center gap-3">
+          <span className="text-2xl">🔥</span>
+          <div className="flex-1">
+            <p className="text-amber-300 font-medium text-sm">Otvorio Calendly link — topao lead</p>
+            <p className="text-amber-200/70 text-xs mt-0.5">
+              Klik: {new Date(calendlyClickedEmail.calendlyClickedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              {" — pošalji follow-up odmah ako još nije rezervisao."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Conversion info */}
       {prospect.conversions[0] && (
@@ -252,10 +270,39 @@ export default async function ProspectDetailPage({
                 <pre className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">
                   {r.body || "(prazno tijelo)"}
                 </pre>
+                {r.draft && (
+                  <ReplyDraftPanel
+                    replyId={r.id}
+                    prospectId={prospect.id}
+                    initialDraft={r.draft}
+                    classification={r.classification}
+                    prospectEmail={prospect.email}
+                  />
+                )}
+                {!r.draft && r.classification && (
+                  <div className="mt-2">
+                    <ReplyDraftPanel
+                      replyId={r.id}
+                      prospectId={prospect.id}
+                      initialDraft=""
+                      classification={r.classification}
+                      prospectEmail={prospect.email}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
+      )}
+
+      {/* Deal pipeline editor — only meaningful after they replied */}
+      {(prospect.replies.length > 0 || prospect.status === "Replied" || prospect.status === "Converted" || prospect.dealStage) && (
+        <DealEditor
+          prospectId={prospect.id}
+          initialStage={prospect.dealStage}
+          initialValue={prospect.dealValue}
+        />
       )}
 
       {/* Reminder */}

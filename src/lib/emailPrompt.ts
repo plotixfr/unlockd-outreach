@@ -1,24 +1,29 @@
 // Niche-agnostic Claude prompts.
 //
-// Claude now receives verified facts pulled from the prospect's website
-// (see scrapeSite.ts → snapshotToPromptFacts). The model is explicitly told to
-// use those facts instead of inventing observations. The signature is appended
-// server-side (see sendEmail.ts), so the prompt asks Claude to end at the last
-// sentence of the message.
+// Claude now receives a stack of verified facts:
+//   - Site scrape facts (title, H1, signals)
+//   - PageSpeed/Lighthouse metrics
+//   - Decision-makers extracted from team/contact pages
+//   - One curated case study from the same niche, when one exists
+// and is explicitly told to use those facts instead of inventing observations.
+// The signature is appended server-side (see sendEmail.ts), so the prompt asks
+// Claude to end at the last sentence of the message.
 
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import { snapshotToPromptFacts } from "@/lib/scrapeSite";
+import type { PageSpeedSnapshot } from "@/lib/pagespeed";
+import { pagespeedToPromptFacts } from "@/lib/pagespeed";
+import type { DecisionMakerResult } from "@/lib/decisionMakers";
+import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMakers";
 
 export const EMAIL_SYSTEM_PROMPT = `Tu es un expert en cold emails B2B francophone. Tu écris pour Unlockd.art, un studio parisien qui conçoit et développe des sites web premium et sur-mesure pour des marques exigeantes — hôtels, restaurants, architectes, agences immobilières, marques de luxe, professionnels indépendants, e-commerce haut de gamme, et tout autre secteur où l'image de marque digitale compte. Tu adaptes systématiquement le ton, les références et les arguments au secteur précis du prospect. Tu écris des emails très personnalisés, courts, professionnels et élégants. Jamais agressifs. Jamais génériques. Toujours en français impeccable.
 
-Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique ou le produit du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, signaux détectés, plateforme). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle générique mais juste — jamais une fausse précision.
+Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle générique mais juste — jamais une fausse précision.
+
+Quand un score Lighthouse mobile bas (<50) est fourni, mentionne-le explicitement dans l'email initial avec le chiffre exact — c'est ton accroche la plus forte.
 
 IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
 
-// Best-effort French translation for the most common niches. Anything not in
-// the map is passed through unchanged — Claude handles the translation/context
-// from the raw value (works equally well for "Spa", "Avocat", "Boutique mode",
-// "Restaurant gastronomique", etc.).
 const NICHE_FR_HINTS: Record<string, string> = {
   hotel: "hôtellerie",
   hôtel: "hôtellerie",
@@ -55,19 +60,54 @@ export interface PromptProspect {
   napomena: string | null;
 }
 
-export function buildEmailPrompt(
-  p: PromptProspect,
-  opts: { compact?: boolean; nicheHint?: string | null; siteSnapshot?: SiteSnapshot | null } = {}
-): string {
+export interface PromptCaseStudy {
+  title: string;
+  summary: string;
+  metricLabel: string | null;
+  metricValue: string | null;
+}
+
+export interface BuildPromptOpts {
+  compact?: boolean;
+  nicheHint?: string | null;
+  siteSnapshot?: SiteSnapshot | null;
+  pagespeed?: PageSpeedSnapshot | null;
+  decisionMakers?: DecisionMakerResult | null;
+  caseStudy?: PromptCaseStudy | null;
+}
+
+function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
+  const blocks: string[] = [];
+  const siteFacts = snapshotToPromptFacts(opts.siteSnapshot);
+  if (siteFacts) blocks.push(siteFacts);
+  const psiFacts = pagespeedToPromptFacts(opts.pagespeed);
+  if (psiFacts) blocks.push(psiFacts);
+  const dmFacts = decisionMakersToPromptFacts(opts.decisionMakers ?? null, p.kontaktIme, p.kontaktPozicija);
+  if (dmFacts) blocks.push(dmFacts);
+  if (opts.caseStudy) {
+    const cs = opts.caseStudy;
+    const metric =
+      cs.metricLabel && cs.metricValue
+        ? ` (résultat concret : ${cs.metricValue} ${cs.metricLabel})`
+        : "";
+    blocks.push(
+      `Case study à mentionner dans le follow-up #2 ("preuve sociale") : ${cs.title}${metric}. Résumé : ${cs.summary}`
+    );
+  }
+  return blocks.length === 0 ? "" : `\n\n${blocks.join("\n\n")}`;
+}
+
+export function buildEmailPrompt(p: PromptProspect, opts: BuildPromptOpts = {}): string {
   const nicheLabel = niceNicheLabel(p.nisa);
   const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ") || "Non renseigné";
+  const greetingFirstName = pickGreetingName(opts.decisionMakers ?? null, p.kontaktIme);
   const hintBlock = opts.nicheHint?.trim()
     ? `\n\nInstructions spécifiques pour le secteur "${nicheLabel}" (à respecter scrupuleusement):\n${opts.nicheHint.trim()}`
     : "";
-  const factsBlock = snapshotToPromptFacts(opts.siteSnapshot);
-  const factsSection = factsBlock ? `\n\n${factsBlock}` : "";
-  const greetingHint = p.kontaktIme
-    ? `Commence par "Bonjour ${p.kontaktIme}," (sans virgule manquante).`
+  const factsSection = buildFactsBlock(p, opts);
+
+  const greetingHint = greetingFirstName
+    ? `Commence par "Bonjour ${greetingFirstName}," (prénom uniquement, validé par les faits vérifiés).`
     : `Commence par "Bonjour," sans nom inventé.`;
 
   if (opts.compact) {
@@ -82,19 +122,19 @@ Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</
 
 Prospect:
 - Nom: ${p.firmaNaziv}
-- Contact: ${contact}
+- Contact CSV: ${contact}
 - Secteur: ${nicheLabel}
 - Ville: ${p.grad}
 - Site web: ${p.website || "Pas de site"}
 - Instagram: ${p.instagram || "Non renseigné"}
 - Description: ${p.opisFirme || "Non renseigné"}
 - Qualité du site (1=mauvais, 5=excellent): ${p.kvalitetSajta ?? "Non évalué"}
-- Notes: ${p.napomena || "Aucune"}${factsSection}
+- Notes opérateur: ${p.napomena || "Aucune"}${factsSection}
 
 Types à générer (adapte ton, références et arguments au secteur "${nicheLabel}"):
-1. "initial" — Introduction courte qui s'appuie sur UN fait vérifié concret (titre, H1, signal détecté) si disponible, sinon une observation sectorielle juste. Proposition de valeur Unlockd.art adaptée au secteur.
-2. "follow1" — Ce qu'ils perdent sans site premium dans leur secteur (clients, image, conversions). Si un signal négatif a été détecté (pas de réservation, pas de viewport mobile, plateforme générique type Wix), évoque-le subtilement.
-3. "follow2" — Preuve sociale pertinente pour le secteur ${nicheLabel}, résultat concret d'Unlockd.art (sans chiffres inventés — reste qualitatif si tu n'as pas de case study précis).
+1. "initial" — Introduction courte. Si un score Lighthouse mobile < 50 est fourni, OUVRE l'email avec ce chiffre exact (pas de paraphrase) — c'est l'accroche la plus forte. Sinon appuie-toi sur UN fait vérifié concret (titre, H1, signal détecté). Si rien de précis n'est disponible, observation sectorielle juste. Proposition de valeur Unlockd.art adaptée au secteur.
+2. "follow1" — Ce qu'ils perdent sans site premium dans leur secteur. Si un signal négatif a été détecté (LCP > 4s, pas de viewport mobile, plateforme générique type Wix, peu d'images, pas de réservation), évoque-le concrètement.
+3. "follow2" — Preuve sociale concrète. Si une case study a été fournie ci-dessus, utilise-la (titre + résultat chiffré). Sinon, reste qualitatif — n'invente AUCUN chiffre.
 4. "follow3" — Email final très court, simple oui/non, un seul appel à l'action.
 
 Règles:

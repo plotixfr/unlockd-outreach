@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ClearDatabaseButton } from "@/components/ClearDatabaseButton";
 import { NicheTemplatesEditor } from "@/components/NicheTemplatesEditor";
+import { CaseStudiesEditor } from "@/components/CaseStudiesEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,9 @@ export default async function SettingsPage() {
 
       {/* Niche templates */}
       <NicheTemplatesEditor />
+
+      {/* Case studies library — auto-inserted into follow-up #2 */}
+      <CaseStudiesEditor />
 
       {/* Cron info */}
       <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
