@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { STATUS_BOJE, PIPELINE_ORDER } from "@/lib/constants";
+import { nextAutopilotRun, nextSendRun, formatParisDateTime, relativeFromNow } from "@/lib/autopilotStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,14 @@ function utcMidnight(offsetDays = 0): Date {
 
 export default async function DashboardPage() {
   const todayStart = utcMidnight();
+  const todayEnd = utcMidnight(1);
+  const tomorrowStart = utcMidnight(1);
+  const tomorrowEnd = utcMidnight(2);
   const fourteenDaysAgo = utcMidnight(-14);
+
+  const now = new Date();
+  const nextAutopilot = nextAutopilotRun(now);
+  const nextSend = nextSendRun(now);
 
   const [
     total,
@@ -27,6 +35,11 @@ export default async function DashboardPage() {
     recentEmails,
     upcomingProspects,
     recentReplies,
+    activeBriefsCount,
+    initialsScheduledToday,
+    initialsScheduledTomorrow,
+    repliesNeedingResponse,
+    pendingDrafts,
     ...pipelineCounts
   ] = await Promise.all([
     prisma.prospect.count(),
@@ -53,6 +66,26 @@ export default async function DashboardPage() {
       take: 5,
       select: { id: true, firmaNaziv: true, status: true, grad: true, nisa: true },
     }),
+    prisma.searchBrief.count({ where: { active: true } }),
+    prisma.prospect.count({
+      where: {
+        status: "Scheduled",
+        scheduledInitial: { gte: todayStart, lt: todayEnd },
+      },
+    }),
+    prisma.prospect.count({
+      where: {
+        status: "Scheduled",
+        scheduledInitial: { gte: tomorrowStart, lt: tomorrowEnd },
+      },
+    }),
+    prisma.reply.count({
+      where: {
+        draft: { not: null },
+        classification: { in: ["Interested", "Question", "NotNow", "WrongPerson"] },
+      },
+    }),
+    prisma.email.count({ where: { calendlyClicked: true, prospect: { status: { not: "Converted" } } } }),
     ...PIPELINE_ORDER.map((s) => prisma.prospect.count({ where: { status: s } })),
   ]);
 
@@ -127,6 +160,54 @@ export default async function DashboardPage() {
         >
           + Dodaj listu
         </Link>
+      </div>
+
+      {/* "Danas" — what the autopilot will do today + what needs your attention */}
+      <div className={`rounded-xl border p-5 ${
+        activeBriefsCount > 0
+          ? "bg-gradient-to-br from-emerald-950/30 to-blue-950/20 border-emerald-800/30"
+          : "bg-gradient-to-br from-zinc-900/40 to-zinc-900/20 border-zinc-700/40"
+      }`}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className={`inline-block w-2 h-2 rounded-full ${activeBriefsCount > 0 ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"}`} />
+              <span className={`text-xs uppercase tracking-wider font-semibold ${activeBriefsCount > 0 ? "text-emerald-300" : "text-zinc-500"}`}>
+                Danas {activeBriefsCount > 0 ? "— Autopilot radi" : "— Autopilot nije aktivan"}
+              </span>
+            </div>
+            <p className="text-white text-base font-medium">
+              {initialsScheduledToday + emailsToday} email{(initialsScheduledToday + emailsToday) === 1 ? "" : "a"} kreće prema prospektima · {initialsScheduledTomorrow} novih sutra · sljedeći send {relativeFromNow(nextSend, now)}
+            </p>
+            <p className="text-zinc-400 text-xs mt-1.5">
+              Autopilot opet skenira market <span className="text-zinc-300">{relativeFromNow(nextAutopilot, now)}</span> ({formatParisDateTime(nextAutopilot)})
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {repliesNeedingResponse > 0 && (
+              <Link
+                href="/prospects?status=Replied"
+                className="px-3 py-2 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-medium hover:bg-emerald-900/60 transition-colors"
+              >
+                💬 {repliesNeedingResponse} draft{repliesNeedingResponse === 1 ? "" : "a"} čeka
+              </Link>
+            )}
+            {pendingDrafts > 0 && (
+              <Link
+                href="/prospects"
+                className="px-3 py-2 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 text-xs font-medium hover:bg-amber-900/60 transition-colors"
+              >
+                🔥 {pendingDrafts} otvorio Calendly
+              </Link>
+            )}
+            <Link
+              href="/autopilot"
+              className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 transition-colors"
+            >
+              Autopilot →
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* 6 Stat cards */}
