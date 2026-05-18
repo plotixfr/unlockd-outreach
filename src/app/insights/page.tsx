@@ -100,6 +100,48 @@ export default async function InsightsPage() {
   const costPerMeeting = meetingsBooked > 0 ? totalSpend / meetingsBooked : null;
   const costPerDeal = totalConverted > 0 ? totalSpend / totalConverted : null;
 
+  // ── Subject line leaderboard ──
+  // For initial sends only (where A/B variant matters most), find the top
+  // subjects by open rate. Minimum 5 sends so we don't surface fluke wins.
+  const subjectStats = await prisma.email.findMany({
+    where: { tip: "initial", poslat: true },
+    select: {
+      subject: true,
+      subjectB: true,
+      activeSubject: true,
+      otvoren: true,
+      prospect: { select: { nisa: true, status: true } },
+    },
+  });
+
+  const subjectLeaderboard = (() => {
+    const buckets = new Map<string, { sent: number; opened: number; replied: number; niche: string }>();
+    for (const e of subjectStats) {
+      const subject = e.activeSubject === "B" && e.subjectB ? e.subjectB : e.subject;
+      if (!subject) continue;
+      const key = `${subject}__${e.prospect.nisa}`;
+      const b = buckets.get(key) ?? { sent: 0, opened: 0, replied: 0, niche: e.prospect.nisa };
+      b.sent++;
+      if (e.otvoren) b.opened++;
+      if (e.prospect.status === "Replied" || e.prospect.status === "Converted") b.replied++;
+      buckets.set(key, b);
+    }
+    const rows = Array.from(buckets.entries())
+      .filter(([, b]) => b.sent >= 5)
+      .map(([key, b]) => ({
+        subject: key.split("__")[0],
+        niche: b.niche,
+        sent: b.sent,
+        opened: b.opened,
+        replied: b.replied,
+        openRate: b.opened / b.sent,
+        replyRate: b.replied / b.sent,
+      }))
+      .sort((a, b) => b.openRate - a.openRate || b.replied - a.replied)
+      .slice(0, 8);
+    return rows;
+  })();
+
   // Pull aggregated data per niche using groupBy + targeted counts. Done in one
   // Promise.all so the page renders fast even with many niches.
   const niches = await prisma.prospect.groupBy({
@@ -240,12 +282,57 @@ export default async function InsightsPage() {
             value: totals.revenue > 0 ? `${totals.revenue.toLocaleString("fr-FR")} €` : "—",
           },
         ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-4">
+          <div key={label} className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-4 card-elevation">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1.5">{label}</p>
             <p className="text-white text-xl font-semibold">{value}</p>
           </div>
         ))}
       </div>
+
+      {/* Subject line leaderboard */}
+      {subjectLeaderboard.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-zinc-200 font-medium text-sm">Top subject lines</h2>
+              <p className="text-zinc-600 text-xs mt-0.5">Po open rate-u — minimum 5 sendova za uvrštavanje</p>
+            </div>
+          </div>
+          <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
+                  {["Subject", "Niša", "Sent", "Opened", "Replied", "Open rate"].map((h) => (
+                    <th key={h} className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#14141c]">
+                {subjectLeaderboard.map((row, i) => (
+                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-3 text-zinc-200 max-w-md truncate" title={row.subject}>{row.subject}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800/60 text-zinc-400">
+                        {row.niche}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-400 tabular-nums">{row.sent}</td>
+                    <td className="px-4 py-3 text-zinc-300 tabular-nums">{row.opened}</td>
+                    <td className="px-4 py-3 text-emerald-300 tabular-nums">{row.replied}</td>
+                    <td className="px-4 py-3">
+                      <span className={`tabular-nums font-medium ${row.openRate >= 0.4 ? "text-emerald-400" : row.openRate >= 0.2 ? "text-amber-400" : "text-zinc-500"}`}>
+                        {Math.round(row.openRate * 100)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Per-niche table */}
       {stats.length === 0 ? (
@@ -253,27 +340,27 @@ export default async function InsightsPage() {
           <p className="text-zinc-500 text-sm">Nema podataka. Uploaduj prospekte i pokreni kampanje.</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1f1f2e]">
+              <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
                 {["Niša", "Prospekti", "Poslato", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
                   <th
                     key={h}
-                    className="text-left px-4 py-3 text-zinc-500 text-xs uppercase tracking-wider font-medium"
+                    className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium"
                   >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#1f1f2e]">
+            <tbody className="divide-y divide-[#14141c]">
               {stats.map((s) => {
                 const openRate = s.emailed > 0 ? s.opened / s.emailed : 0;
                 const replyRate = s.emailed > 0 ? s.replied / s.emailed : 0;
                 const convRate = s.emailed > 0 ? s.converted / s.emailed : 0;
                 return (
-                  <tr key={s.nisa} className="hover:bg-[#1a1a28] transition-colors">
+                  <tr key={s.nisa} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-4 py-3 text-white font-medium">{s.nisa}</td>
                     <td className="px-4 py-3 text-zinc-400">{s.prospects}</td>
                     <td className="px-4 py-3 text-zinc-400">{s.emailed}</td>
