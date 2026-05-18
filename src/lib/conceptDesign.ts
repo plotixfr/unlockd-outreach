@@ -114,6 +114,14 @@ const IMAGE_POOLS: Record<string, string[]> = {
     "photo-1573408301185-9146fe634ad0", // jewelry editorial
     "photo-1515562141207-7a88fb7ce338", // gold detail
   ],
+  fitness: [
+    "photo-1534438327276-14e5300c3a48", // boutique gym editorial
+    "photo-1571902943202-507ec2618e8f", // modern gym interior moody
+    "photo-1517836357463-d25dfeac3438", // dumbbell rack minimal
+    "photo-1599058917212-d750089bc07e", // pilates studio premium
+    "photo-1593079831268-3381b0db4a77", // free weights closeup
+    "photo-1540497077202-7c8a3999166f", // boutique fitness studio
+  ],
   default: [
     "photo-1497366216548-37526070297c", // editorial workspace
     "photo-1497366811353-6870744d04b2", // minimal interior
@@ -159,6 +167,12 @@ const NICHE_COPY: Record<string, { eyebrow: string; ctaPrimary: string; ctaSecon
     ctaSecondary: "Rendez-vous",
     tagline: "Des pièces qui se transmettent.",
   },
+  fitness: {
+    eyebrow: "Club privé",
+    ctaPrimary: "Découvrir le club",
+    ctaSecondary: "Réserver une visite",
+    tagline: "L'effort. Le rituel. Le résultat.",
+  },
   default: {
     eyebrow: "Studio",
     ctaPrimary: "Découvrir",
@@ -173,6 +187,7 @@ function nicheKey(niche: string): keyof typeof IMAGE_POOLS {
   if (n.includes("restaurant") || n.includes("gastro") || n.includes("patisserie") || n.includes("cave")) return "restaurant";
   if (n.includes("immobil") || n.includes("property") || n.includes("agence immobilière")) return "property";
   if (n.includes("architect")) return "architecture";
+  if (n.includes("salle de sport") || n.includes("salle de fitness") || n.includes("gym") || n.includes("fitness") || n.includes("pilates") || n.includes("yoga")) return "fitness";
   if (n.includes("spa") || n.includes("wellness") || n.includes("beauté") || n.includes("coiffure")) return "spa";
   if (n.includes("bijou") || n.includes("jewel") || n.includes("galerie") || n.includes("boutique")) return "jewelry";
   return "default";
