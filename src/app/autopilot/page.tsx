@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { BriefsEditor } from "@/components/BriefsEditor";
 import { QuickSetupButton } from "@/components/QuickSetupButton";
+import { BulkBriefAdd } from "@/components/BulkBriefAdd";
 import { isDiscoveryConfigured } from "@/lib/discovery";
 import {
   nextAutopilotRun,
@@ -140,6 +141,9 @@ export default async function AutopilotPage() {
 
       {/* Quick Setup — shows whenever discovery is configured (idempotent on re-click) */}
       {discoveryConfigured && <QuickSetupButton hasAnyBrief={activeBriefs + inactiveBriefs > 0} />}
+
+      {/* Bulk Add — any niche, any city */}
+      {discoveryConfigured && <BulkBriefAdd />}
 
       {/* Today + tomorrow snapshot */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
