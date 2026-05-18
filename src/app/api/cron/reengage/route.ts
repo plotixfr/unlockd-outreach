@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Also allow manual trigger from authenticated session (middleware enforces).
+  // Also allow manual trigger from authenticated session (proxy enforces).
   let body: { limit?: number } = {};
   try {
     body = await req.json();

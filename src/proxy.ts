@@ -40,7 +40,7 @@ function passthrough(req: NextRequest, pathname: string): NextResponse {
   return NextResponse.next({ request: { headers } });
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (isPublic(pathname)) return passthrough(req, pathname);

@@ -9,7 +9,7 @@ import { notifyAutopilotSummary } from "@/lib/notify";
  *
  * Cron authentication is the same scheme as the existing send-followups cron:
  * Authorization: Bearer ${CRON_SECRET}. For interactive calls from the dashboard,
- * the session-cookie middleware has already authenticated the user.
+ * the session-cookie proxy has already authenticated the user.
  */
 
 export const maxDuration = 300; // up to 5 minutes — discovery can be slow
