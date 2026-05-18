@@ -198,7 +198,11 @@ export default async function ProspectDetailPage({
           <h2 className="text-white font-medium">Closing kit</h2>
           <MockupPanel
             prospectId={prospect.id}
+            firmaNaziv={prospect.firmaNaziv}
+            niche={prospect.nisa}
+            city={prospect.grad}
             website={prospect.website}
+            snapshot={(prospect.siteSnapshot as unknown as SiteSnapshot | null) ?? null}
             initialMockupUrl={prospect.mockupUrl}
             initialMockupAt={prospect.mockupAt}
           />
