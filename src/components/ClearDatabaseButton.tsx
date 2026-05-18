@@ -6,16 +6,16 @@ import { useRouter } from "next/navigation";
 export function ClearDatabaseButton() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState<{ emails: number; prospects: number } | null>(null);
+  const [done, setDone] = useState<{ prospects: number; discoveryRuns: number } | null>(null);
   const router = useRouter();
 
   const handleClear = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/settings/clear", { method: "DELETE" });
-      const data = (await res.json()) as { error?: string; deleted?: { emails: number; prospects: number } };
+      const data = (await res.json()) as { error?: string; deleted?: { prospects: number; discoveryRuns: number } };
       if (!res.ok) throw new Error(data.error || "Greška");
-      setDone(data.deleted ?? { emails: 0, prospects: 0 });
+      setDone(data.deleted ?? { prospects: 0, discoveryRuns: 0 });
       router.refresh();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Greška");
@@ -28,7 +28,7 @@ export function ClearDatabaseButton() {
   if (done) {
     return (
       <p className="text-emerald-400 text-sm">
-        Obrisano: {done.prospects} prospekata, {done.emails} emailova.
+        Obrisano: {done.prospects} prospekata (sa emailovima/replyjima/notama), {done.discoveryRuns} discovery runova. Briefovi/case studies/niche templates su sačuvani.
       </p>
     );
   }

@@ -24,6 +24,14 @@ import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray, type PromptCas
 
 const EMAIL_MODEL = "claude-sonnet-4-6";
 const MAX_PROSPECTS_PER_BRIEF = 10;
+// Vercel Pro maxDuration is 300s. Stop scheduling new briefs when we approach
+// that limit so the run finishes cleanly. Next cron picks up the rest.
+const RUN_TIME_BUDGET_MS = 240_000; // 4 minutes
+// After 3 consecutive zero-created runs, deactivate the brief to stop burning
+// Places quota + Claude tokens on something that's not delivering.
+const AUTO_PAUSE_AFTER_EMPTY_RUNS = 3;
+// Look this many days ahead when finding the next send slot with capacity.
+const SCHEDULE_LOOKAHEAD_DAYS = 30;
 
 export interface BriefRunSummary {
   briefId: string;
@@ -196,14 +204,74 @@ async function generateEmailsInline(
 }
 
 /**
- * Schedule the campaign so the existing send cron picks it up.
- * Default cadence: initial tomorrow, then +4 / +5 / +7 days.
+ * Returns the soonest weekday (1..lookahead days ahead) where the count of
+ * already-scheduled initial sends is below the daily cap. Without this,
+ * autopilot would dump 50 prospects onto tomorrow even though the send cron
+ * can only push 30/day — the rest would pile up day after day.
+ */
+async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promise<Date> {
+  // Pre-fetch counts for every candidate day in one query.
+  // Each day-bucket is UTC midnight to UTC midnight; that's good enough since
+  // the send cron itself runs once per day in Paris business hours.
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const probes: { start: Date; end: Date }[] = [];
+  for (let i = 1; i <= lookaheadDays; i++) {
+    const start = new Date(today);
+    start.setUTCDate(start.getUTCDate() + i);
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+    // Skip weekends in Paris
+    const weekdayName = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", weekday: "short" })
+      .format(start);
+    if (weekdayName === "Sat" || weekdayName === "Sun") continue;
+    probes.push({ start, end });
+  }
+  for (const probe of probes) {
+    const count = await prisma.prospect.count({
+      where: {
+        scheduledInitial: { gte: probe.start, lt: probe.end },
+        status: "Scheduled",
+      },
+    });
+    if (count < cap) {
+      // Found a day with capacity — pick a random business hour in Paris.
+      return slotInDay(probe.start);
+    }
+  }
+  // All days full — fall back to the last probed day. The send cron will
+  // continue to drain at the cap rate.
+  return slotInDay(probes[probes.length - 1]?.start ?? new Date(today.getTime() + 86400000));
+}
+
+function slotInDay(dayStart: Date): Date {
+  // Random Paris business hour 09:00–16:59 → back to UTC.
+  const hourLocal = 9 + Math.floor(Math.random() * 8);
+  const minute = Math.floor(Math.random() * 60);
+  const localStr = `${dayStart.getUTCFullYear()}-${String(dayStart.getUTCMonth() + 1).padStart(2, "0")}-${String(dayStart.getUTCDate()).padStart(2, "0")}T${String(hourLocal).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
+  const guessUtc = new Date(`${localStr}Z`);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(guessUtc);
+  const guessedHour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+  const offsetMs = (hourLocal - guessedHour) * 3600_000;
+  return new Date(guessUtc.getTime() + offsetMs);
+}
+
+/**
+ * Schedule the campaign so the existing send cron picks it up. The initial
+ * send goes to the next day with capacity (respects DAILY_SEND_CAP). Follow-ups
+ * cascade from there with +4/+5/+7 day gaps — those don't need cap-awareness
+ * because the send cron enforces it at delivery time anyway.
  */
 async function scheduleInline(prospectId: string): Promise<void> {
-  const initial = nextWorkingSlot(1);
-  const f1 = nextWorkingSlot(5);
-  const f2 = nextWorkingSlot(10);
-  const f3 = nextWorkingSlot(17);
+  const cap = Number(process.env.DAILY_SEND_CAP ?? 30);
+  const initial = await pickFirstAvailableDay(cap, SCHEDULE_LOOKAHEAD_DAYS);
+  const f1 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 4);
+  const f2 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 9);
+  const f3 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 16);
   await prisma.prospect.update({
     where: { id: prospectId },
     data: {
@@ -409,20 +477,54 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
 }
 
 /**
- * Run every active brief sequentially. Used by the daily cron. Sequential
- * (not parallel) so we don't hammer Places + Claude rate limits and so we
- * preserve a sensible total daily cap.
+ * Run every active brief sequentially. Sequential (not parallel) so we don't
+ * hammer Places + Claude rate limits. Watches RUN_TIME_BUDGET_MS — when we
+ * approach Vercel's serverless ceiling, stops scheduling new briefs and
+ * returns what we have; the next cron picks up the rest. Briefs that go 3
+ * consecutive runs without creating anything get auto-paused so they stop
+ * burning quota.
  */
 export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
+  const startedAt = Date.now();
+  // Rotate the order so the same briefs don't always get processed first
+  // (and the same briefs aren't always cut off when we hit the time budget).
   const briefs = await prisma.searchBrief.findMany({
     where: { active: true },
-    orderBy: { createdAt: "asc" },
+    orderBy: { lastRunAt: { sort: "asc", nulls: "first" } },
   });
   const out: BriefRunSummary[] = [];
+
   for (const b of briefs) {
+    if (Date.now() - startedAt > RUN_TIME_BUDGET_MS) {
+      console.log(
+        `[autopilot] time budget exhausted (${Date.now() - startedAt}ms) — ${briefs.length - out.length} briefs deferred to next cron`
+      );
+      break;
+    }
     try {
       const s = await runBrief(b.id);
       out.push(s);
+
+      // Auto-pause briefs that consistently fail to deliver.
+      if (s.created === 0) {
+        const recent = await prisma.discoveryRun.findMany({
+          where: { briefId: b.id },
+          orderBy: { startedAt: "desc" },
+          take: AUTO_PAUSE_AFTER_EMPTY_RUNS,
+          select: { created: true },
+        });
+        if (
+          recent.length >= AUTO_PAUSE_AFTER_EMPTY_RUNS &&
+          recent.every((r) => r.created === 0)
+        ) {
+          await prisma.searchBrief.update({
+            where: { id: b.id },
+            data: { active: false },
+          });
+          console.log(`[autopilot] auto-paused brief "${b.name}" after ${AUTO_PAUSE_AFTER_EMPTY_RUNS} empty runs`);
+          s.errors.push(`auto-pausiran (${AUTO_PAUSE_AFTER_EMPTY_RUNS} prazna runa za redom)`);
+        }
+      }
     } catch (e) {
       out.push({
         briefId: b.id,

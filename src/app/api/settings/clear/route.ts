@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Full data wipe — deletes every prospect (cascade-deletes Email, Reply,
+ * Note, Conversion) and all DiscoveryRun history. Keeps configuration:
+ * SearchBrief, CaseStudy, NicheTemplate. Use to start fresh.
+ */
 export async function DELETE() {
   try {
-    const [emails, prospects] = await Promise.all([
-      prisma.email.deleteMany({}),
+    const [discoveryRuns, prospects] = await Promise.all([
+      prisma.discoveryRun.deleteMany({}),
       prisma.prospect.deleteMany({}),
     ]);
-    return NextResponse.json({ success: true, deleted: { emails: emails.count, prospects: prospects.count } });
+    return NextResponse.json({
+      success: true,
+      deleted: {
+        prospects: prospects.count,
+        discoveryRuns: discoveryRuns.count,
+      },
+    });
   } catch (err) {
     console.error("[settings/clear]", err);
     return NextResponse.json({ error: "Greška pri brisanju baze" }, { status: 500 });
