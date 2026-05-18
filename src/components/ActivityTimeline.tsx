@@ -1,7 +1,6 @@
 import {
   Plus,
   Globe,
-  Gauge,
   Award,
   Send,
   CalendarClock,
@@ -17,6 +16,8 @@ import {
   Bell,
   Users,
   Activity,
+  MessageSquare,
+  Repeat,
 } from "lucide-react";
 import type { ActivityEvent, ActivityKind } from "@/lib/activity";
 
@@ -39,6 +40,8 @@ const ICON_FOR_KIND: Record<ActivityKind, React.ComponentType<{ className?: stri
   mockup_generated: Sparkles,
   proposal_generated: FileText,
   reminder_set: Bell,
+  linkedin_sent: MessageSquare,
+  upsell_sent: Repeat,
 };
 
 const TONE_CLASS: Record<NonNullable<ActivityEvent["tone"]>, { ring: string; icon: string; bar: string }> = {

@@ -26,7 +26,9 @@ export type ActivityKind =
   | "reengage_scheduled"
   | "mockup_generated"
   | "proposal_generated"
-  | "reminder_set";
+  | "reminder_set"
+  | "linkedin_sent"
+  | "upsell_sent";
 
 export interface ActivityEvent {
   kind: ActivityKind;
@@ -223,6 +225,32 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       title: `Re-engagement #${prospect.reengageCount}`,
       detail: "90/180/365-dnevni touch",
       tone: "muted",
+    });
+  }
+
+  if (prospect.linkedinTouchedAt) {
+    ev.push({
+      kind: "linkedin_sent",
+      at: prospect.linkedinTouchedAt,
+      title: "LinkedIn DM poslat",
+      detail: "Multi-channel touch (manual)",
+      tone: "info",
+    });
+  }
+
+  if (prospect.lastUpsellAt) {
+    const tierLabel =
+      prospect.upsellCount === 1 ? "Referral request" :
+      prospect.upsellCount === 2 ? "Maintenance retainer pitch" :
+      prospect.upsellCount === 3 ? "SEO retainer pitch" :
+      prospect.upsellCount === 4 ? "Annual refresh proposal" :
+      `Upsell #${prospect.upsellCount}`;
+    ev.push({
+      kind: "upsell_sent",
+      at: prospect.lastUpsellAt,
+      title: tierLabel,
+      detail: "Post-conversion engine",
+      tone: "success",
     });
   }
 

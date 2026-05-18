@@ -183,11 +183,12 @@ export async function sendOneEmail(
 
   const isInitial = email.tip === "initial";
   // Re-engagement emails are fresh standalone touches months after the
-  // original sequence — they should land in a NEW Gmail thread (not buried
-  // under an old conversation the prospect may have archived) and include
-  // the pixel + screenshot since it's effectively a new pitch.
+  // original sequence. Upsell emails (retainer/referral/refresh) go to
+  // existing CLIENTS post-conversion — also brand-new threads, with the
+  // pixel + screenshot since they're effectively new pitches.
   const isReengage = email.tip.startsWith("reengage");
-  const standaloneTouch = isInitial || isReengage;
+  const isUpsell = email.tip.startsWith("retainer") || email.tip.startsWith("referral");
+  const standaloneTouch = isInitial || isReengage || isUpsell;
   const baseSubject =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
@@ -367,17 +368,20 @@ export async function processDueEmails(opts?: {
     results.push({ rule, sent, skipped, errors });
   }
 
-  // ── Initial sends + re-engagement touches ──
-  // Re-engagement emails (reengage90/180/365) reuse the scheduledInitial slot
-  // because they're standalone touches just like the initial. We don't
-  // distinguish them at dispatch — the tip is captured in the Email row so
-  // analytics can split them later.
+  // ── Standalone touches: initial + re-engagement + post-conversion upsells ──
+  // All share the scheduledInitial slot since each is a fresh thread to the
+  // recipient. Status filter intentionally excludes only opt-out states so
+  // upsell touches to Converted clients still flow through here.
   {
-    const standaloneTips = ["initial", "reengage90", "reengage180", "reengage365"];
+    const standaloneTips = [
+      "initial",
+      "reengage90", "reengage180", "reengage365",
+      "referral30", "retainer60", "retainer180", "retainer365",
+    ];
     const prospects = await prisma.prospect.findMany({
       where: {
         ...prospectFilter,
-        status: "Scheduled",
+        status: { notIn: ["Unsubscribed", "Bounced"] },
         scheduledInitial: { lte: now },
         emails: { some: { tip: { in: standaloneTips }, poslat: false } },
       },

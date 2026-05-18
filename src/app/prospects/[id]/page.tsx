@@ -18,6 +18,7 @@ import { ReplyDraftPanel } from "@/components/ReplyDraftPanel";
 import { DealEditor } from "@/components/DealEditor";
 import { MockupPanel } from "@/components/MockupPanel";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { LinkedInDmButton } from "@/components/LinkedInDmButton";
 import { getProspectActivity } from "@/lib/activity";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
@@ -101,6 +102,7 @@ export default async function ProspectDetailPage({
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <StatusSelector prospectId={prospect.id} currentStatus={prospect.status} />
+          <LinkedInDmButton prospectId={prospect.id} initialTouchedAt={prospect.linkedinTouchedAt} />
           <ReplyButton prospectId={prospect.id} currentStatus={prospect.status} />
           <ConversionButton prospectId={prospect.id} currentStatus={prospect.status} />
           <Link

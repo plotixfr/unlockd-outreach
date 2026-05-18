@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/reengage",
       "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/upsell",
+      "schedule": "0 7 * * 3"
     }
   ]
 }
