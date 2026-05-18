@@ -16,6 +16,7 @@ import { EmailEditor } from "@/components/EmailEditor";
 import { ScoutingReport } from "@/components/ScoutingReport";
 import { ReplyDraftPanel } from "@/components/ReplyDraftPanel";
 import { DealEditor } from "@/components/DealEditor";
+import { MockupPanel } from "@/components/MockupPanel";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
 const TIP_LABELS: Record<string, string> = {
@@ -190,6 +191,37 @@ export default async function ProspectDetailPage({
           snapshotAt={prospect.siteSnapshotAt}
         />
       </div>
+
+      {/* Closing kit: mockup + brief + proposal */}
+      {prospect.website && (
+        <div className="space-y-3">
+          <h2 className="text-white font-medium">Closing kit</h2>
+          <MockupPanel
+            prospectId={prospect.id}
+            website={prospect.website}
+            initialMockupUrl={prospect.mockupUrl}
+            initialMockupAt={prospect.mockupAt}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link
+              href={`/prospects/${prospect.id}/brief`}
+              target="_blank"
+              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-indigo-500/40 p-5 transition-all group card-elevation"
+            >
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-indigo-300 transition-colors">Pre-meeting brief →</p>
+              <p className="text-zinc-500 text-xs mt-1.5">1-stranica za pripremu poziva: PSI, signali, talking points, top 3 konkurenta</p>
+            </Link>
+            <Link
+              href={`/prospects/${prospect.id}/proposal`}
+              target="_blank"
+              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-indigo-500/40 p-5 transition-all group card-elevation"
+            >
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-indigo-300 transition-colors">Generiši ponudu →</p>
+              <p className="text-zinc-500 text-xs mt-1.5">4-stranice na francuskom sa 3 cjenovna nivoa + value calculator + Stripe link</p>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Datumi slanja */}
       {(prospect.datumPrvogMaila ||

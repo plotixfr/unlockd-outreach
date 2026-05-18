@@ -1,0 +1,5 @@
+ALTER TABLE "Prospect" ADD COLUMN IF NOT EXISTS "mockupUrl"       TEXT;
+ALTER TABLE "Prospect" ADD COLUMN IF NOT EXISTS "mockupPrompt"    TEXT;
+ALTER TABLE "Prospect" ADD COLUMN IF NOT EXISTS "mockupAt"        TIMESTAMP(3);
+ALTER TABLE "Prospect" ADD COLUMN IF NOT EXISTS "proposalContent" JSONB;
+ALTER TABLE "Prospect" ADD COLUMN IF NOT EXISTS "proposalAt"      TIMESTAMP(3);

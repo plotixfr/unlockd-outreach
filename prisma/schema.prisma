@@ -49,6 +49,11 @@ model Prospect {
   dealStage          String?
   dealValue          Float?
   dealStageAt        DateTime?
+  mockupUrl          String?
+  mockupPrompt       String?      @db.Text
+  mockupAt           DateTime?
+  proposalContent    Json?
+  proposalAt         DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   emails             Email[]
