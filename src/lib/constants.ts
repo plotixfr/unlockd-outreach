@@ -27,16 +27,16 @@ export const STATUSI = [
 export type Status = (typeof STATUSI)[number];
 
 export const STATUS_BOJE: Record<string, string> = {
-  New: "bg-zinc-700 text-zinc-200",
-  Scheduled: "bg-sky-900 text-sky-200",
-  Emailed: "bg-blue-900 text-blue-200",
-  Follow1: "bg-indigo-900 text-indigo-200",
-  Follow2: "bg-violet-900 text-violet-200",
-  Follow3: "bg-purple-900 text-purple-200",
-  Replied: "bg-emerald-900 text-emerald-200",
-  Converted: "bg-green-900 text-green-200",
-  Unsubscribed: "bg-red-900 text-red-300",
-  Bounced: "bg-red-950 text-red-400",
+  New:          "bg-zinc-800/60 text-zinc-300 border border-zinc-700/40",
+  Scheduled:    "bg-sky-500/10 text-sky-300 border border-sky-500/20",
+  Emailed:      "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20",
+  Follow1:      "bg-indigo-500/15 text-indigo-300 border border-indigo-500/25",
+  Follow2:      "bg-violet-500/15 text-violet-300 border border-violet-500/25",
+  Follow3:      "bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25",
+  Replied:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
+  Converted:    "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
+  Unsubscribed: "bg-red-500/10 text-red-300 border border-red-500/20",
+  Bounced:      "bg-red-500/15 text-red-400 border border-red-500/30",
 };
 
 export const PIPELINE_ORDER: Status[] = [

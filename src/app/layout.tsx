@@ -29,11 +29,11 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
-      <body className="bg-[#0a0a0f] text-[#f1f1f3] min-h-screen antialiased">
+      <body className="bg-[#07070b] text-[#f4f4f6] min-h-screen antialiased">
         {hasSession ? (
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-56 p-8 min-h-screen">{children}</main>
+            <main className="flex-1 ml-60 px-10 py-10 min-h-screen">{children}</main>
           </div>
         ) : (
           children

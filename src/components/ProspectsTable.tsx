@@ -207,10 +207,10 @@ export function ProspectsTable({ prospects }: Props) {
       )}
 
       {/* Table */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] card-elevation overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#1f1f2e]">
+            <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
               <th className="px-4 py-3 w-10">
                 <input
                   type="checkbox"
@@ -229,7 +229,7 @@ export function ProspectsTable({ prospects }: Props) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1f1f2e]">
+          <tbody className="divide-y divide-[#14141c]">
             {prospects.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-12 text-center text-zinc-600 text-sm">
@@ -240,7 +240,7 @@ export function ProspectsTable({ prospects }: Props) {
               prospects.map((p) => (
                 <tr
                   key={p.id}
-                  className={`hover:bg-[#1a1a28] transition-colors group ${selected.has(p.id) ? "bg-blue-950/20" : ""}`}
+                  className={`hover:bg-white/[0.02] transition-colors group ${selected.has(p.id) ? "bg-blue-950/20" : ""}`}
                 >
                   <td className="px-4 py-3">
                     <input
@@ -253,7 +253,7 @@ export function ProspectsTable({ prospects }: Props) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/prospects/${p.id}`}
-                      className="text-white font-medium group-hover:text-blue-400 transition-colors"
+                      className="text-white font-medium group-hover:text-indigo-400 transition-colors"
                     >
                       {p.firmaNaziv}
                     </Link>
@@ -357,7 +357,7 @@ export function ProspectsTable({ prospects }: Props) {
       {/* Single delete confirmation */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+          <div className="bg-[#0d0d12] border border-[#1c1c28] card-elevation rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
             <h3 className="text-white font-semibold mb-2">Obriši prospekta</h3>
             <p className="text-zinc-400 text-sm mb-6">
               Da li ste sigurni da želite obrisati{" "}
@@ -368,7 +368,7 @@ export function ProspectsTable({ prospects }: Props) {
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={!!deletingId}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-[#1a1a28] transition-colors"
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-white/[0.02] transition-colors"
               >
                 Odustani
               </button>
@@ -390,7 +390,7 @@ export function ProspectsTable({ prospects }: Props) {
       {/* Bulk schedule modal */}
       {showScheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl space-y-5">
+          <div className="bg-[#0d0d12] border border-[#1c1c28] card-elevation rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl space-y-5">
             <div>
               <h3 className="text-white font-semibold">Zakaži kampanju</h3>
               <p className="text-zinc-500 text-sm mt-1">
@@ -433,7 +433,7 @@ export function ProspectsTable({ prospects }: Props) {
               <button
                 onClick={() => setShowScheduleModal(false)}
                 disabled={!!bulkLoading}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-[#1a1a28] transition-colors"
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-white/[0.02] transition-colors"
               >
                 Odustani
               </button>

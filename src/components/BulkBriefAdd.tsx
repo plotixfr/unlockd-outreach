@@ -80,7 +80,7 @@ export function BulkBriefAdd() {
     : null;
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6 space-y-4">
+    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] card-elevation p-6 space-y-4">
       <div>
         <h2 className="text-white font-medium">Bulk Add — bilo koja niša, bilo koji grad</h2>
         <p className="text-zinc-500 text-xs mt-1">
@@ -95,7 +95,7 @@ export function BulkBriefAdd() {
         onChange={(e) => setText(e.target.value)}
         rows={8}
         placeholder={`Avocats, Marseille\nDentistes, Lyon\nPhotographe mariage, Bordeaux\nCabinet kinésithérapeute, Toulouse`}
-        className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2.5 text-sm text-zinc-200 placeholder-zinc-700 font-mono focus:outline-none focus:border-blue-600 transition-colors leading-relaxed"
+        className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2.5 text-sm text-zinc-200 placeholder-zinc-700 font-mono focus:outline-none focus:border-indigo-500/50 transition-colors leading-relaxed"
       />
 
       <div className="flex items-center gap-3 flex-wrap">
@@ -113,7 +113,7 @@ export function BulkBriefAdd() {
             max={20}
             value={maxPerRun}
             onChange={(e) => setMaxPerRun(parseInt(e.target.value) || 2)}
-            className="w-16 bg-[#0a0a0f] border border-[#1f1f2e] rounded px-2 py-1 text-zinc-200 focus:outline-none focus:border-blue-600"
+            className="w-16 bg-[#0a0a0f] border border-[#1f1f2e] rounded px-2 py-1 text-zinc-200 focus:outline-none focus:border-indigo-500/50"
           />
         </div>
         <div className="flex items-center gap-2 text-xs">
@@ -124,15 +124,15 @@ export function BulkBriefAdd() {
             max={10}
             value={qualityThreshold}
             onChange={(e) => setQualityThreshold(parseInt(e.target.value) || 6)}
-            className="w-16 bg-[#0a0a0f] border border-[#1f1f2e] rounded px-2 py-1 text-zinc-200 focus:outline-none focus:border-blue-600"
+            className="w-16 bg-[#0a0a0f] border border-[#1f1f2e] rounded px-2 py-1 text-zinc-200 focus:outline-none focus:border-indigo-500/50"
           />
         </div>
         <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer">
-          <input type="checkbox" checked={autoGenerate} onChange={(e) => setAutoGenerate(e.target.checked)} className="accent-blue-600" />
+          <input type="checkbox" checked={autoGenerate} onChange={(e) => setAutoGenerate(e.target.checked)} className="accent-indigo-500" />
           auto-gen
         </label>
         <label className="flex items-center gap-1.5 text-xs text-zinc-300 cursor-pointer">
-          <input type="checkbox" checked={autoSchedule} onChange={(e) => setAutoSchedule(e.target.checked)} className="accent-blue-600" />
+          <input type="checkbox" checked={autoSchedule} onChange={(e) => setAutoSchedule(e.target.checked)} className="accent-indigo-500" />
           auto-zakaži
         </label>
       </div>
@@ -142,7 +142,7 @@ export function BulkBriefAdd() {
         <button
           onClick={submit}
           disabled={loading}
-          className="ml-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+          className="ml-auto bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md transition-colors flex items-center gap-2"
         >
           {loading && <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
           {loading ? "Kreiram…" : "Kreiraj briefove"}

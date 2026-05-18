@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Loader2, Zap, CheckCircle2 } from "lucide-react";
 
 interface Props {
   hasAnyBrief: boolean;
@@ -46,47 +47,54 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
 
   if (done) {
     return (
-      <div className="rounded-xl bg-emerald-950/30 border border-emerald-700/40 p-5">
-        <p className="text-emerald-300 font-medium text-sm">
-          ✓ Quick Setup završen — {done.created} novih brief-ova, {done.skipped} preskočeno (već postoje)
-        </p>
-        {done.names.length > 0 && (
-          <ul className="mt-2 text-emerald-200/80 text-xs space-y-0.5">
-            {done.names.map((n) => <li key={n}>· {n}</li>)}
-          </ul>
-        )}
-        <p className="text-emerald-200/70 text-xs mt-3">
-          Autopilot će ih sve pokrenuti sljedeći radni dan u 08:00 Paris. Možeš pokrenuti odmah klikom na ▶ pored svakog brief-a.
-        </p>
+      <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.07] to-[#0a0a12] p-6">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 strokeWidth={2} className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-emerald-300 font-medium text-sm">
+              Quick Setup završen — {done.created} novih brief-ova, {done.skipped} već postojeći
+            </p>
+            <p className="text-emerald-200/70 text-xs mt-1">
+              Autopilot ih sve pokreće sljedeći radni dan u 08:00 Paris automatski.
+            </p>
+            {done.names.length > 0 && done.names.length <= 8 && (
+              <ul className="mt-3 text-emerald-200/60 text-[11px] space-y-0.5 columns-2">
+                {done.names.map((n) => <li key={n} className="break-inside-avoid">· {n}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl bg-gradient-to-br from-blue-950/40 to-violet-950/40 border border-blue-800/40 p-6 space-y-3">
-      <div>
-        <h2 className="text-white font-semibold text-base">⚡ Quick Setup — Unlockd target market</h2>
-        <p className="text-blue-200/80 text-sm mt-1">
-          Jedan klik kreira 10 brief-ova pokrivajući tvoj premium francuski market:
-          hoteli 4-5★ (Paris, Nice, Bordeaux, Cannes), restorani gastro (Paris, Lyon),
-          immobilier prestige (Paris, Cannes), arhitekti Paris, spas Paris.
-          Konzervativan setup: 2-3 prospekta po brief-u dnevno → ~30 prospekata/dan ukupno.
-        </p>
-        <p className="text-blue-200/60 text-xs mt-2">
-          Nakon ovoga: ne moraš ništa ručno — autopilot otkriva, scoreuje, generiše, šalje. Ti samo otvaraš inbox.
-        </p>
-      </div>
-      <div className="flex items-center justify-between gap-3">
-        {error && <p className="text-red-400 text-xs flex-1">{error}</p>}
+    <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.07] via-[#0d0d12] to-[#0a0a12] p-6 card-elevation">
+      <div className="flex items-start justify-between gap-6 flex-wrap">
+        <div className="min-w-0 max-w-2xl">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-7 h-7 rounded-md bg-indigo-500/15 flex items-center justify-center">
+              <Zap strokeWidth={2} className="w-4 h-4 text-indigo-400" />
+            </div>
+            <h2 className="text-white font-semibold text-base">Quick Setup — Unlockd target market</h2>
+          </div>
+          <p className="text-zinc-400 text-sm leading-relaxed">
+            Jedan klik kreira 30 brief-ova pokrivajući cijeli francuski premium B2B market — hospitality, immobilier, architecture, wellness, beauté, professions libérales, retail luxe, fitness, créatif, éducation, auto premium.
+          </p>
+          <p className="text-zinc-600 text-xs mt-2">
+            Konzervativno: ~50 prospekata/dan otkriveno, ~25 prolazi quality gate, send cron drena u 30/dan kapu.
+          </p>
+        </div>
         <button
           onClick={run}
           disabled={loading}
-          className="ml-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+          className="shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 flex items-center gap-2"
         >
-          {loading && <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-          {loading ? "Kreiram…" : "⚡ Pokreni Quick Setup"}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap strokeWidth={2} className="w-4 h-4" />}
+          {loading ? "Kreiram…" : "Pokreni Quick Setup"}
         </button>
       </div>
+      {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
     </div>
   );
 }

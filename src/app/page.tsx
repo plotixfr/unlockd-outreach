@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { STATUS_BOJE, PIPELINE_ORDER } from "@/lib/constants";
 import { nextAutopilotRun, nextSendRun, formatParisDateTime, relativeFromNow } from "@/lib/autopilotStatus";
+import { Activity, ArrowUpRight, Clock, Flame, MessageSquareReply, Sparkles, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -58,26 +59,20 @@ export default async function DashboardPage() {
       where: { status: "Scheduled" },
       select: { id: true, firmaNaziv: true, scheduledInitial: true, nisa: true, grad: true },
       orderBy: { scheduledInitial: "asc" },
-      take: 8,
+      take: 6,
     }),
     prisma.prospect.findMany({
       where: { status: { in: ["Replied", "Converted"] } },
       orderBy: { updatedAt: "desc" },
-      take: 5,
+      take: 4,
       select: { id: true, firmaNaziv: true, status: true, grad: true, nisa: true },
     }),
     prisma.searchBrief.count({ where: { active: true } }),
     prisma.prospect.count({
-      where: {
-        status: "Scheduled",
-        scheduledInitial: { gte: todayStart, lt: todayEnd },
-      },
+      where: { status: "Scheduled", scheduledInitial: { gte: todayStart, lt: todayEnd } },
     }),
     prisma.prospect.count({
-      where: {
-        status: "Scheduled",
-        scheduledInitial: { gte: tomorrowStart, lt: tomorrowEnd },
-      },
+      where: { status: "Scheduled", scheduledInitial: { gte: tomorrowStart, lt: tomorrowEnd } },
     }),
     prisma.reply.count({
       where: {
@@ -91,7 +86,6 @@ export default async function DashboardPage() {
 
   const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
   const totalConversionEur = conversionSum._sum.vrijednostProjekta ?? 0;
-
   const activeCampaigns =
     pipelineCounts[PIPELINE_ORDER.indexOf("Emailed")] +
     pipelineCounts[PIPELINE_ORDER.indexOf("Follow1")] +
@@ -117,185 +111,191 @@ export default async function DashboardPage() {
     };
   });
   const maxDay = Math.max(...chartDays.map((d) => d.count), 1);
-
-  const pipeline = PIPELINE_ORDER.map((s, i) => ({
-    status: s,
-    count: pipelineCounts[i] ?? 0,
-  }));
+  const pipeline = PIPELINE_ORDER.map((s, i) => ({ status: s, count: pipelineCounts[i] ?? 0 }));
   const maxCount = Math.max(...pipeline.map((p) => p.count), 1);
 
-  const statCards = [
-    { label: "Ukupno prospekata", value: total, color: "text-white", sub: null },
-    { label: "Zakazano", value: scheduled, color: "text-sky-400", sub: null },
-    { label: "Aktivne kampanje", value: activeCampaigns, color: "text-blue-400", sub: null },
-    { label: "Odgovorili", value: replied, color: "text-emerald-400", sub: null },
-    {
-      label: "Open rate",
-      value: `${openRate}%`,
-      color: openRate >= 30 ? "text-emerald-400" : openRate > 0 ? "text-yellow-400" : "text-zinc-500",
-      sub: `${totalOpened} / ${totalSent} poslanih`,
-    },
-    {
-      label: "Ukupno konverzija",
-      value: totalConversionEur > 0 ? `${totalConversionEur.toLocaleString("fr-FR")} €` : `${converted}`,
-      color: "text-green-400",
-      sub: totalConversionEur > 0 ? `${converted} klijent${converted === 1 ? "" : "a"}` : null,
-    },
-  ];
-
   return (
-    <div className="max-w-6xl space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl space-y-10">
+      {/* Hero */}
+      <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
-          <p className="text-zinc-500 text-sm mt-1">
+          <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Dashboard</p>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">
             {emailsToday > 0
-              ? `${emailsToday} email${emailsToday === 1 ? "" : "a"} poslano danas`
-              : "Pregled outreach aktivnosti"}
+              ? `${emailsToday} mail${emailsToday === 1 ? "" : (emailsToday < 5 ? "a" : "ova")} poslano danas`
+              : "Dobro došao nazad."}
+          </h1>
+          <p className="text-zinc-500 text-sm mt-2">
+            {activeBriefsCount > 0
+              ? `${activeBriefsCount} aktivn${activeBriefsCount === 1 ? "i brief" : "ih briefova"} · sljedeći autopilot run ${relativeFromNow(nextAutopilot, now)}`
+              : "Autopilot pauziran — postavi briefove da krene."}
           </p>
         </div>
         <Link
-          href="/upload"
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          href="/autopilot"
+          className="group inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
         >
-          + Dodaj listu
+          Autopilot
+          <ArrowUpRight strokeWidth={2} className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </Link>
       </div>
 
-      {/* "Danas" — what the autopilot will do today + what needs your attention */}
-      <div className={`rounded-xl border p-5 ${
-        activeBriefsCount > 0
-          ? "bg-gradient-to-br from-emerald-950/30 to-blue-950/20 border-emerald-800/30"
-          : "bg-gradient-to-br from-zinc-900/40 to-zinc-900/20 border-zinc-700/40"
-      }`}>
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className={`inline-block w-2 h-2 rounded-full ${activeBriefsCount > 0 ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"}`} />
-              <span className={`text-xs uppercase tracking-wider font-semibold ${activeBriefsCount > 0 ? "text-emerald-300" : "text-zinc-500"}`}>
-                Danas {activeBriefsCount > 0 ? "— Autopilot radi" : "— Autopilot nije aktivan"}
-              </span>
+      {/* "Danas" — live status strip */}
+      <div className="rounded-2xl bg-gradient-to-br from-[#0d0d18] to-[#0a0a12] border border-[#1c1c28] p-6 card-elevation">
+        <div className="flex items-start justify-between gap-6 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${activeBriefsCount > 0 ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-800/50 text-zinc-600"}`}>
+              <Activity strokeWidth={2} className="w-5 h-5" />
             </div>
-            <p className="text-white text-base font-medium">
-              {initialsScheduledToday + emailsToday} email{(initialsScheduledToday + emailsToday) === 1 ? "" : "a"} kreće prema prospektima · {initialsScheduledTomorrow} novih sutra · sljedeći send {relativeFromNow(nextSend, now)}
-            </p>
-            <p className="text-zinc-400 text-xs mt-1.5">
-              Autopilot opet skenira market <span className="text-zinc-300">{relativeFromNow(nextAutopilot, now)}</span> ({formatParisDateTime(nextAutopilot)})
-            </p>
+            <div>
+              <p className="text-zinc-500 text-[11px] uppercase tracking-wider font-medium">Danas</p>
+              <p className="text-white text-base font-medium mt-0.5">
+                {initialsScheduledToday + emailsToday} mailova kreće · {initialsScheduledTomorrow} sutra
+              </p>
+              <p className="text-zinc-500 text-xs mt-0.5">
+                Send batch {relativeFromNow(nextSend, now)} · {formatParisDateTime(nextSend)}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+
+          <div className="flex items-center gap-2">
             {repliesNeedingResponse > 0 && (
               <Link
                 href="/prospects?status=Replied"
-                className="px-3 py-2 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-300 text-xs font-medium hover:bg-emerald-900/60 transition-colors"
+                className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm font-medium hover:bg-emerald-500/15 transition-all"
               >
-                💬 {repliesNeedingResponse} draft{repliesNeedingResponse === 1 ? "" : "a"} čeka
+                <MessageSquareReply strokeWidth={2} className="w-4 h-4" />
+                {repliesNeedingResponse} draft{repliesNeedingResponse === 1 ? "" : "a"} čeka
               </Link>
             )}
             {pendingDrafts > 0 && (
               <Link
                 href="/prospects"
-                className="px-3 py-2 rounded-lg bg-amber-950/60 border border-amber-800/60 text-amber-300 text-xs font-medium hover:bg-amber-900/60 transition-colors"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm font-medium hover:bg-amber-500/15 transition-all"
               >
-                🔥 {pendingDrafts} otvorio Calendly
+                <Flame strokeWidth={2} className="w-4 h-4" />
+                {pendingDrafts} otvorio Calendly
               </Link>
             )}
-            <Link
-              href="/autopilot"
-              className="px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 transition-colors"
-            >
-              Autopilot →
-            </Link>
           </div>
         </div>
       </div>
 
-      {/* 6 Stat cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {statCards.map(({ label, value, color, sub }) => (
-          <div key={label} className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5">
-            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">{label}</p>
-            <p className={`text-3xl font-bold ${color}`}>{value}</p>
-            {sub && <p className="text-zinc-600 text-xs mt-1">{sub}</p>}
+      {/* Stat grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Prospekti", value: total.toLocaleString("fr-FR"), sub: `${scheduled} u sekvenci` },
+          { label: "Otvaranja", value: `${openRate}%`, sub: `${totalOpened} / ${totalSent}`, tone: openRate >= 30 ? "good" : openRate > 0 ? "warn" : "muted" },
+          { label: "Replyji", value: replied.toLocaleString("fr-FR"), sub: `${activeCampaigns} aktivne`, tone: replied > 0 ? "good" : "muted" },
+          {
+            label: "Prihod",
+            value: totalConversionEur > 0 ? `${totalConversionEur.toLocaleString("fr-FR")} €` : "—",
+            sub: `${converted} klijent${converted === 1 ? "" : "a"}`,
+            tone: "good" as const,
+          },
+        ].map((s, i) => (
+          <div key={i} className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
+            <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium">{s.label}</p>
+            <p
+              className={`text-2xl font-semibold mt-2 tracking-tight ${
+                s.tone === "good"
+                  ? "text-emerald-400"
+                  : s.tone === "warn"
+                    ? "text-amber-400"
+                    : s.tone === "muted"
+                      ? "text-zinc-500"
+                      : "text-white"
+              }`}
+            >
+              {s.value}
+            </p>
+            <p className="text-zinc-600 text-xs mt-1.5">{s.sub}</p>
           </div>
         ))}
       </div>
 
-      {/* 14-day activity bar chart */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-        <h2 className="text-white font-medium mb-5">Aktivnost — zadnjih 14 dana</h2>
+      {/* Chart */}
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <TrendingUp strokeWidth={2} className="w-4 h-4 text-zinc-500" />
+            <h2 className="text-zinc-200 text-sm font-medium">Aktivnost — 14 dana</h2>
+          </div>
+          <p className="text-zinc-600 text-xs">{recentEmails.length} mailova ukupno</p>
+        </div>
         {recentEmails.length === 0 ? (
-          <p className="text-zinc-600 text-sm">Još nema poslanih emailova.</p>
+          <p className="text-zinc-600 text-sm py-8 text-center">Još nema poslanih emailova.</p>
         ) : (
-          <div className="flex items-end gap-1.5 h-24">
+          <div className="flex items-end gap-1.5 h-28">
             {chartDays.map((day) => (
-              <div key={day.key} className="flex-1 flex flex-col items-center gap-1 group">
-                <div className="relative w-full flex items-end justify-center" style={{ height: "72px" }}>
+              <div key={day.key} className="flex-1 flex flex-col items-center gap-2 group">
+                <div className="relative w-full flex items-end justify-center h-20">
                   <div
-                    title={`${day.label}: ${day.count} emailova`}
-                    className="w-full rounded-t bg-blue-600/60 group-hover:bg-blue-500/80 transition-colors"
-                    style={{ height: `${Math.max((day.count / maxDay) * 72, day.count > 0 ? 4 : 0)}px` }}
+                    title={`${day.label}: ${day.count}`}
+                    className="w-full rounded-md bg-gradient-to-t from-indigo-600/30 to-indigo-400/50 group-hover:from-indigo-600/50 group-hover:to-indigo-400/70 transition-all"
+                    style={{ height: `${Math.max((day.count / maxDay) * 80, day.count > 0 ? 4 : 2)}px` }}
                   />
                 </div>
-                <span className="text-zinc-700 text-[10px] select-none">{day.short}</span>
+                <span className="text-zinc-700 text-[10px] select-none font-medium">{day.short}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Pipeline */}
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-          <h2 className="text-white font-medium mb-4">Pipeline</h2>
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+          <h2 className="text-zinc-200 text-sm font-medium mb-5">Pipeline</h2>
           {total === 0 ? (
-            <p className="text-zinc-600 text-sm">Nema prospekata u bazi.</p>
+            <p className="text-zinc-600 text-sm py-4">Nema prospekata u bazi.</p>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {pipeline.map(({ status, count }) => (
                 <div key={status} className="flex items-center gap-3">
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium w-28 text-center shrink-0 ${STATUS_BOJE[status]}`}
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium w-24 text-center shrink-0 tracking-wider uppercase ${STATUS_BOJE[status]}`}
                   >
                     {status}
                   </span>
-                  <div className="flex-1 bg-[#1a1a28] rounded-full h-1.5">
+                  <div className="flex-1 bg-[#14141c] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="bg-blue-600 h-1.5 rounded-full transition-all"
+                      className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-indigo-400 transition-all"
                       style={{ width: `${(count / maxCount) * 100}%` }}
                     />
                   </div>
-                  <span className="text-zinc-400 text-sm w-6 text-right shrink-0">
-                    {count}
-                  </span>
+                  <span className="text-zinc-400 text-sm w-8 text-right shrink-0 font-medium tabular-nums">{count}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Upcoming campaigns */}
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-white font-medium">Predstojeće kampanje</h2>
-            <span className="text-zinc-600 text-xs">Sledećih 7 dana</span>
+        {/* Upcoming */}
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Clock strokeWidth={2} className="w-4 h-4 text-zinc-500" />
+              <h2 className="text-zinc-200 text-sm font-medium">Predstojeće</h2>
+            </div>
+            <span className="text-zinc-600 text-xs">Najbliže 6</span>
           </div>
           {upcomingProspects.length === 0 ? (
-            <p className="text-zinc-600 text-sm">Nema zakazanih kampanja za sljedećih 7 dana.</p>
+            <p className="text-zinc-600 text-sm py-4">Nema zakazanih kampanja.</p>
           ) : (
             <div className="space-y-3">
               {upcomingProspects.map((p) => (
-                <div key={p.id} className="flex items-center justify-between gap-2">
+                <div key={p.id} className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <Link
                       href={`/prospects/${p.id}`}
-                      className="text-zinc-200 text-sm font-medium hover:text-blue-400 transition-colors truncate block"
+                      className="text-zinc-200 text-sm font-medium hover:text-indigo-400 transition-colors truncate block"
                     >
                       {p.firmaNaziv}
                     </Link>
                     <p className="text-zinc-600 text-xs mt-0.5">{p.nisa} · {p.grad}</p>
                   </div>
-                  <span className="text-sky-400 text-xs shrink-0">
+                  <span className="text-indigo-400 text-xs shrink-0 tabular-nums">
                     {p.scheduledInitial
                       ? new Date(p.scheduledInitial).toLocaleDateString("fr-FR", {
                           day: "numeric",
@@ -314,24 +314,27 @@ export default async function DashboardPage() {
 
       {/* Recent replies */}
       {recentReplies.length > 0 && (
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-          <h2 className="text-white font-medium mb-4">Nedavni odgovori</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+          <div className="flex items-center gap-2 mb-5">
+            <MessageSquareReply strokeWidth={2} className="w-4 h-4 text-emerald-400" />
+            <h2 className="text-zinc-200 text-sm font-medium">Nedavni replyji</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {recentReplies.map((p) => (
               <Link
                 key={p.id}
                 href={`/prospects/${p.id}`}
-                className="flex items-center gap-3 p-3 rounded-lg bg-[#0a0a0f] border border-[#1f1f2e] hover:border-emerald-800/60 transition-colors group"
+                className="flex items-center gap-3 p-3 rounded-lg bg-[#0a0a0f] border border-[#1c1c28] hover:border-emerald-500/40 transition-all group"
               >
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                <div className="min-w-0">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                <div className="min-w-0 flex-1">
                   <p className="text-zinc-200 text-sm font-medium group-hover:text-emerald-300 transition-colors truncate">
                     {p.firmaNaziv}
                   </p>
                   <p className="text-zinc-600 text-xs mt-0.5">{p.nisa} · {p.grad}</p>
                 </div>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-medium ml-auto shrink-0 ${STATUS_BOJE[p.status] ?? "bg-zinc-700 text-zinc-200"}`}
+                  className={`text-[10px] px-2 py-0.5 rounded-md font-medium ml-auto shrink-0 uppercase tracking-wider ${STATUS_BOJE[p.status] ?? "bg-zinc-800 text-zinc-300"}`}
                 >
                   {p.status}
                 </span>
@@ -341,20 +344,24 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {total === 0 && (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
-          <p className="text-zinc-500 text-sm">
-            Počni uploadovanjem CSV liste prospekata.
+      {total === 0 && activeBriefsCount === 0 && (
+        <div className="rounded-2xl border border-dashed border-[#1c1c28] p-12 text-center bg-gradient-to-br from-indigo-500/[0.02] to-transparent">
+          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-6 h-6 text-indigo-400" />
+          </div>
+          <h3 className="text-white font-semibold text-base">Pokreni autopilot</h3>
+          <p className="text-zinc-500 text-sm mt-1.5 max-w-sm mx-auto">
+            Kreiraj briefove na /autopilot stranici i sistem počinje sam tražiti prospekte sutra u 8h.
           </p>
           <Link
-            href="/upload"
-            className="mt-3 inline-block text-blue-500 text-sm hover:text-blue-400 transition-colors"
+            href="/autopilot"
+            className="mt-5 inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
-            Upload CSV →
+            Otvori autopilot
+            <ArrowUpRight strokeWidth={2} className="w-4 h-4" />
           </Link>
         </div>
       )}
     </div>
   );
 }
-
