@@ -203,8 +203,6 @@ export default async function ProspectDetailPage({
             city={prospect.grad}
             website={prospect.website}
             snapshot={(prospect.siteSnapshot as unknown as SiteSnapshot | null) ?? null}
-            initialMockupUrl={prospect.mockupUrl}
-            initialMockupAt={prospect.mockupAt}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Link

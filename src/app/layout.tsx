@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
@@ -12,6 +12,15 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Display serif for concept previews — the typography of Aman, Hermès, Tiempos.
+// Loaded site-wide so any /preview route can use it without per-page setup.
+const cormorant = Cormorant_Garamond({
+  variable: "--font-display-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -33,10 +42,11 @@ export default async function RootLayout({
   // brief/proposal documents.
   const standalone =
     pathname.startsWith("/audit") ||
+    pathname.startsWith("/preview/") ||
     /^\/prospects\/[^/]+\/(brief|proposal)/.test(pathname);
 
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full`}>
       <body className="bg-[#07070b] text-[#f4f4f6] min-h-screen antialiased">
         {hasSession && !standalone ? (
           <div className="flex min-h-screen print:block">
