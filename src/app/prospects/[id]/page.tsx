@@ -13,6 +13,8 @@ import { SubjectSelector } from "@/components/SubjectSelector";
 import { NotesSection } from "@/components/NotesSection";
 import { ReminderForm } from "@/components/ReminderForm";
 import { EmailEditor } from "@/components/EmailEditor";
+import { ScoutingReport } from "@/components/ScoutingReport";
+import type { SiteSnapshot } from "@/lib/scrapeSite";
 
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
@@ -51,6 +53,7 @@ export default async function ProspectDetailPage({
       emails: { orderBy: { createdAt: "asc" } },
       conversions: { orderBy: { createdAt: "desc" }, take: 1 },
       notes: { orderBy: { createdAt: "desc" } },
+      replies: { orderBy: { receivedAt: "desc" } },
     },
   });
 
@@ -159,6 +162,17 @@ export default async function ProspectDetailPage({
         </div>
       )}
 
+      {/* Scouting report — what the AI sees about their website */}
+      <div className="space-y-3">
+        <h2 className="text-white font-medium">Analiza prospekta</h2>
+        <ScoutingReport
+          prospectId={prospect.id}
+          hasWebsite={!!prospect.website}
+          snapshot={(prospect.siteSnapshot as unknown as SiteSnapshot | null) ?? null}
+          snapshotAt={prospect.siteSnapshotAt}
+        />
+      </div>
+
       {/* Datumi slanja */}
       {(prospect.datumPrvogMaila ||
         prospect.datumFollowUp1 ||
@@ -206,6 +220,41 @@ export default async function ProspectDetailPage({
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Replies (auto-pulled from IMAP) */}
+      {prospect.replies.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-white font-medium">
+            Odgovori <span className="text-zinc-500 text-sm font-normal">({prospect.replies.length})</span>
+          </h2>
+          <div className="space-y-3">
+            {prospect.replies.map((r) => (
+              <div
+                key={r.id}
+                className="rounded-xl bg-emerald-950/20 border border-emerald-900/40 p-5"
+              >
+                <div className="flex items-center justify-between text-xs mb-3">
+                  <span className="text-emerald-300 font-medium">{r.fromAddr}</span>
+                  <span className="text-zinc-500">
+                    {new Date(r.receivedAt).toLocaleString("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {r.subject && (
+                  <p className="text-zinc-300 text-sm font-medium mb-2">{r.subject}</p>
+                )}
+                <pre className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                  {r.body || "(prazno tijelo)"}
+                </pre>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

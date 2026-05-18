@@ -32,28 +32,44 @@ model Prospect {
   scheduledFollow3   DateTime?
   podsjetnikDatum    DateTime?
   podsjetnikNapomena String?
+  siteSnapshot       Json?
+  siteSnapshotAt     DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   emails             Email[]
   conversions        Conversion[]
   notes              Note[]
+  replies            Reply[]
 }
 
 model Email {
-  id          String    @id @default(cuid())
-  prospectId  String
-  prospect    Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
-  tip         String
-  subject     String
-  body        String    @db.Text
-  poslat      Boolean   @default(false)
-  poslatAt    DateTime?
+  id            String    @id @default(cuid())
+  prospectId    String
+  prospect      Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  tip           String
+  subject       String
+  body          String    @db.Text
+  poslat        Boolean   @default(false)
+  poslatAt      DateTime?
   otvoren       Boolean   @default(false)
   otvorenAt     DateTime?
   subjectB      String?   @db.Text
   activeSubject String    @default("A")
   resendId      String?
+  messageId     String?
   createdAt     DateTime  @default(now())
+}
+
+model Reply {
+  id          String   @id @default(cuid())
+  prospectId  String
+  prospect    Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  fromAddr    String
+  subject     String?
+  body        String   @db.Text
+  receivedAt  DateTime
+  imapUid     String?  @unique
+  createdAt   DateTime @default(now())
 }
 
 model Conversion {

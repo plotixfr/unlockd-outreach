@@ -1,10 +1,13 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { signatureHtml, signatureText } from "@/lib/signature";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
+const REPLY_TO = process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
+const BCC_EMAIL = process.env.BCC_EMAIL ?? "temim.fr@gmail.com";
 export const DAILY_SEND_CAP = Number(process.env.DAILY_SEND_CAP ?? 30);
 
 type StatusField =
@@ -20,10 +23,117 @@ export const TIP_TO_STATUS: Record<string, { status: string; field: StatusField 
   follow3: { status: "Follow3", field: "datumFollowUp3" },
 };
 
-function buildHtml(body: string, emailId: string, prospectId: string): string {
-  const pixel = `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`;
+/**
+ * Builds the final HTML body sent to Resend.
+ * - The signature is appended server-side so the AI can't drop or "improve" it.
+ * - Open-tracking pixel is only added to the initial send (follow-ups in the
+ *   same thread don't need a second pixel; multiple pixels are a spam signal).
+ * - Unsubscribe footer is included on every send (legal + List-Unsubscribe
+ *   header pairing for RFC 8058 one-click).
+ */
+function buildHtml(
+  body: string,
+  emailId: string,
+  prospectId: string,
+  opts: { includePixel: boolean }
+): string {
+  const pixel = opts.includePixel
+    ? `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`
+    : "";
   const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.</p>`;
-  return body + pixel + unsubscribe;
+  return body + signatureHtml() + pixel + unsubscribe;
+}
+
+/**
+ * Plain-text body, paired with the HTML one. Resend sends both as a multipart
+ * message — having a real text/plain part materially improves Gmail Inbox
+ * placement vs. HTML-only.
+ */
+function buildText(body: string, prospectId: string): string {
+  const text = htmlToText(body);
+  return [
+    text,
+    "",
+    signatureText(),
+    "",
+    `Désabonnement : ${SITE_URL}/api/unsubscribe/${prospectId}`,
+  ].join("\n");
+}
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>\s*<p[^>]*>/gi, "\n\n")
+    .replace(/<\/?(p|div|li|h\d)[^>]*>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Common headers that improve deliverability: List-Unsubscribe + the
+ * One-Click variant (RFC 8058), Auto-Submitted to signal automated context,
+ * and a stable X-Mailer for diagnostics.
+ */
+function deliverabilityHeaders(prospectId: string): Record<string, string> {
+  const unsubUrl = `${SITE_URL}/api/unsubscribe/${prospectId}`;
+  return {
+    "List-Unsubscribe": `<${unsubUrl}>, <mailto:${REPLY_TO}?subject=Unsubscribe>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    "X-Entity-Ref-ID": prospectId,
+  };
+}
+
+/**
+ * After a successful send, ask Resend for the RFC822 Message-ID it stamped on
+ * the email so we can use it as In-Reply-To on later follow-ups. The typed SDK
+ * doesn't expose message_id on the outbound GetEmailResponse, so we hit the
+ * REST endpoint directly and read the field. Best-effort: any failure returns
+ * null so the send still succeeds.
+ */
+async function fetchMessageId(resendId: string): Promise<string | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(`https://api.resend.com/emails/${resendId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { message_id?: string; headers?: Record<string, string> | null };
+    if (typeof json.message_id === "string" && json.message_id) return json.message_id;
+    // Some Resend responses surface it under headers["Message-ID"]
+    const fromHeader = json.headers?.["Message-ID"] ?? json.headers?.["message-id"];
+    return typeof fromHeader === "string" ? fromHeader : null;
+  } catch (e) {
+    console.warn("[sendEmail] fetchMessageId failed:", e);
+    return null;
+  }
+}
+
+/**
+ * For follow-up sends, returns the RFC822 Message-ID of the prospect's
+ * initial email — used to thread the reply in Gmail/Outlook. Null when the
+ * initial hasn't been sent yet or message_id wasn't captured.
+ */
+async function lookupInitialThread(prospectId: string): Promise<{ messageId: string; subject: string } | null> {
+  const initial = await prisma.email.findFirst({
+    where: { prospectId, tip: "initial", poslat: true, messageId: { not: null } },
+    select: { messageId: true, subject: true, subjectB: true, activeSubject: true },
+  });
+  if (!initial?.messageId) return null;
+  const subject =
+    initial.activeSubject === "B" && initial.subjectB ? initial.subjectB : initial.subject;
+  return { messageId: initial.messageId, subject };
 }
 
 export async function sendOneEmail(
@@ -36,24 +146,55 @@ export async function sendOneEmail(
   if (!email) return { ok: false, error: "Email nije pronađen" };
   if (email.poslat) return { ok: true, resendId: email.resendId };
 
-  const html = buildHtml(email.body, email.id, email.prospect.id);
-  const subjectToSend =
+  const isInitial = email.tip === "initial";
+  const baseSubject =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
+
+  const html = buildHtml(email.body, email.id, email.prospect.id, { includePixel: isInitial });
+  const text = buildText(email.body, email.prospect.id);
+
+  // Threading: follow-ups attach to the initial's Message-ID and reuse "Re: <subject>"
+  let subjectToSend = baseSubject;
+  const headers: Record<string, string> = deliverabilityHeaders(email.prospect.id);
+  if (!isInitial) {
+    const thread = await lookupInitialThread(email.prospectId);
+    if (thread) {
+      headers["In-Reply-To"] = thread.messageId;
+      headers["References"] = thread.messageId;
+      // Don't re-add "Re:" if the user already prefixed it on the AI side
+      subjectToSend = /^re:\s/i.test(baseSubject) ? baseSubject : `Re: ${thread.subject}`;
+    }
+  }
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [email.prospect.email],
-    bcc: ["temim.fr@gmail.com"],
+    bcc: [BCC_EMAIL],
+    replyTo: REPLY_TO,
     subject: subjectToSend,
     html,
+    text,
+    headers,
   });
   if (error) return { ok: false, error: error.message };
 
   const now = new Date();
   const mapping = TIP_TO_STATUS[email.tip];
+  // Best-effort: capture the RFC822 Message-ID so follow-ups can thread.
+  // Only worth doing for the initial — follow-ups don't need their own.
+  let messageId: string | null = null;
+  if (isInitial && data?.id) {
+    messageId = await fetchMessageId(data.id);
+  }
+
   await prisma.email.update({
     where: { id: emailId },
-    data: { poslat: true, poslatAt: now, resendId: data?.id ?? null },
+    data: {
+      poslat: true,
+      poslatAt: now,
+      resendId: data?.id ?? null,
+      ...(messageId ? { messageId } : {}),
+    },
   });
   if (mapping) {
     await prisma.prospect.update({
@@ -88,8 +229,6 @@ async function runWithConcurrency<T, R>(
  * cold emails don't land at 4am Sunday.
  */
 function isBusinessHoursParis(now: Date = new Date()): boolean {
-  // Europe/Paris offset: +1 in winter, +2 in summer. We use the locale formatter
-  // to read out the wall-clock hour and weekday so we don't have to ship a tz lib.
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Paris",
     weekday: "short",
@@ -103,10 +242,6 @@ function isBusinessHoursParis(now: Date = new Date()): boolean {
   return !isWeekend && hour >= 8 && hour < 18;
 }
 
-/**
- * How many emails have already been sent today (UTC midnight to now).
- * The cap is applied across all rules combined.
- */
 async function emailsSentTodayCount(): Promise<number> {
   const start = new Date();
   start.setUTCHours(0, 0, 0, 0);
@@ -144,16 +279,6 @@ const FOLLOWUP_RULES = [
   },
 ] as const;
 
-/**
- * Sends every email whose schedule has come due. Used by:
- *  - the daily Vercel cron (full sweep, enforces business hours + cap)
- *  - the schedule endpoint (immediate trigger, ignores business hours since
- *    the user is explicitly triggering, but still respects the daily cap)
- *  - any manual "Run automation" trigger
- *
- * onlyProspectIds limits the sweep to specific prospects (used after scheduling
- * a single campaign so we don't accidentally pick up unrelated due emails).
- */
 export async function processDueEmails(opts?: {
   onlyProspectIds?: string[];
   concurrency?: number;
@@ -182,7 +307,6 @@ export async function processDueEmails(opts?: {
     let sent = 0;
     let skipped = 0;
 
-    // Cap-aware slice — anything beyond `remaining` is left for tomorrow.
     const eligible = prospects.slice(0, remaining);
     skipped = prospects.length - eligible.length;
 
@@ -267,16 +391,18 @@ export async function sendTestEmail(
 
   const subjectToSend =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
-  // Test sends omit the tracking pixel and unsubscribe footer so the rendered
-  // copy is as clean as the real send (no false opens) but doesn't ping
-  // real-prospect endpoints. We render the body raw.
-  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}`;
+  // Test sends include the signature but omit the tracking pixel + unsubscribe
+  // (we don't want test opens to skew metrics, and the recipient is the user).
+  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml()}`;
+  const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText()}`;
 
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [to],
+    replyTo: REPLY_TO,
     subject: `[TEST] ${subjectToSend}`,
     html,
+    text,
   });
   if (error) return { ok: false, error: error.message };
   return { ok: true, messageId: data?.id ?? null };

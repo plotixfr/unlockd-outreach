@@ -5,12 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: "⬛" },
-  { href: "/prospects", label: "Prospects", icon: "◈" },
+  { href: "/prospects", label: "Prospekti", icon: "◈" },
   { href: "/upload", label: "Upload CSV", icon: "↑" },
-  { href: "/insights", label: "Insights", icon: "◇" },
-  { href: "/revenue", label: "Revenue", icon: "€" },
-  { href: "/warmup", label: "Warmup", icon: "🔥" },
-  { href: "/settings", label: "Settings", icon: "⚙" },
+  { href: "/insights", label: "Analitika", icon: "◇" },
+  { href: "/revenue", label: "Prihod", icon: "€" },
+  { href: "/warmup", label: "Zagrijavanje", icon: "🔥" },
+  { href: "/settings", label: "Postavke", icon: "⚙" },
 ];
 
 export function Sidebar() {

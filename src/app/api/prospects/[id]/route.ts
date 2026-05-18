@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { STATUSI, NISE } from "@/lib/constants";
+import { STATUSI } from "@/lib/constants";
 
 // PATCH — status only
 export async function PATCH(
@@ -49,8 +49,9 @@ export async function PUT(
     if (!firmaNaziv?.trim()) {
       return NextResponse.json({ error: "firmaNaziv je obavezan" }, { status: 400 });
     }
-    if (nisa && !(NISE as readonly string[]).includes(nisa)) {
-      return NextResponse.json({ error: "Nevažeća niša" }, { status: 400 });
+    // Niche is free-form (CSV upload accepts any string); only require non-empty.
+    if (nisa !== undefined && !nisa.trim()) {
+      return NextResponse.json({ error: "Niša ne smije biti prazna" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.update({
@@ -61,7 +62,7 @@ export async function PUT(
         kontaktPozicija: kontaktPozicija?.trim() || null,
         website: website?.trim() || null,
         instagram: instagram?.trim() || null,
-        nisa: nisa || undefined,
+        nisa: nisa?.trim() || undefined,
         grad: grad?.trim() || undefined,
         opisFirme: opisFirme?.trim() || null,
         kvalitetSajta: kvalitetSajta ? parseInt(String(kvalitetSajta), 10) : null,

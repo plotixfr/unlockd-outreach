@@ -42,7 +42,7 @@ export default async function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
+        <h1 className="text-2xl font-semibold text-white">Postavke</h1>
         <p className="text-zinc-500 text-sm mt-1">Status sistema i konfiguracija</p>
       </div>
 

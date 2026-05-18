@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray } from "@/lib/emailPrompt";
+import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 
 const MODEL = "claude-sonnet-4-6";
+// Re-scrape if the cached snapshot is older than this — sites change.
+const SNAPSHOT_TTL_DAYS = 30;
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,14 +22,14 @@ export async function POST(req: NextRequest) {
 
     const anthropic = new Anthropic({ apiKey });
 
-    let body: { prospectId?: string; regenerate?: boolean };
+    let body: { prospectId?: string; regenerate?: boolean; rescrape?: boolean };
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: "Neispravan JSON request" }, { status: 400 });
     }
 
-    const { prospectId, regenerate = false } = body;
+    const { prospectId, regenerate = false, rescrape = false } = body;
     if (!prospectId) {
       return NextResponse.json({ error: "prospectId je obavezan" }, { status: 400 });
     }
@@ -48,12 +51,45 @@ export async function POST(req: NextRequest) {
       await prisma.email.deleteMany({ where: { prospectId } });
     }
 
+    // ── Site snapshot ──
+    // Cached if recent; otherwise scrape now (with hard timeout in scrapeSite).
+    // Re-generation is allowed to force a re-scrape via the `rescrape` flag.
+    let snapshot: SiteSnapshot | null = null;
+    if (prospect.website) {
+      const stale =
+        !prospect.siteSnapshotAt ||
+        Date.now() - prospect.siteSnapshotAt.getTime() > SNAPSHOT_TTL_DAYS * 86400000;
+      if (rescrape || stale || !prospect.siteSnapshot) {
+        try {
+          snapshot = await scrapeSite(prospect.website);
+          await prisma.prospect.update({
+            where: { id: prospectId },
+            data: {
+              siteSnapshot: snapshot as unknown as object,
+              siteSnapshotAt: new Date(),
+            },
+          });
+          console.log(
+            "[generate] scraped site:", prospect.website,
+            "| ok:", snapshot.ok,
+            "| status:", snapshot.status,
+            "| signals:", JSON.stringify(snapshot.signals)
+          );
+        } catch (e) {
+          console.error("[generate] scrape failed (non-fatal):", e);
+        }
+      } else {
+        snapshot = prospect.siteSnapshot as unknown as SiteSnapshot;
+      }
+    }
+
     const nicheTemplate = await prisma.nicheTemplate.findUnique({ where: { nisa: prospect.nisa } });
     console.log(
       "[generate] Calling model:", MODEL,
       "| prospect:", prospect.firmaNaziv,
       "| niche:", prospect.nisa,
-      "| hint:", nicheTemplate ? "yes" : "no"
+      "| hint:", nicheTemplate ? "yes" : "no",
+      "| snapshot:", snapshot?.ok ? "yes" : "no"
     );
 
     let message: Anthropic.Message;
@@ -62,7 +98,15 @@ export async function POST(req: NextRequest) {
         model: MODEL,
         max_tokens: 4096,
         system: EMAIL_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: buildEmailPrompt(prospect, { nicheHint: nicheTemplate?.promptHint }) }],
+        messages: [
+          {
+            role: "user",
+            content: buildEmailPrompt(prospect, {
+              nicheHint: nicheTemplate?.promptHint,
+              siteSnapshot: snapshot,
+            }),
+          },
+        ],
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -112,7 +156,15 @@ export async function POST(req: NextRequest) {
     const emails = await Promise.all(
       emailData.map((e) =>
         prisma.email.create({
-          data: { prospectId, tip: e.tip, subject: e.subject, subjectB: e.subjectB ?? null, body: e.body },
+          data: {
+            prospectId,
+            tip: e.tip,
+            subject: e.subject,
+            subjectB: e.subjectB ?? null,
+            body: e.body,
+            // Randomize A/B at creation so dispatch doesn't need to flip a coin.
+            activeSubject: e.subjectB && Math.random() < 0.5 ? "B" : "A",
+          },
         })
       )
     );

@@ -2,6 +2,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+interface AbStats {
+  sentA: number;
+  sentB: number;
+  openedA: number;
+  openedB: number;
+  repliedA: number;
+  repliedB: number;
+}
+
 interface NicheStats {
   nisa: string;
   prospects: number;
@@ -10,11 +19,29 @@ interface NicheStats {
   replied: number;
   converted: number;
   revenue: number;
+  ab: AbStats;
 }
 
 function pct(n: number, d: number) {
   if (d === 0) return "—";
   return `${Math.round((n / d) * 100)}%`;
+}
+
+function pickWinner(ab: AbStats): { label: string; tone: "a" | "b" | "tie" | "none" } {
+  // Need a minimum sample on both sides before we declare a winner.
+  if (ab.sentA < 5 || ab.sentB < 5) return { label: "Trop tôt", tone: "none" };
+  const replyA = ab.repliedA / ab.sentA;
+  const replyB = ab.repliedB / ab.sentB;
+  const openA = ab.openedA / ab.sentA;
+  const openB = ab.openedB / ab.sentB;
+  // Prefer reply rate as the tiebreaker; if equal, open rate.
+  if (Math.abs(replyA - replyB) > 0.005) {
+    return replyA > replyB ? { label: "A", tone: "a" } : { label: "B", tone: "b" };
+  }
+  if (Math.abs(openA - openB) > 0.005) {
+    return openA > openB ? { label: "A", tone: "a" } : { label: "B", tone: "b" };
+  }
+  return { label: "Égalité", tone: "tie" };
 }
 
 export default async function InsightsPage() {
@@ -28,27 +55,79 @@ export default async function InsightsPage() {
 
   const stats: NicheStats[] = await Promise.all(
     niches.map(async (n): Promise<NicheStats> => {
-      const [emailedCount, openedCount, repliedCount, convertedCount, revenueAgg] =
-        await Promise.all([
-          // Number of prospects in this niche who got at least one email sent
-          prisma.prospect.count({
-            where: {
-              nisa: n.nisa,
-              status: { in: ["Emailed", "Follow1", "Follow2", "Follow3", "Replied", "Converted"] },
-            },
-          }),
-          prisma.email.count({
-            where: { prospect: { nisa: n.nisa }, otvoren: true },
-          }),
-          prisma.prospect.count({
-            where: { nisa: n.nisa, status: { in: ["Replied", "Converted"] } },
-          }),
-          prisma.prospect.count({ where: { nisa: n.nisa, status: "Converted" } }),
-          prisma.conversion.aggregate({
-            where: { prospect: { nisa: n.nisa } },
-            _sum: { vrijednostProjekta: true },
-          }),
-        ]);
+      const [
+        emailedCount,
+        openedCount,
+        repliedCount,
+        convertedCount,
+        revenueAgg,
+        // A/B breakdown: only count initial sends (that's the only tip with a
+        // real subjectB split) where the email actually went out.
+        sentA,
+        sentB,
+        openedA,
+        openedB,
+        repliedA,
+        repliedB,
+      ] = await Promise.all([
+        prisma.prospect.count({
+          where: {
+            nisa: n.nisa,
+            status: { in: ["Emailed", "Follow1", "Follow2", "Follow3", "Replied", "Converted"] },
+          },
+        }),
+        prisma.email.count({
+          where: { prospect: { nisa: n.nisa }, otvoren: true },
+        }),
+        prisma.prospect.count({
+          where: { nisa: n.nisa, status: { in: ["Replied", "Converted"] } },
+        }),
+        prisma.prospect.count({ where: { nisa: n.nisa, status: "Converted" } }),
+        prisma.conversion.aggregate({
+          where: { prospect: { nisa: n.nisa } },
+          _sum: { vrijednostProjekta: true },
+        }),
+        prisma.email.count({
+          where: { prospect: { nisa: n.nisa }, tip: "initial", poslat: true, activeSubject: "A" },
+        }),
+        prisma.email.count({
+          where: { prospect: { nisa: n.nisa }, tip: "initial", poslat: true, activeSubject: "B" },
+        }),
+        prisma.email.count({
+          where: {
+            prospect: { nisa: n.nisa },
+            tip: "initial",
+            poslat: true,
+            activeSubject: "A",
+            otvoren: true,
+          },
+        }),
+        prisma.email.count({
+          where: {
+            prospect: { nisa: n.nisa },
+            tip: "initial",
+            poslat: true,
+            activeSubject: "B",
+            otvoren: true,
+          },
+        }),
+        prisma.email.count({
+          where: {
+            prospect: { nisa: n.nisa, status: { in: ["Replied", "Converted"] } },
+            tip: "initial",
+            poslat: true,
+            activeSubject: "A",
+          },
+        }),
+        prisma.email.count({
+          where: {
+            prospect: { nisa: n.nisa, status: { in: ["Replied", "Converted"] } },
+            tip: "initial",
+            poslat: true,
+            activeSubject: "B",
+          },
+        }),
+      ]);
       return {
         nisa: n.nisa,
         prospects: n._count,
@@ -57,6 +136,7 @@ export default async function InsightsPage() {
         replied: repliedCount,
         converted: convertedCount,
         revenue: revenueAgg._sum.vrijednostProjekta ?? 0,
+        ab: { sentA, sentB, openedA, openedB, repliedA, repliedB },
       };
     })
   );
@@ -114,7 +194,7 @@ export default async function InsightsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1f1f2e]">
-                {["Niša", "Prospekti", "Poslato", "Open rate", "Reply rate", "Conv. rate", "Revenue"].map((h) => (
+                {["Niša", "Prospekti", "Poslato", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 text-zinc-500 text-xs uppercase tracking-wider font-medium"
@@ -145,6 +225,29 @@ export default async function InsightsPage() {
                     </td>
                     <td className="px-4 py-3 text-zinc-300">
                       {s.revenue > 0 ? `${s.revenue.toLocaleString("fr-FR")} €` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {(() => {
+                        const winner = pickWinner(s.ab);
+                        const cls =
+                          winner.tone === "a"
+                            ? "bg-blue-950/60 text-blue-300"
+                            : winner.tone === "b"
+                              ? "bg-violet-950/60 text-violet-300"
+                              : winner.tone === "tie"
+                                ? "bg-zinc-800 text-zinc-400"
+                                : "bg-zinc-900 text-zinc-600";
+                        return (
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-full font-medium ${cls}`}>
+                              {winner.label}
+                            </span>
+                            <span className="text-zinc-600">
+                              {s.ab.sentA}/{s.ab.sentB}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
