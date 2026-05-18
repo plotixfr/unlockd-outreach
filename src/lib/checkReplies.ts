@@ -1,6 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { prisma } from "@/lib/prisma";
 import { analyzeReply, prospectActionFor } from "@/lib/replyClassifier";
+import { notifyHotReply } from "@/lib/notify";
 
 /**
  * Pulls recent INBOX messages over IMAP and:
@@ -127,6 +128,17 @@ export async function checkReplies(): Promise<{
             draft = analysis.draft || null;
             const msgDate = messageDate instanceof Date ? messageDate : new Date(messageDate);
             prospectAction = prospectActionFor(analysis.classification, msgDate);
+            // Fire a high-signal email immediately for hot categories so the
+            // operator can respond fast — speed-to-reply is the single biggest
+            // predictor of close on a warm prospect.
+            if (analysis.classification === "Interested" || analysis.classification === "Question") {
+              void notifyHotReply({
+                prospectId: prospect.id,
+                firmaNaziv: prospect.firmaNaziv,
+                classification: analysis.classification,
+                replyBody: body,
+              });
+            }
           }
         } catch (e) {
           console.warn("[checkReplies] classify failed (continuing):", e);

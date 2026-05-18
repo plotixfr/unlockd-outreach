@@ -1,12 +1,16 @@
 {
   "crons": [
     {
+      "path": "/api/autopilot/run",
+      "schedule": "0 6 * * 1-5"
+    },
+    {
       "path": "/api/cron/send-followups",
       "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/daily-summary",
-      "schedule": "0 9 * * *"
+      "schedule": "0 17 * * *"
     }
   ]
 }
