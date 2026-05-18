@@ -1,52 +1,42 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { generateProposal, type ProposalContent } from "@/lib/proposal";
-import type { SiteSnapshot } from "@/lib/scrapeSite";
-import type { PageSpeedSnapshot } from "@/lib/pagespeed";
+import { type ProposalContent } from "@/lib/proposal";
 import { ProposalActions } from "@/components/ProposalActions";
+import { GenerateProposalButton } from "@/components/GenerateProposalButton";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
- * Printer-friendly French proposal. On first render, generates the content
- * via Claude and persists it; subsequent renders reuse the cached JSON. The
- * operator can regenerate (e.g. after tweaking the prospect's notes) via the
- * Regenerate button in ProposalActions.
+ * Printer-friendly French proposal. Generation is lazy — the page never calls
+ * Claude inline on render (which would block 20-40s and exceed Vercel Hobby's
+ * 10s budget). Instead:
  *
- * Payment handling is intentionally manual — the operator wires invoices and
- * deposits outside this app.
+ *   - No cached content → render an empty state with "Generiši ponudu" button
+ *   - Button POSTs to /api/prospects/[id]/proposal with maxDuration=60
+ *   - On success, router.refresh() pulls the now-cached content
+ *
+ * Operator can re-trigger generation any time via ProposalActions.
  */
 export default async function ProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  let prospect = await prisma.prospect.findUnique({ where: { id } });
+  const prospect = await prisma.prospect.findUnique({ where: { id } });
   if (!prospect) notFound();
 
-  let content = prospect.proposalContent as unknown as ProposalContent | null;
-  if (!content) {
-    content = await generateProposal({
-      firmaNaziv: prospect.firmaNaziv,
-      kontaktIme: prospect.kontaktIme,
-      nisa: prospect.nisa,
-      grad: prospect.grad,
-      website: prospect.website,
-      qualityScore: prospect.qualityScore,
-      qualityNote: prospect.qualityNote,
-      siteSnapshot: (prospect.siteSnapshot as unknown as SiteSnapshot | null) ?? null,
-      pagespeed: (prospect.pagespeed as unknown as PageSpeedSnapshot | null) ?? null,
-    });
-    if (content) {
-      await prisma.prospect.update({
-        where: { id },
-        data: { proposalContent: content as unknown as object, proposalAt: new Date() },
-      });
-      prospect = await prisma.prospect.findUnique({ where: { id } });
-    }
-  }
+  const content = prospect.proposalContent as unknown as ProposalContent | null;
 
   if (!content) {
     return (
-      <div className="min-h-screen bg-white text-zinc-900 p-12">
-        <p>Ne mogu generirati ponudu — provjeri ANTHROPIC_API_KEY i ponovi.</p>
+      <div className="min-h-screen bg-white text-zinc-900 flex items-center justify-center p-8">
+        <div className="max-w-md text-center">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-[0.25em] font-semibold mb-3">Proposition Commerciale</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{prospect.firmaNaziv}</h1>
+          <p className="text-zinc-600 text-sm mt-2 mb-8">
+            Generiši personalizovanu francusku ponudu sa 3 cjenovna nivoa, value calculator-om i scope-om prilagođenim nišinjihovom sektoru. Claude Sonnet, ~30 sekundi.
+          </p>
+          <GenerateProposalButton prospectId={id} />
+          <p className="text-zinc-500 text-xs mt-4">Generisana ponuda se kešira — sljedeća posjeta učitava odmah.</p>
+        </div>
       </div>
     );
   }

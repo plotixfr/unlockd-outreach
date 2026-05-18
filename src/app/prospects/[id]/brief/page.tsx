@@ -2,9 +2,21 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
-import { generateTalkingPoints } from "@/lib/talkingPoints";
+import { generateTalkingPoints, type TalkingPoints } from "@/lib/talkingPoints";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
+/**
+ * Wraps a Claude call in a hard timeout so a slow API call never kills the
+ * page render. Brief is more useful WITHOUT talking points than not at all.
+ */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
 
 function thumioUrl(url: string): string {
   try {
@@ -30,18 +42,23 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const psi = prospect.pagespeed as unknown as PageSpeedSnapshot | null;
 
   // Generate fresh talking points each time — cheap (Haiku) and reflects any
-  // recent re-scrape. Tolerates Anthropic outage.
-  const points = await generateTalkingPoints({
-    firmaNaziv: prospect.firmaNaziv,
-    nisa: prospect.nisa,
-    grad: prospect.grad,
-    website: prospect.website,
-    kontaktIme: prospect.kontaktIme,
-    qualityScore: prospect.qualityScore,
-    qualityNote: prospect.qualityNote,
-    siteSnapshot: site,
-    pagespeed: psi,
-  });
+  // recent re-scrape. Bounded by a hard 8s timeout so a stuck Claude call
+  // never blocks the entire page render. The brief is still useful without
+  // talking points (the scouting data + signals carry their weight).
+  const points: TalkingPoints | null = await withTimeout(
+    generateTalkingPoints({
+      firmaNaziv: prospect.firmaNaziv,
+      nisa: prospect.nisa,
+      grad: prospect.grad,
+      website: prospect.website,
+      kontaktIme: prospect.kontaktIme,
+      qualityScore: prospect.qualityScore,
+      qualityNote: prospect.qualityNote,
+      siteSnapshot: site,
+      pagespeed: psi,
+    }),
+    20_000
+  );
 
   const signals = site?.signals;
 
