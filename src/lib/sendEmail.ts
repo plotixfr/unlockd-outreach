@@ -182,25 +182,31 @@ export async function sendOneEmail(
   if (email.poslat) return { ok: true, resendId: email.resendId };
 
   const isInitial = email.tip === "initial";
+  // Re-engagement emails are fresh standalone touches months after the
+  // original sequence — they should land in a NEW Gmail thread (not buried
+  // under an old conversation the prospect may have archived) and include
+  // the pixel + screenshot since it's effectively a new pitch.
+  const isReengage = email.tip.startsWith("reengage");
+  const standaloneTouch = isInitial || isReengage;
   const baseSubject =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
   const html = buildHtml(email.body, email.id, email.prospect.id, {
-    includePixel: isInitial,
+    includePixel: standaloneTouch,
     siteUrl: email.prospect.website,
-    includeScreenshot: isInitial && !!email.prospect.website,
+    includeScreenshot: standaloneTouch && !!email.prospect.website,
   });
   const text = buildText(email.body, email.prospect.id);
 
-  // Threading: follow-ups attach to the initial's Message-ID and reuse "Re: <subject>"
+  // Threading: follow-ups attach to the initial's Message-ID and reuse "Re:".
+  // Re-engagement deliberately doesn't thread.
   let subjectToSend = baseSubject;
   const headers: Record<string, string> = deliverabilityHeaders(email.prospect.id);
-  if (!isInitial) {
+  if (!standaloneTouch) {
     const thread = await lookupInitialThread(email.prospectId);
     if (thread) {
       headers["In-Reply-To"] = thread.messageId;
       headers["References"] = thread.messageId;
-      // Don't re-add "Re:" if the user already prefixed it on the AI side
       subjectToSend = /^re:\s/i.test(baseSubject) ? baseSubject : `Re: ${thread.subject}`;
     }
   }
@@ -361,19 +367,24 @@ export async function processDueEmails(opts?: {
     results.push({ rule, sent, skipped, errors });
   }
 
-  // ── Initial sends ──
+  // ── Initial sends + re-engagement touches ──
+  // Re-engagement emails (reengage90/180/365) reuse the scheduledInitial slot
+  // because they're standalone touches just like the initial. We don't
+  // distinguish them at dispatch — the tip is captured in the Email row so
+  // analytics can split them later.
   {
+    const standaloneTips = ["initial", "reengage90", "reengage180", "reengage365"];
     const prospects = await prisma.prospect.findMany({
       where: {
         ...prospectFilter,
         status: "Scheduled",
         scheduledInitial: { lte: now },
-        emails: { some: { tip: "initial", poslat: false } },
+        emails: { some: { tip: { in: standaloneTips }, poslat: false } },
       },
       select: {
         id: true,
         email: true,
-        emails: { where: { tip: "initial", poslat: false }, select: { id: true } },
+        emails: { where: { tip: { in: standaloneTips }, poslat: false }, select: { id: true } },
       },
     });
     await runRule("initial", prospects);
