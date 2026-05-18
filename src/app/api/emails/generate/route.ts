@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
+import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
       message = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 4096,
-        system: EMAIL_SYSTEM_PROMPT,
+        system: await getEmailSystemPrompt(),
         messages: [
           {
             role: "user",

@@ -17,6 +17,8 @@ import { ScoutingReport } from "@/components/ScoutingReport";
 import { ReplyDraftPanel } from "@/components/ReplyDraftPanel";
 import { DealEditor } from "@/components/DealEditor";
 import { MockupPanel } from "@/components/MockupPanel";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { getProspectActivity } from "@/lib/activity";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
 const TIP_LABELS: Record<string, string> = {
@@ -61,6 +63,7 @@ export default async function ProspectDetailPage({
   });
 
   const calendlyClickedEmail = prospect?.emails.find((e) => e.calendlyClicked);
+  const activity = prospect ? await getProspectActivity(prospect.id) : [];
 
   if (!prospect) notFound();
 
@@ -338,6 +341,12 @@ export default async function ProspectDetailPage({
           initialValue={prospect.dealValue}
         />
       )}
+
+      {/* Activity timeline — every event in one chronological view */}
+      <div className="space-y-3">
+        <h2 className="text-white font-medium">Aktivnost</h2>
+        <ActivityTimeline events={activity} />
+      </div>
 
       {/* Reminder */}
       <ReminderForm

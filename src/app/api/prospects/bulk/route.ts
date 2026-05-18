@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
-import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray } from "@/lib/emailPrompt";
+import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray } from "@/lib/emailPrompt";
 import { processDueEmails } from "@/lib/sendEmail";
 
 const MODEL = "claude-sonnet-4-6";
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             const message = await anthropic.messages.create({
               model: MODEL,
               max_tokens: 4096,
-              system: EMAIL_SYSTEM_PROMPT,
+              system: await getEmailSystemPrompt(),
               messages: [{
                 role: "user",
                 content: buildEmailPrompt(prospect, { compact: true, nicheHint: hintByNiche.get(prospect.nisa) ?? null }),

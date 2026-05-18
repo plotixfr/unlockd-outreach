@@ -20,7 +20,7 @@ import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
 import { scoreProspect } from "@/lib/qualityScore";
-import { buildEmailPrompt, EMAIL_SYSTEM_PROMPT, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
+import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 
 const EMAIL_MODEL = "claude-sonnet-4-6";
 const MAX_PROSPECTS_PER_BRIEF = 10;
@@ -162,7 +162,7 @@ async function generateEmailsInline(
   const message = await anthropic.messages.create({
     model: EMAIL_MODEL,
     max_tokens: 4096,
-    system: EMAIL_SYSTEM_PROMPT,
+    system: await getEmailSystemPrompt(),
     messages: [
       {
         role: "user",

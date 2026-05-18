@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ClearDatabaseButton } from "@/components/ClearDatabaseButton";
 import { NicheTemplatesEditor } from "@/components/NicheTemplatesEditor";
 import { CaseStudiesEditor } from "@/components/CaseStudiesEditor";
+import { VoiceProfileEditor } from "@/components/VoiceProfileEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,9 @@ export default async function SettingsPage() {
           </Row>
         </div>
       </div>
+
+      {/* Voice Profile — anti-AI guardrails */}
+      <VoiceProfileEditor />
 
       {/* Niche templates */}
       <NicheTemplatesEditor />

@@ -137,6 +137,16 @@ model DiscoveryRun {
   notes        String?  @db.Text
 }
 
+model OperatorVoice {
+  id                String   @id @default(cuid())
+  name              String   @default("Default")
+  samples           Json
+  styleDescription  String   @db.Text
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 model CaseStudy {
   id          String   @id @default(cuid())
   title       String

@@ -15,14 +15,30 @@ import type { PageSpeedSnapshot } from "@/lib/pagespeed";
 import { pagespeedToPromptFacts } from "@/lib/pagespeed";
 import type { DecisionMakerResult } from "@/lib/decisionMakers";
 import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMakers";
+import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
 
-export const EMAIL_SYSTEM_PROMPT = `Tu es un expert en cold emails B2B francophone. Tu écris pour Unlockd.art, un studio parisien qui conçoit et développe des sites web premium et sur-mesure pour des marques exigeantes — hôtels, restaurants, architectes, agences immobilières, marques de luxe, professionnels indépendants, e-commerce haut de gamme, et tout autre secteur où l'image de marque digitale compte. Tu adaptes systématiquement le ton, les références et les arguments au secteur précis du prospect. Tu écris des emails très personnalisés, courts, professionnels et élégants. Jamais agressifs. Jamais génériques. Toujours en français impeccable.
+const EMAIL_SYSTEM_BASE = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui conçoit et développe des sites web premium pour des marques exigeantes — hôtels, restaurants, architectes, agences immobilières, marques de luxe, professionnels indépendants, e-commerce haut de gamme. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
 
-Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle générique mais juste — jamais une fausse précision.
+Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle juste — jamais une fausse précision.
 
 Quand un score Lighthouse mobile bas (<50) est fourni, mentionne-le explicitement dans l'email initial avec le chiffre exact — c'est ton accroche la plus forte.
 
 IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
+
+/**
+ * Composes the full system prompt for any email generation call: combines the
+ * base studio brief with the operator's voice fingerprint and the anti-AI
+ * guardrails. Resolved at call time so voice-profile updates take effect
+ * immediately without redeploys.
+ */
+export async function getEmailSystemPrompt(): Promise<string> {
+  const voiceGuide = await buildVoiceGuideForPrompt();
+  return `${EMAIL_SYSTEM_BASE}\n\nVOIX ET STYLE :\n${voiceGuide}`;
+}
+
+// Backwards-compat export — some legacy call-sites still import the constant.
+// New code should use getEmailSystemPrompt() so voice updates apply live.
+export const EMAIL_SYSTEM_PROMPT = EMAIL_SYSTEM_BASE;
 
 const NICHE_FR_HINTS: Record<string, string> = {
   hotel: "hôtellerie",

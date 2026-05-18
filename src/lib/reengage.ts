@@ -14,7 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import {
   buildEmailPrompt,
-  EMAIL_SYSTEM_PROMPT,
+  getEmailSystemPrompt,
   extractJsonArray,
   type PromptCaseStudy,
 } from "@/lib/emailPrompt";
@@ -166,7 +166,7 @@ Return ONLY this JSON shape:
     const message = await anthropic.messages.create({
       model: EMAIL_MODEL,
       max_tokens: 1500,
-      system: EMAIL_SYSTEM_PROMPT,
+      system: await getEmailSystemPrompt(),
       messages: [{ role: "user", content: reengagePrompt }],
     });
     const block = message.content[0];

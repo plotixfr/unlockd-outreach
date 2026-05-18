@@ -1,6 +1,19 @@
 import { prisma } from "@/lib/prisma";
+import { FunnelView, type FunnelStage } from "@/components/FunnelView";
 
 export const dynamic = "force-dynamic";
+
+// Rough per-prospect API spend, derived from average token usage:
+//   - Email generation (Sonnet, ~3k tokens in/out): $0.012
+//   - Quality scoring (Haiku, ~600 tokens): $0.0005
+//   - Decision-makers extraction (Haiku, ~2k tokens): $0.002
+//   - Reply classification + draft when replies arrive (Haiku, ~2k): $0.002
+//   - PageSpeed + scrape + thum.io: free
+//   - Resend send: ~$0.0001 per email
+// Round to a single per-prospect "discovery + sequence" cost for the funnel
+// view. Real numbers refine over time.
+const COST_PER_PROSPECT_EUR = 0.04;
+const COST_PER_REPLY_HANDLED_EUR = 0.002;
 
 interface AbStats {
   sentA: number;
@@ -45,6 +58,48 @@ function pickWinner(ab: AbStats): { label: string; tone: "a" | "b" | "tie" | "no
 }
 
 export default async function InsightsPage() {
+  // ── Funnel: discovered → sent → opened → replied → meeting → won ──
+  // Each stage is counted from the underlying tables, not from a prospect
+  // status field, so we get the true cumulative count regardless of where
+  // a prospect currently sits.
+  const [
+    totalProspects,
+    totalSent,
+    totalOpened,
+    totalReplied,
+    meetingsBooked,
+    totalConverted,
+    totalRepliesHandled,
+  ] = await Promise.all([
+    prisma.prospect.count(),
+    prisma.email.count({ where: { poslat: true } }),
+    prisma.email.count({ where: { otvoren: true } }),
+    prisma.reply.groupBy({ by: ["prospectId"] }).then((rows) => rows.length),
+    prisma.prospect.count({
+      where: {
+        OR: [
+          { dealStage: { in: ["Discovery", "Proposal", "Negotiating", "Won"] } },
+          { emails: { some: { calendlyClicked: true } } },
+        ],
+      },
+    }),
+    prisma.prospect.count({ where: { status: "Converted" } }),
+    prisma.reply.count({ where: { classification: { not: null } } }),
+  ]);
+
+  const funnelStages: FunnelStage[] = [
+    { label: "Otkriveno", count: totalProspects, detail: "Prospekti u bazi", tone: "neutral" },
+    { label: "Poslato", count: totalSent, detail: "Initial + follow-up sends", tone: "neutral" },
+    { label: "Otvoreno", count: totalOpened, detail: "Pixel-tracked opens", tone: "ok" },
+    { label: "Odgovorilo", count: totalReplied, detail: "IMAP-matched replies", tone: "ok" },
+    { label: "Meeting", count: meetingsBooked, detail: "Calendly klikovi + deal stage", tone: "good" },
+    { label: "Zatvoreno", count: totalConverted, detail: "Status = Converted", tone: "great" },
+  ];
+
+  const totalSpend = totalProspects * COST_PER_PROSPECT_EUR + totalRepliesHandled * COST_PER_REPLY_HANDLED_EUR;
+  const costPerMeeting = meetingsBooked > 0 ? totalSpend / meetingsBooked : null;
+  const costPerDeal = totalConverted > 0 ? totalSpend / totalConverted : null;
+
   // Pull aggregated data per niche using groupBy + targeted counts. Done in one
   // Promise.all so the page renders fast even with many niches.
   const niches = await prisma.prospect.groupBy({
@@ -159,11 +214,19 @@ export default async function InsightsPage() {
   return (
     <div className="max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Insights — per niche</h1>
+        <h1 className="text-2xl font-semibold text-white">Analitika</h1>
         <p className="text-zinc-500 text-sm mt-1">
-          Šta konvertuje. Sortirano po reply rate-u.
+          Funnel, cost-per-meeting, per-niche performance, A/B winners.
         </p>
       </div>
+
+      {/* Visual funnel — discovered → won + cost per stage */}
+      <FunnelView
+        stages={funnelStages}
+        totalSpendEur={totalSpend}
+        costPerMeetingEur={costPerMeeting}
+        costPerDealEur={costPerDeal}
+      />
 
       {/* Totals */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
