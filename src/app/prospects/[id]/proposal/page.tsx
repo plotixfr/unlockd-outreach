@@ -7,17 +7,14 @@ import { ProposalActions } from "@/components/ProposalActions";
 
 export const dynamic = "force-dynamic";
 
-const PAYMENT_LINKS = {
-  Essential: process.env.STRIPE_PAYMENT_LINK_ESSENTIAL || null,
-  Pro: process.env.STRIPE_PAYMENT_LINK_PRO || null,
-  Bespoke: process.env.STRIPE_PAYMENT_LINK_BESPOKE || null,
-} as const;
-
 /**
  * Printer-friendly French proposal. On first render, generates the content
  * via Claude and persists it; subsequent renders reuse the cached JSON. The
  * operator can regenerate (e.g. after tweaking the prospect's notes) via the
  * Regenerate button in ProposalActions.
+ *
+ * Payment handling is intentionally manual — the operator wires invoices and
+ * deposits outside this app.
  */
 export default async function ProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -173,41 +170,29 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         {/* Pricing */}
         <Section title="Investissement">
           <div className="grid grid-cols-3 gap-3">
-            {content.pricing.map((p) => {
-              const paymentLink = PAYMENT_LINKS[p.tier];
-              return (
-                <div
-                  key={p.tier}
-                  className={`rounded-xl border p-5 flex flex-col ${
-                    p.recommended ? "border-zinc-900 ring-2 ring-zinc-900/10" : "border-zinc-200"
-                  }`}
-                >
-                  {p.recommended && (
-                    <p className="text-[10px] uppercase tracking-widest font-semibold text-zinc-900 mb-2">Recommandé</p>
-                  )}
-                  <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium">{p.label}</p>
-                  <p className="text-2xl font-semibold mt-1.5 tabular-nums">{p.priceEur.toLocaleString("fr-FR")} €</p>
-                  <p className="text-zinc-600 text-xs mt-1">{p.description}</p>
-                  <div className="mt-auto pt-4">
-                    <p className="text-zinc-500 text-xs">Acompte : <span className="tabular-nums">{p.deposit.toLocaleString("fr-FR")} €</span></p>
-                    {paymentLink && (
-                      <a
-                        href={paymentLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`mt-3 inline-block w-full text-center text-xs font-semibold py-2 rounded-md no-print ${
-                          p.recommended
-                            ? "bg-zinc-900 text-white hover:bg-zinc-800"
-                            : "bg-zinc-100 text-zinc-900 hover:bg-zinc-200"
-                        } transition-colors`}
-                      >
-                        Régler l&apos;acompte →
-                      </a>
-                    )}
-                  </div>
+            {content.pricing.map((p) => (
+              <div
+                key={p.tier}
+                className={`rounded-xl border p-5 flex flex-col ${
+                  p.recommended ? "border-zinc-900 ring-2 ring-zinc-900/10" : "border-zinc-200"
+                }`}
+              >
+                {p.recommended && (
+                  <p className="text-[10px] uppercase tracking-widest font-semibold text-zinc-900 mb-2">Recommandé</p>
+                )}
+                <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium">{p.label}</p>
+                <p className="text-2xl font-semibold mt-1.5 tabular-nums">{p.priceEur.toLocaleString("fr-FR")} €</p>
+                <p className="text-zinc-600 text-xs mt-1">{p.description}</p>
+                <div className="mt-auto pt-4">
+                  <p className="text-zinc-500 text-xs">
+                    Acompte à la signature : <span className="tabular-nums font-medium text-zinc-900">{p.deposit.toLocaleString("fr-FR")} €</span>
+                  </p>
+                  <p className="text-zinc-500 text-xs mt-1">
+                    Solde à la livraison
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </Section>
 
