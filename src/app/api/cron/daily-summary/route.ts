@@ -14,6 +14,9 @@ function buildSummaryHtml(data: {
   openRate: number;
   emailsBounced: number;
   newProspects: number;
+  scheduledTomorrow: number;
+  pipelineTotal: number;
+  pipelineWarn: string | null;
   replies: { firmaNaziv: string; email: string }[];
   reminders: { firmaNaziv: string; podsjetnikNapomena: string | null }[];
 }): string {
@@ -34,6 +37,18 @@ function buildSummaryHtml(data: {
           ${data.reminders.map((r) => `<p style="margin:4px 0;color:#bfdbfe;font-size:14px;">• <strong>${r.firmaNaziv}</strong>${r.podsjetnikNapomena ? ` — ${r.podsjetnikNapomena}` : ""}</p>`).join("")}
         </div>`
       : "";
+
+  const tomorrowSection = `<div style="background:#111118;border:1px solid #1f1f2e;border-radius:12px;padding:20px;margin-bottom:20px;">
+    <p style="margin:0 0 12px;color:#a1a1aa;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Tomorrow's queue</p>
+    <p style="margin:0;color:#fff;font-size:28px;font-weight:700;">${data.scheduledTomorrow}</p>
+    <p style="margin:4px 0 0;color:#71717a;font-size:13px;">initial emails scheduled · pipeline holds ${data.pipelineTotal} total</p>
+  </div>`;
+
+  const warnSection = data.pipelineWarn
+    ? `<div style="margin-bottom:20px;padding:14px 16px;background:#451a03;border:1px solid #b45309;border-radius:10px;">
+        <p style="margin:0;color:#fed7aa;font-size:13px;">${data.pipelineWarn}</p>
+      </div>`
+    : "";
 
   return `<!DOCTYPE html>
 <html>
@@ -66,6 +81,10 @@ function buildSummaryHtml(data: {
         )
         .join("")}
     </div>
+
+    ${warnSection}
+
+    ${tomorrowSection}
 
     <div style="background:#111118;border:1px solid #1f1f2e;border-radius:12px;overflow:hidden;margin-bottom:20px;">
       <div style="padding:14px 16px;border-bottom:1px solid #1f1f2e;">
@@ -109,23 +128,66 @@ export async function GET(req: NextRequest) {
     console.error("[daily-summary] reply check threw:", e);
   }
 
-  const [emailsSent, emailsOpened, emailsBounced, newProspects, replies, reminders] =
-    await Promise.all([
-      prisma.email.count({ where: { poslatAt: { gte: yesterday } } }),
-      prisma.email.count({ where: { otvoren: true, otvorenAt: { gte: yesterday } } }),
-      prisma.prospect.count({ where: { status: "Bounced", updatedAt: { gte: yesterday } } }),
-      prisma.prospect.count({ where: { createdAt: { gte: yesterday } } }),
-      prisma.prospect.findMany({
-        where: { status: "Replied", datumOdgovora: { gte: yesterday } },
-        select: { firmaNaziv: true, email: true },
-      }),
-      prisma.prospect.findMany({
-        where: {
-          podsjetnikDatum: { gte: todayStart, lt: todayEnd },
-        },
-        select: { firmaNaziv: true, email: true, podsjetnikNapomena: true },
-      }),
-    ]);
+  // Forward-looking pipeline window starts at "right after the daily-summary
+  // fires" and runs through the end of tomorrow Paris time. Anything scheduled
+  // in that window is what the next 1–2 send cron fires will dispatch.
+  const tomorrowEnd = new Date(todayEnd.getTime() + 86400000);
+
+  const [
+    emailsSent,
+    emailsOpened,
+    emailsBounced,
+    newProspects,
+    scheduledTomorrow,
+    pipelineTotal,
+    replies,
+    reminders,
+  ] = await Promise.all([
+    prisma.email.count({ where: { poslatAt: { gte: yesterday } } }),
+    prisma.email.count({ where: { otvoren: true, otvorenAt: { gte: yesterday } } }),
+    prisma.prospect.count({ where: { status: "Bounced", updatedAt: { gte: yesterday } } }),
+    prisma.prospect.count({ where: { createdAt: { gte: yesterday } } }),
+    prisma.prospect.count({
+      where: { status: "Scheduled", scheduledInitial: { gte: now, lt: tomorrowEnd } },
+    }),
+    prisma.prospect.count({ where: { status: "Scheduled" } }),
+    prisma.prospect.findMany({
+      where: { status: "Replied", datumOdgovora: { gte: yesterday } },
+      select: { firmaNaziv: true, email: true },
+    }),
+    prisma.prospect.findMany({
+      where: { podsjetnikDatum: { gte: todayStart, lt: todayEnd } },
+      select: { firmaNaziv: true, email: true, podsjetnikNapomena: true },
+    }),
+  ]);
+
+  // If literally nothing happened today AND nothing's queued for tomorrow AND
+  // there's no human-attention work (replies / reminders / new prospects),
+  // skip the email. Showing "0/0/0/0" every evening trains the operator to
+  // ignore the inbox — which means real signals also get ignored.
+  const replyMatches = replyCheck?.matched ?? 0;
+  const noiseFloor =
+    emailsSent === 0 &&
+    newProspects === 0 &&
+    scheduledTomorrow === 0 &&
+    replies.length === 0 &&
+    reminders.length === 0 &&
+    replyMatches === 0;
+  if (noiseFloor) {
+    console.log("[daily-summary] suppressed — no activity to report and pipeline empty");
+    return NextResponse.json({
+      ok: true,
+      suppressed: true,
+      reason: "no activity and empty pipeline",
+    });
+  }
+
+  const pipelineWarn =
+    emailsSent === 0 && scheduledTomorrow === 0
+      ? "Pipeline is empty — no sends today and nothing queued for tomorrow. Check that the autopilot discovery cron is firing."
+      : emailsSent === 0
+      ? `No sends today — next batch (${scheduledTomorrow}) ships tomorrow.`
+      : null;
 
   const openRate = emailsSent > 0 ? Math.round((emailsOpened / emailsSent) * 100) : 0;
   const date = now.toLocaleDateString("en-GB", {
@@ -157,6 +219,9 @@ export async function GET(req: NextRequest) {
     openRate,
     emailsBounced,
     newProspects,
+    scheduledTomorrow,
+    pipelineTotal,
+    pipelineWarn,
     replies,
     reminders,
   });
@@ -173,7 +238,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 502 });
   }
 
-  console.log("[daily-summary] Sent. emailsSent:", emailsSent, "replies:", replies.length, "reminders:", reminders.length);
+  console.log("[daily-summary] Sent. emailsSent:", emailsSent, "scheduledTomorrow:", scheduledTomorrow, "replies:", replies.length, "reminders:", reminders.length);
   return NextResponse.json({
     ok: true,
     emailsSent,
@@ -181,6 +246,8 @@ export async function GET(req: NextRequest) {
     openRate,
     emailsBounced,
     newProspects,
+    scheduledTomorrow,
+    pipelineTotal,
     replies: replies.length,
     reminders: reminders.length,
     replyCheck,

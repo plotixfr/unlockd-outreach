@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runBrief, runAllActiveBriefs } from "@/lib/autopilot";
 import { notifyAutopilotSummary } from "@/lib/notify";
+import { processDueEmails } from "@/lib/sendEmail";
 
 /**
  * Manual + cron trigger for autopilot. Two modes:
@@ -16,6 +17,24 @@ export const maxDuration = 300; // up to 5 minutes — discovery can be slow
 
 async function runAndSummarize(emailSummary: boolean) {
   const summaries = await runAllActiveBriefs();
+  // Same-day scheduled prospects (scheduledInitial = ~now) become due as soon
+  // as the scheduler writes them. Drain them right here so a fresh-deploy or
+  // post-reset day actually ships sends today instead of waiting until the
+  // next 10:00 Paris send cron — that 24-hour delay is what produced the
+  // "0 sent today" daily summary we were debugging.
+  // enforceBusinessHours stays true so a manual UI trigger at 02:00 Paris
+  // doesn't fire cold sends at 02:00. The actual autopilot cron runs at
+  // 08:00 Paris which sits inside the window, so the sweep always works
+  // when it's supposed to.
+  let sendSweep: Awaited<ReturnType<typeof processDueEmails>> | null = null;
+  try {
+    sendSweep = await processDueEmails({ enforceBusinessHours: true });
+    console.log(
+      `[autopilot] post-discovery send sweep: ${sendSweep.totalSent} sent, ${sendSweep.totalSkipped} skipped`
+    );
+  } catch (e) {
+    console.error("[autopilot] post-discovery send sweep failed:", e);
+  }
   if (emailSummary) {
     await notifyAutopilotSummary({
       date: new Date().toLocaleDateString("fr-FR", {
@@ -34,7 +53,7 @@ async function runAndSummarize(emailSummary: boolean) {
       })),
     });
   }
-  return summaries;
+  return { summaries, sendSweep };
 }
 
 export async function GET(req: NextRequest) {
@@ -43,8 +62,8 @@ export async function GET(req: NextRequest) {
   if (secret && auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const summaries = await runAndSummarize(true);
-  return NextResponse.json({ ok: true, summaries });
+  const { summaries, sendSweep } = await runAndSummarize(true);
+  return NextResponse.json({ ok: true, summaries, sendSweep });
 }
 
 export async function POST(req: NextRequest) {
@@ -65,6 +84,6 @@ export async function POST(req: NextRequest) {
       );
     }
   }
-  const summaries = await runAndSummarize(false);
-  return NextResponse.json({ ok: true, summaries });
+  const { summaries, sendSweep } = await runAndSummarize(false);
+  return NextResponse.json({ ok: true, summaries, sendSweep });
 }
