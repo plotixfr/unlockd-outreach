@@ -10,6 +10,8 @@ function isPublic(pathname: string): boolean {
     pathname.startsWith("/api/track/calendly/") ||
     pathname.startsWith("/api/unsubscribe/") ||
     pathname.startsWith("/api/webhooks/") ||
+    pathname.startsWith("/api/cron/") ||
+    pathname === "/api/autopilot/run" ||
     pathname === "/audit" ||
     pathname.startsWith("/audit/") ||
     pathname.startsWith("/api/audit/") ||
