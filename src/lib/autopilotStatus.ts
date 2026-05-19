@@ -1,16 +1,17 @@
 /**
  * Computes the next scheduled autopilot/send run by reading the vercel.json
  * cron directly so the UI doesn't drift from the actual schedule.
- *   autopilot: 0 6,11 * * 1-5  →  06:00 + 11:00 UTC, Mon–Fri
- *   send:      0 8,13 * * *    →  08:00 + 13:00 UTC, daily
+ *   autopilot: 0 6 * * 1-5  →  06:00 UTC Mon–Fri (08:00 Paris in CEST)
+ *   send:      0 8 * * *    →  08:00 UTC daily   (10:00 Paris in CEST)
  *
  * Hard-coded here so this file is self-contained — if you change vercel.json,
- * change these constants too.
+ * change these constants too. Kept as arrays so adding a second daily fire
+ * (e.g. after a Vercel Pro upgrade) is a one-line edit.
  */
 
-export const AUTOPILOT_CRON_HOURS_UTC = [6, 11];
+export const AUTOPILOT_CRON_HOURS_UTC = [6];
 export const AUTOPILOT_RUN_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri (UTC, getUTCDay)
-export const SEND_CRON_HOURS_UTC = [8, 13];
+export const SEND_CRON_HOURS_UTC = [8];
 export const SUMMARY_CRON_HOUR_UTC = 17;
 
 function nextHourSlot(from: Date, hoursUtc: number[], allowedDays?: number[]): Date {

@@ -23,23 +23,48 @@ import { scoreProspect } from "@/lib/qualityScore";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 
 const EMAIL_MODEL = "claude-sonnet-4-6";
-const MAX_PROSPECTS_PER_BRIEF = 10;
-// Vercel Pro maxDuration is 300s. Stop scheduling new briefs when we approach
-// that limit so the run finishes cleanly. Next cron picks up the rest.
-const RUN_TIME_BUDGET_MS = 240_000; // 4 minutes
+// Throughput knobs — defaults are Vercel-Hobby-safe (60s function cap). On
+// Pro (300s cap), override via env:
+//   AUTOPILOT_MAX_PER_BRIEF=5
+//   AUTOPILOT_CONCURRENCY=5
+//   AUTOPILOT_TIME_BUDGET_MS=240000
+const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 1);
+const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 45_000);
+const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 2);
 // After 3 consecutive zero-created runs, deactivate the brief to stop burning
 // Places quota + Claude tokens on something that's not delivering.
 const AUTO_PAUSE_AFTER_EMPTY_RUNS = 3;
 // Look this many days ahead when finding the next send slot with capacity.
 const SCHEDULE_LOOKAHEAD_DAYS = 30;
-// How many briefs to process simultaneously. Sequential was too slow:
-// at ~95s/brief, only ~8 briefs fit in the 5-min Vercel cap, leaving most
-// of the 30+ active briefs un-touched on any given cron fire.
-const BRIEF_CONCURRENCY = 5;
 // A DiscoveryRun stuck in status="running" longer than this is treated as
-// crashed (Vercel killed the function) and marked failed so it stops blocking
-// the auto-pause counter and dashboard.
-const STALE_RUN_MS = 10 * 60_000;
+// crashed (Vercel killed the function) and marked failed. Hobby's 60s cap
+// means real runs finish in <50s; anything still "running" after 3 minutes
+// is a corpse.
+const STALE_RUN_MS = 3 * 60_000;
+// Per-step wall-clock caps inside processPlace. One slow site (e.g. a
+// CMS that times out) used to burn 30s+ of the 60s budget alone.
+const SCRAPE_TIMEOUT_MS = 8_000;
+const PSI_TIMEOUT_MS = 10_000;
+const DM_TIMEOUT_MS = 8_000;
+const EMAIL_FIND_TIMEOUT_MS = 10_000;
+const GEN_TIMEOUT_MS = 22_000;
+
+/**
+ * Resolves to the promise's value, or null if it doesn't settle within `ms`.
+ * The underlying work keeps running in the background; we just stop waiting.
+ * Fine here because the serverless function itself ends soon after.
+ */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) =>
+      setTimeout(() => {
+        console.log(`[autopilot] ${label} timed out after ${ms}ms`);
+        resolve(null);
+      }, ms)
+    ),
+  ]);
+}
 
 export interface BriefRunSummary {
   briefId: string;
@@ -167,23 +192,28 @@ async function generateEmailsInline(
       }
     : null;
 
-  const message = await anthropic.messages.create({
-    model: EMAIL_MODEL,
-    max_tokens: 4096,
-    system: await getEmailSystemPrompt(),
-    messages: [
-      {
-        role: "user",
-        content: buildEmailPrompt(prospect, {
-          nicheHint: nicheTemplate?.promptHint,
-          siteSnapshot: ctx.site,
-          pagespeed: ctx.psi,
-          decisionMakers: ctx.dm,
-          caseStudy,
-        }),
-      },
-    ],
-  });
+  const message = await withTimeout(
+    anthropic.messages.create({
+      model: EMAIL_MODEL,
+      max_tokens: 4096,
+      system: await getEmailSystemPrompt(),
+      messages: [
+        {
+          role: "user",
+          content: buildEmailPrompt(prospect, {
+            nicheHint: nicheTemplate?.promptHint,
+            siteSnapshot: ctx.site,
+            pagespeed: ctx.psi,
+            decisionMakers: ctx.dm,
+            caseStudy,
+          }),
+        },
+      ],
+    }),
+    GEN_TIMEOUT_MS,
+    `generateEmails(${prospect.firmaNaziv})`
+  );
+  if (!message) return 0;
   const block = message.content[0];
   if (!block || block.type !== "text") return 0;
   const raw = extractJsonArray(block.text);
@@ -348,10 +378,21 @@ async function processPlace(
 
   if (!place.website) return { status: "skipped", reason: "nema website" };
 
-  // Find an email on the prospect's site.
-  const emailResult = await findEmailForSite(place.website);
-  if (!emailResult.email) {
-    return { status: "skipped", reason: `nema pronađenog emaila (probano ${emailResult.tried.length} stranica)` };
+  // Find an email on the prospect's site. Timeout protects against CMSes that
+  // hang on contact-page fetches — within a 60s function budget, one slow
+  // site can otherwise eat the whole run.
+  const emailResult = await withTimeout(
+    findEmailForSite(place.website),
+    EMAIL_FIND_TIMEOUT_MS,
+    `findEmail(${place.website})`
+  );
+  if (!emailResult || !emailResult.email) {
+    return {
+      status: "skipped",
+      reason: emailResult
+        ? `nema pronađenog emaila (probano ${emailResult.tried.length} stranica)`
+        : "email-finder timeout",
+    };
   }
   const email = emailResult.email;
 
@@ -384,11 +425,13 @@ async function processPlace(
     },
   });
 
-  // Enrich in parallel (each best-effort).
+  // Enrich in parallel (each best-effort). Per-step timeouts protect us
+  // against slow upstreams; null result just means scoring proceeds without
+  // that signal.
   const [site, psi, dm] = await Promise.all([
-    scrapeSite(place.website).catch(() => null),
-    fetchPageSpeed(place.website).catch(() => null),
-    findDecisionMakers(place.website).catch(() => null),
+    withTimeout(scrapeSite(place.website).catch(() => null), SCRAPE_TIMEOUT_MS, `scrape(${place.website})`),
+    withTimeout(fetchPageSpeed(place.website).catch(() => null), PSI_TIMEOUT_MS, `psi(${place.website})`),
+    withTimeout(findDecisionMakers(place.website).catch(() => null), DM_TIMEOUT_MS, `dm(${place.website})`),
   ]);
 
   const enrichUpdate: Record<string, unknown> = {};

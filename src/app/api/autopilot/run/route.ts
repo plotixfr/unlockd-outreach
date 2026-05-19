@@ -13,7 +13,10 @@ import { processDueEmails } from "@/lib/sendEmail";
  * the session-cookie proxy has already authenticated the user.
  */
 
-export const maxDuration = 300; // up to 5 minutes — discovery can be slow
+// Vercel Hobby caps serverless functions at 60s regardless of this value.
+// On Pro (300s cap), bump this back up. Either way, runAllActiveBriefs
+// honours AUTOPILOT_TIME_BUDGET_MS as its internal stop-deadline.
+export const maxDuration = 60;
 
 async function runAndSummarize(emailSummary: boolean) {
   const summaries = await runAllActiveBriefs();
