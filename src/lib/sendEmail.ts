@@ -253,7 +253,7 @@ export async function sendOneEmail(
     where: { id: emailId },
     include: { prospect: true },
   });
-  if (!email) return { ok: false, error: "Email nije pronađen" };
+  if (!email) return { ok: false, error: "Email not found" };
   if (email.poslat) return { ok: true, resendId: email.resendId };
 
   const isInitial = email.tip === "initial";
@@ -452,7 +452,7 @@ export async function processDueEmails(opts?: {
       const email = p.emails[0];
       if (!email) return { ok: true } as const;
       const res = await sendOneEmail(email.id);
-      if (!res.ok) errors.push(`${p.email}: ${res.error ?? "Greška"}`);
+      if (!res.ok) errors.push(`${p.email}: ${res.error ?? "Error"}`);
       return res;
     });
     sent = sendResults.filter((r) => r.ok).length;
@@ -538,7 +538,7 @@ export async function sendTestEmail(
     where: { id: emailId },
     include: { prospect: true },
   });
-  if (!email) return { ok: false, error: "Email nije pronađen" };
+  if (!email) return { ok: false, error: "Email not found" };
 
   const subjectToSend =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;

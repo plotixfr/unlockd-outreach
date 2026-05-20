@@ -54,8 +54,8 @@ function buildScoringPrompt(p: ProspectScoringInput): string {
 
 Prospect:
 - Firma: ${p.firmaNaziv}
-- Niša: ${p.nisa}
-- Grad: ${p.grad}
+- Niche: ${p.nisa}
+- City: ${p.grad}
 - Website: ${p.website || "nema"}
 - Opis: ${p.opisFirme || "nema"}
 - Operator notes: ${p.napomena || "nema"}

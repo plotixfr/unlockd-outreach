@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
     const { action, filter = {} } = body;
-    if (!action) return NextResponse.json({ error: "action je obavezan" }, { status: 400 });
+    if (!action) return NextResponse.json({ error: "action required" }, { status: 400 });
 
     const where = whereFromFilter(filter);
 

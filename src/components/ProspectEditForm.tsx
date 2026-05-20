@@ -63,13 +63,13 @@ export function ProspectEditForm({ prospect }: Props) {
       try {
         data = await res.json();
       } catch {
-        throw new Error("Server nije vratio validan odgovor");
+        throw new Error("Invalid server response");
       }
-      if (!res.ok) throw new Error(data.error || "Greška pri čuvanju");
+      if (!res.ok) throw new Error(data.error || "Error čuvanju");
       router.push(`/prospects/${prospect.id}`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Greška");
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -93,7 +93,7 @@ export function ProspectEditForm({ prospect }: Props) {
           </div>
           <div>
             <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Niša
+              Niche
             </label>
             <select
               value={form.nisa}
@@ -109,7 +109,7 @@ export function ProspectEditForm({ prospect }: Props) {
           </div>
           <div>
             <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Grad
+              City
             </label>
             <input
               type="text"
@@ -214,14 +214,14 @@ export function ProspectEditForm({ prospect }: Props) {
           {loading && (
             <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Čuvanje..." : "Sačuvaj izmjene"}
+          {loading ? "Čuvanje..." : "Save izmjene"}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
           className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors px-3 py-2.5"
         >
-          Odustani
+          Cancel
         </button>
       </div>
     </form>

@@ -37,11 +37,11 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
         body: JSON.stringify({ vrijednostProjekta: val, datumKonverzije: datum, napomena }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       setOpen(false);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -112,7 +112,7 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
                 disabled={loading}
                 className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-[#1a1a28] transition-colors"
               >
-                Odustani
+                Cancel
               </button>
               <button
                 onClick={handleSave}
@@ -122,7 +122,7 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
                 {loading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                {loading ? "Čuvanje..." : "Sačuvaj"}
+                {loading ? "Čuvanje..." : "Save"}
               </button>
             </div>
           </div>

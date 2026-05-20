@@ -43,7 +43,7 @@ export function ScoreUnscoredButton({ unscoredCount }: Props) {
       }
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setRunning(false);
     }

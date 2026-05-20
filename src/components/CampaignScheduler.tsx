@@ -120,8 +120,8 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
         body: JSON.stringify({ scheduledInitial: scheduledInitialIso, follow1Days, follow2Days, follow3Days }),
       });
       let data: { success?: boolean; dates?: Record<string, string>; sentNow?: number; error?: string } = {};
-      try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }
-      if (!res.ok) throw new Error(data.error || "Greška");
+      try { data = await res.json(); } catch { throw new Error("Invalid server response"); }
+      if (!res.ok) throw new Error(data.error || "Error");
       const d = data.dates!;
       setSuccess({
         initial: new Date(d.initial), follow1: new Date(d.follow1),
@@ -130,7 +130,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
       setSentNow(data.sentNow ?? 0);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -198,8 +198,8 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
       >
         {loading && <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
         {loading
-          ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Slanje..." : "Zakazivanje...")
-          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Pošalji odmah i zakaži follow-up" : "Pokreni kampanju")}
+          ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Sending…" : "Zakazivanje...")
+          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Send odmah i zakaži follow-up" : "Run kampanju")}
       </button>
     </div>
   );

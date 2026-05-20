@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const niche = typeof body.niche === "string" ? body.niche.trim() : "";

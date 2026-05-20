@@ -31,10 +31,10 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
         body: JSON.stringify(payload),
       });
       const data: { error?: string } = await res.json();
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setSaving(null);
     }

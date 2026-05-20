@@ -64,7 +64,7 @@ export function ScoutingReport({ prospectId, hasWebsite, snapshot, snapshotAt }:
       setCurrentAt(new Date());
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -80,7 +80,7 @@ export function ScoutingReport({ prospectId, hasWebsite, snapshot, snapshotAt }:
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
           >
-            {loading ? "Analiziram…" : "Pokreni analizu"}
+            {loading ? "Analiziram…" : "Run analizu"}
           </button>
         </div>
         {error && <p className="text-red-400 text-xs">{error}</p>}

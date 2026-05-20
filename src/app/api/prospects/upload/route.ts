@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       text = await file.text();
     } catch {
       return NextResponse.json(
-        { error: "Greška pri čitanju fajla" },
+        { error: "Error čitanju fajla" },
         { status: 400 }
       );
     }

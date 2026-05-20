@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const { action, ids } = body;
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ error: "ids je obavezan niz" }, { status: 400 });
+      return NextResponse.json({ error: "ids required niz" }, { status: 400 });
     }
 
     // ── DELETE ──
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
             );
             generated++;
           } catch (e) {
-            failed.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "Greška"}`);
+            failed.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "Error"}`);
           }
         }
       });
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
     if (action === "schedule") {
       const { scheduleData } = body;
       if (!scheduleData?.scheduledInitial) {
-        return NextResponse.json({ error: "scheduledInitial je obavezan" }, { status: 400 });
+        return NextResponse.json({ error: "scheduledInitial required" }, { status: 400 });
       }
 
       const initial = new Date(scheduleData.scheduledInitial as string);

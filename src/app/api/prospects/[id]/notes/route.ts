@@ -23,10 +23,10 @@ export async function POST(
     const body = await req.json();
     tekst = String(body?.tekst ?? "").trim();
   } catch {
-    return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
   if (!tekst) {
-    return NextResponse.json({ error: "Tekst je obavezan" }, { status: 400 });
+    return NextResponse.json({ error: "Tekst required" }, { status: 400 });
   }
   const note = await prisma.note.create({
     data: { prospectId: id, tekst },

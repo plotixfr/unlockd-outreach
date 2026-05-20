@@ -60,11 +60,11 @@ export function ReplyDraftPanel({ replyId, prospectId, initialDraft, classificat
         body: JSON.stringify({ replyId, draft }),
       });
       const data: { ok?: boolean; error?: string } = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || "Greška pri slanju");
+      if (!res.ok || !data.ok) throw new Error(data.error || "Error slanju");
       setSent(true);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setSending(false);
     }
@@ -102,7 +102,7 @@ export function ReplyDraftPanel({ replyId, prospectId, initialDraft, classificat
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-md transition-colors flex items-center gap-2"
             >
               {sending && <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {sending ? "Šaljem…" : "Pošalji odgovor"}
+              {sending ? "Šaljem…" : "Send odgovor"}
             </button>
           </div>
         </>

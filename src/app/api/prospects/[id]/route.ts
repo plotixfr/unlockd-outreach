@@ -14,7 +14,7 @@ export async function PATCH(
       const body = await req.json();
       status = body?.status;
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
     if (!(STATUSI as readonly string[]).includes(status)) {
       return NextResponse.json({ error: "Nevažeći status" }, { status: 400 });
@@ -38,7 +38,7 @@ export async function PUT(
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const {
@@ -47,11 +47,11 @@ export async function PUT(
     } = body as Record<string, string>;
 
     if (!firmaNaziv?.trim()) {
-      return NextResponse.json({ error: "firmaNaziv je obavezan" }, { status: 400 });
+      return NextResponse.json({ error: "firmaNaziv required" }, { status: 400 });
     }
     // Niche is free-form (CSV upload accepts any string); only require non-empty.
     if (nisa !== undefined && !nisa.trim()) {
-      return NextResponse.json({ error: "Niša ne smije biti prazna" }, { status: 400 });
+      return NextResponse.json({ error: "Niche ne smije biti prazna" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.update({

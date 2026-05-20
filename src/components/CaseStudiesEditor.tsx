@@ -63,11 +63,11 @@ export function CaseStudiesEditor() {
         body: JSON.stringify(form),
       });
       const data: { item?: CaseStudy; error?: string } = await res.json();
-      if (!res.ok || !data.item) throw new Error(data.error || "Greška");
+      if (!res.ok || !data.item) throw new Error(data.error || "Error");
       setItems((prev) => [data.item!, ...prev]);
       setForm({ title: "", nisa: "", summary: "", metricLabel: "", metricValue: "", imageUrl: "" });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setCreating(false);
     }
@@ -116,7 +116,7 @@ export function CaseStudiesEditor() {
         />
         <input
           type="text"
-          placeholder="Niša (npr. 'Hotel')"
+          placeholder="Niche (npr. 'Hotel')"
           value={form.nisa}
           onChange={(e) => setForm({ ...form, nisa: e.target.value })}
           className="bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600"
@@ -205,7 +205,7 @@ export function CaseStudiesEditor() {
                     onClick={() => remove(item.id)}
                     className="text-[11px] text-red-500 hover:text-red-400 transition-colors px-2 py-0.5"
                   >
-                    Obriši
+                    Delete
                   </button>
                 </div>
               </div>

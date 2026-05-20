@@ -24,7 +24,7 @@ export async function POST(
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
     const { replyId, draft } = body;
     if (!replyId || !draft?.trim()) {
@@ -40,7 +40,7 @@ export async function POST(
       }),
     ]);
     if (!prospect || !reply) {
-      return NextResponse.json({ error: "Prospect ili reply nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect or reply not found" }, { status: 404 });
     }
     if (reply.prospectId !== prospectId) {
       return NextResponse.json({ error: "Reply ne pripada ovom prospect-u" }, { status: 400 });

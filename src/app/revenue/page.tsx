@@ -4,11 +4,21 @@ export const dynamic = "force-dynamic";
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5">
-      <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">{label}</p>
-      <p className="text-white text-2xl font-semibold">{value}</p>
+    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
+      <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">{label}</p>
+      <p
+        className="text-white text-2xl tabular-nums tracking-tight"
+        style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+      >
+        {value}
+      </p>
     </div>
   );
+}
+
+function fmtCurrency(n: number): string {
+  if (n === 0) return "€0";
+  return `€${Math.round(n).toLocaleString("en-US")}`;
 }
 
 export default async function RevenuePage() {
@@ -26,7 +36,7 @@ export default async function RevenuePage() {
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
+    const label = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
     const total = conversions
       .filter((c) => {
         const cd = new Date(c.datumKonverzije);
@@ -46,38 +56,30 @@ export default async function RevenuePage() {
   return (
     <div className="max-w-4xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Revenue</h1>
-        <p className="text-zinc-500 text-sm mt-1">Konverzije i prihodi od projekata</p>
+        <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Revenue</p>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">Money in the door</h1>
+        <p className="text-zinc-500 text-sm mt-1">Conversions and project revenue.</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          label="Ukupno"
-          value={`${totalEur.toLocaleString("fr-FR")} €`}
-        />
-        <StatCard label="Klijenti" value={String(clientCount)} />
-        <StatCard
-          label="Prosjek"
-          value={`${Math.round(avgEur).toLocaleString("fr-FR")} €`}
-        />
-        <StatCard
-          label="Najbolji mjesec"
-          value={bestMonth.total > 0 ? `${bestMonth.total.toLocaleString("fr-FR")} €` : "—"}
-        />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Total" value={fmtCurrency(totalEur)} />
+        <StatCard label="Clients" value={String(clientCount)} />
+        <StatCard label="Average" value={fmtCurrency(avgEur)} />
+        <StatCard label="Best month" value={bestMonth.total > 0 ? fmtCurrency(bestMonth.total) : "—"} />
       </div>
 
       {/* Monthly bar chart */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-        <p className="text-zinc-400 text-sm font-medium mb-6">Prihodi po mjesecu (zadnjih 12 mj.)</p>
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+        <p className="text-zinc-300 text-sm font-medium mb-6">Revenue by month (last 12 mo.)</p>
         <div className="flex items-end gap-2 h-40">
           {months.map((m) => (
             <div key={m.key} className="flex-1 flex flex-col items-center gap-2 min-w-0">
               <div className="w-full flex flex-col justify-end" style={{ height: "120px" }}>
                 {m.total > 0 ? (
                   <div
-                    className="w-full bg-blue-600/80 rounded-t-sm"
+                    className="w-full bg-gradient-to-t from-emerald-700/40 to-emerald-400/80 rounded-t-sm"
                     style={{ height: `${Math.max((m.total / maxMonthly) * 100, 4)}%` }}
-                    title={`${m.total.toLocaleString("fr-FR")} €`}
+                    title={fmtCurrency(m.total)}
                   />
                 ) : (
                   <div className="w-full h-px bg-zinc-800" />
@@ -93,36 +95,36 @@ export default async function RevenuePage() {
 
       {/* Conversions table */}
       {conversions.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
-          <p className="text-zinc-500 text-sm">Nema konverzija. Dodaj konverziju na stranici prospekta.</p>
+        <div className="rounded-xl border border-dashed border-[#1c1c28] p-10 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+          <p className="text-zinc-400 text-sm">No conversions yet. Add one from any prospect&apos;s detail page when a deal closes.</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] overflow-hidden">
-          <div className="px-5 py-3 border-b border-[#1f1f2e]">
-            <p className="text-zinc-400 text-sm font-medium">Sve konverzije</p>
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
+          <div className="px-5 py-3 border-b border-[#1c1c28] bg-[#0a0a12]">
+            <p className="text-zinc-300 text-sm font-medium">All conversions</p>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1f1f2e]">
-                <th className="px-5 py-3 text-left text-zinc-500 text-xs uppercase tracking-wider font-medium">Klijent</th>
-                <th className="px-5 py-3 text-left text-zinc-500 text-xs uppercase tracking-wider font-medium">Datum</th>
-                <th className="px-5 py-3 text-right text-zinc-500 text-xs uppercase tracking-wider font-medium">Vrijednost</th>
-                <th className="px-5 py-3 text-left text-zinc-500 text-xs uppercase tracking-wider font-medium">Napomena</th>
+              <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
+                <th className="px-5 py-3 text-left text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Client</th>
+                <th className="px-5 py-3 text-left text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Date</th>
+                <th className="px-5 py-3 text-right text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Value</th>
+                <th className="px-5 py-3 text-left text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Note</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#14141c]">
               {conversions.map((c) => (
-                <tr key={c.id} className="border-b border-[#1f1f2e] last:border-0 hover:bg-[#1a1a28] transition-colors">
+                <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3">
                     <p className="text-zinc-200 font-medium">{c.prospect.firmaNaziv}</p>
                     <p className="text-zinc-600 text-xs">{c.prospect.email}</p>
                   </td>
-                  <td className="px-5 py-3 text-zinc-400">
-                    {new Date(c.datumKonverzije).toLocaleDateString("fr-FR")}
+                  <td className="px-5 py-3 text-zinc-400 tabular-nums">
+                    {new Date(c.datumKonverzije).toLocaleDateString("en-US")}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <span className="text-green-400 font-semibold">
-                      {c.vrijednostProjekta.toLocaleString("fr-FR")} €
+                    <span className="text-emerald-400 font-semibold tabular-nums">
+                      {fmtCurrency(c.vrijednostProjekta)}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-zinc-500 text-xs max-w-xs truncate">

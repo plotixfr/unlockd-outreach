@@ -25,13 +25,19 @@ export const DEAL_STAGE_PROBABILITY: Record<DealStage, number> = {
   Lost: 0,
 };
 
-export const DEAL_STAGE_BS: Record<DealStage, string> = {
-  Discovery: "Razgovor",
-  Proposal: "Ponuda poslata",
-  Negotiating: "Pregovori",
-  Won: "Dobijen",
-  Lost: "Izgubljen",
+// Display labels for the Kanban columns. Kept in a separate map so the
+// canonical stage names above stay stable (used in DB + API filters) while
+// the UI label can be retitled freely.
+export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
+  Discovery: "Discovery",
+  Proposal: "Proposal sent",
+  Negotiating: "Negotiating",
+  Won: "Won",
+  Lost: "Lost",
 };
+
+// Backwards-compatible alias for older imports.
+export const DEAL_STAGE_BS = DEAL_STAGE_LABEL;
 
 export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
   Discovery: "bg-sky-950/60 text-sky-300 border-sky-900/40",

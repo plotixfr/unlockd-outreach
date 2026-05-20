@@ -26,12 +26,12 @@ export function GenerateEmailsButton({ prospectId, hasEmails }: Props) {
       try {
         data = await res.json();
       } catch {
-        throw new Error("Greška pri generisanju emailova — pokušajte ponovo");
+        throw new Error("Error generisanju emailova — pokušajte ponovo");
       }
-      if (!res.ok) throw new Error(data.error || "Greška pri generisanju emailova");
+      if (!res.ok) throw new Error(data.error || "Error generisanju emailova");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška pri generisanju emailova");
+      setError(e instanceof Error ? e.message : "Error generisanju emailova");
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ export function GenerateEmailsButton({ prospectId, hasEmails }: Props) {
           {loading && (
             <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Générer..." : "Generiši emailove"}
+          {loading ? "Générer..." : "Generate emailove"}
         </button>
       ) : (
         <button

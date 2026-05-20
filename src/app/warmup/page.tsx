@@ -4,9 +4,14 @@ export const dynamic = "force-dynamic";
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5">
-      <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">{label}</p>
-      <p className="text-white text-2xl font-semibold">{value}</p>
+    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
+      <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">{label}</p>
+      <p
+        className="text-white text-2xl tabular-nums tracking-tight"
+        style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+      >
+        {value}
+      </p>
       {sub && <p className="text-zinc-600 text-xs mt-1">{sub}</p>}
     </div>
   );
@@ -47,90 +52,90 @@ export default async function WarmupPage() {
 
   const avgPerDay = sentThisMonth > 0 ? (sentThisMonth / 30).toFixed(1) : "0";
 
-  // Warmup stage based on total sent
   let stage: string;
   let stageColor: string;
   let recommendations: string[];
 
   if (totalSent < 20) {
-    stage = "Početnik";
-    stageColor = "text-yellow-400";
+    stage = "Brand new";
+    stageColor = "text-amber-400";
     recommendations = [
-      "Slati max 5–10 emailova dnevno tokom prvog tjedna",
-      "Pratiti spam score domene na mail-tester.com",
-      "Koristiti SPF, DKIM i DMARC zapise na domeni",
-      "Izbjegavati spam trigger riječi (besplatno, garancija, klikni ovdje)",
+      "Cap sends at 5–10/day for the first week",
+      "Check your spam score on mail-tester.com",
+      "Verify SPF, DKIM, and DMARC records on your sending domain",
+      "Avoid spam triggers (free, guaranteed, click here, urgent)",
     ];
   } else if (totalSent < 100) {
-    stage = "Zagrijavanje";
+    stage = "Warming up";
     stageColor = "text-orange-400";
     recommendations = [
-      "Možeš povećati na 20–30 emailova dnevno",
-      "Open rate ispod 20% je alarm — provjeri subject linije",
-      "Dodaj varijante subject-a (A/B) za bolji engagement",
-      "Čisti listu od bounce-ova i invalid adresa",
+      "Ramp to 20–30 emails/day",
+      "Open rate below 20% is a red flag — revisit your subject lines",
+      "Use A/B subject variants to learn what lands",
+      "Scrub bounces and invalid addresses regularly",
     ];
   } else if (totalSent < 500) {
-    stage = "Aktivan";
-    stageColor = "text-blue-400";
+    stage = "Active";
+    stageColor = "text-sky-400";
     recommendations = [
-      "Domena je zagrijana — možeš slati 50–100 emailova dnevno",
-      "Prati open rate per niche i optimizuj subject linije",
-      "Rotacija follow-up timing-a povećava reply rate",
-      "Nastavi B/A testiranje za kontinuiranu optimizaciju",
+      "Domain is warm — 50–100 emails/day is safe",
+      "Track open rate per niche and tune subjects accordingly",
+      "Vary follow-up timing — fixed cadences signal automation",
+      "Keep A/B testing to maintain reply rate over time",
     ];
   } else {
-    stage = "Etabliran";
-    stageColor = "text-green-400";
+    stage = "Established";
+    stageColor = "text-emerald-400";
     recommendations = [
-      "Volumen nije ograničavajući faktor — fokus na kvalitet",
-      "Segment bazu po nishi za personalizovanije poruke",
-      "Pratiti reply rate po tipu emaila (initial vs follow-up)",
+      "Volume is no longer the constraint — focus on quality of fit",
+      "Segment by niche for tighter targeting",
+      "Track reply rate per email type (initial vs follow-up)",
     ];
   }
 
   return (
     <div className="max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Email Warmup</h1>
-        <p className="text-zinc-500 text-sm mt-1">Status domene i preporuke za deliverability</p>
+        <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Warm-up</p>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">Domain health</h1>
+        <p className="text-zinc-500 text-sm mt-1">Sending-domain status and deliverability guidance.</p>
       </div>
 
       {/* Domain info */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 flex items-center justify-between">
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 flex items-center justify-between card-elevation">
         <div>
-          <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Domena za slanje</p>
+          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-1">Sending domain</p>
           <p className="text-white font-semibold">{domain}</p>
           <p className="text-zinc-600 text-xs mt-0.5">{fromEmail}</p>
         </div>
-        <span className={`text-sm font-semibold px-3 py-1.5 rounded-full bg-[#0a0a0f] border border-[#1f1f2e] ${stageColor}`}>
+        <span className={`text-sm font-semibold px-3 py-1.5 rounded-full bg-[#0a0a12] border border-[#1c1c28] ${stageColor}`}>
           {stage}
         </span>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Ukupno poslano" value={String(totalSent)} />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="Total sent" value={String(totalSent)} />
         <StatCard
           label="Open rate"
           value={pct(totalOpened, totalSent)}
-          sub={`${totalOpened} od ${totalSent}`}
+          sub={`${totalOpened} of ${totalSent}`}
         />
-        <StatCard label="Ova sedmica" value={String(sentThisWeek)} sub="posjednjih 7 dana" />
+        <StatCard label="This week" value={String(sentThisWeek)} sub="Last 7 days" />
         <StatCard
-          label="Prosjek / dan"
+          label="Daily average"
           value={avgPerDay}
-          sub={`${sentThisMonth} u 30 dana`}
+          sub={`${sentThisMonth} in 30 days`}
         />
       </div>
 
       {/* Warmup recommendations */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-3">
-        <p className="text-zinc-400 text-sm font-medium">Preporuke</p>
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 space-y-3 card-elevation">
+        <p className="text-zinc-300 text-sm font-medium">Recommendations</p>
         <ul className="space-y-2">
           {recommendations.map((r, i) => (
             <li key={i} className="flex items-start gap-2 text-sm text-zinc-400">
-              <span className="text-blue-500 mt-0.5 shrink-0">›</span>
+              <span className="text-emerald-400 mt-0.5 shrink-0">›</span>
               {r}
             </li>
           ))}
@@ -139,51 +144,51 @@ export default async function WarmupPage() {
 
       {/* A/B subject comparison */}
       {(abASent > 0 || abBSent > 0) && (
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-4">
-          <p className="text-zinc-400 text-sm font-medium">A/B Subject — Open rate</p>
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 space-y-4 card-elevation">
+          <p className="text-zinc-300 text-sm font-medium">A/B subject — open rate</p>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-500 text-xs uppercase tracking-wider">Subject A</span>
-                <span className="text-zinc-200 font-semibold text-sm">{pct(abAOpened, abASent)}</span>
+                <span className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Subject A</span>
+                <span className="text-zinc-200 font-semibold text-sm tabular-nums">{pct(abAOpened, abASent)}</span>
               </div>
-              <div className="h-2 rounded-full bg-[#1f1f2e]">
+              <div className="h-2 rounded-full bg-[#1c1c28]">
                 <div
-                  className="h-2 rounded-full bg-blue-600"
+                  className="h-2 rounded-full bg-sky-500"
                   style={{ width: abASent > 0 ? `${(abAOpened / abASent) * 100}%` : "0%" }}
                 />
               </div>
-              <p className="text-zinc-600 text-xs">{abAOpened} / {abASent} poslano</p>
+              <p className="text-zinc-600 text-xs tabular-nums">{abAOpened} / {abASent} sent</p>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-500 text-xs uppercase tracking-wider">Subject B</span>
-                <span className="text-zinc-200 font-semibold text-sm">{pct(abBOpened, abBSent)}</span>
+                <span className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium">Subject B</span>
+                <span className="text-zinc-200 font-semibold text-sm tabular-nums">{pct(abBOpened, abBSent)}</span>
               </div>
-              <div className="h-2 rounded-full bg-[#1f1f2e]">
+              <div className="h-2 rounded-full bg-[#1c1c28]">
                 <div
-                  className="h-2 rounded-full bg-emerald-600"
+                  className="h-2 rounded-full bg-emerald-500"
                   style={{ width: abBSent > 0 ? `${(abBOpened / abBSent) * 100}%` : "0%" }}
                 />
               </div>
-              <p className="text-zinc-600 text-xs">{abBOpened} / {abBSent} poslano</p>
+              <p className="text-zinc-600 text-xs tabular-nums">{abBOpened} / {abBSent} sent</p>
             </div>
           </div>
           {abASent > 0 && abBSent > 0 && (
-            <p className="text-xs text-zinc-600 pt-1">
+            <p className="text-xs text-zinc-500 pt-1">
               {abAOpened / abASent > abBOpened / abBSent
-                ? "Subject A ima bolji open rate."
+                ? "Subject A is winning on opens."
                 : abBOpened / abBSent > abAOpened / abASent
-                ? "Subject B ima bolji open rate."
-                : "Oba subject-a imaju isti open rate."}
+                ? "Subject B is winning on opens."
+                : "Both subjects tie on opens."}
             </p>
           )}
         </div>
       )}
 
       {abASent === 0 && abBSent === 0 && (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-8 text-center">
-          <p className="text-zinc-500 text-sm">Nema A/B podataka. Generiši emailove — Claude automatski kreira dva subject-a.</p>
+        <div className="rounded-xl border border-dashed border-[#1c1c28] p-8 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+          <p className="text-zinc-400 text-sm">No A/B data yet. Generate emails — Claude creates two subject variants per prospect automatically.</p>
         </div>
       )}
     </div>

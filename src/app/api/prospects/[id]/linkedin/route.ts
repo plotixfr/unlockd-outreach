@@ -26,7 +26,7 @@ export async function POST(
     if (!apiKey) return NextResponse.json({ error: "ANTHROPIC_API_KEY nije postavljen" }, { status: 500 });
 
     const prospect = await prisma.prospect.findUnique({ where: { id } });
-    if (!prospect) return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+    if (!prospect) return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
 
     const site = (prospect.siteSnapshot as unknown as SiteSnapshot | null) ?? null;
     const psi = (prospect.pagespeed as unknown as PageSpeedSnapshot | null) ?? null;

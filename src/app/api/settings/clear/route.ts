@@ -21,6 +21,6 @@ export async function DELETE() {
     });
   } catch (err) {
     console.error("[settings/clear]", err);
-    return NextResponse.json({ error: "Greška pri brisanju baze" }, { status: 500 });
+    return NextResponse.json({ error: "Error brisanju baze" }, { status: 500 });
   }
 }

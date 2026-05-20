@@ -36,11 +36,11 @@ export function LinkedInDmButton({ prospectId, initialTouchedAt }: Props) {
     try {
       const res = await fetch(`/api/prospects/${prospectId}/linkedin`, { method: "POST" });
       const data: { message?: string; note?: string; error?: string } = await res.json();
-      if (!res.ok || !data.message) throw new Error(data.error || "Greška");
+      if (!res.ok || !data.message) throw new Error(data.error || "Error");
       setMessage(data.message);
       setNote(data.note ?? "");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }

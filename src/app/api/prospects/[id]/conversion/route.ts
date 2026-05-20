@@ -12,7 +12,7 @@ export async function POST(
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const { vrijednostProjekta, datumKonverzije, napomena } = body;
@@ -23,7 +23,7 @@ export async function POST(
 
     const prospect = await prisma.prospect.findUnique({ where: { id } });
     if (!prospect) {
-      return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
 
     const [conversion] = await Promise.all([

@@ -19,13 +19,13 @@ export async function POST(
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const { scheduledInitial, follow1Days = 4, follow2Days = 5, follow3Days = 7 } = body;
 
     if (!scheduledInitial) {
-      return NextResponse.json({ error: "scheduledInitial je obavezan" }, { status: 400 });
+      return NextResponse.json({ error: "scheduledInitial required" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.findUnique({
@@ -34,13 +34,13 @@ export async function POST(
     });
 
     if (!prospect) {
-      return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
 
     const emailTips = new Set(prospect.emails.map((e) => e.tip));
     if (!emailTips.has("initial")) {
       return NextResponse.json(
-        { error: "Generiši emailove prije pokretanja kampanje" },
+        { error: "Generate emailove prije pokretanja kampanje" },
         { status: 400 }
       );
     }

@@ -74,7 +74,7 @@ export function ReminderForm({ prospectId, initialDatum, initialNapomena }: Prop
             disabled={saving || !datum}
             className="text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
           >
-            {saving ? "Čuvam..." : "Sačuvaj podsjetnik"}
+            {saving ? "Čuvam..." : "Save podsjetnik"}
           </button>
           {initialDatum && (
             <button
@@ -82,7 +82,7 @@ export function ReminderForm({ prospectId, initialDatum, initialNapomena }: Prop
               disabled={saving}
               className="text-sm px-4 py-1.5 rounded-lg text-zinc-400 hover:text-white border border-[#1f1f2e] hover:bg-[#1a1a28] transition-colors disabled:opacity-50"
             >
-              Obriši
+              Delete
             </button>
           )}
         </div>

@@ -43,11 +43,11 @@ export default async function EditProspectPage({
           {prospect.firmaNaziv}
         </Link>
         <span className="text-zinc-700">/</span>
-        <span className="text-zinc-300">Uredi</span>
+        <span className="text-zinc-300">Edit</span>
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold text-white">Uredi prospekta</h1>
+        <h1 className="text-2xl font-semibold text-white">Edit prospekta</h1>
         <p className="text-zinc-500 text-sm mt-1">{prospect.firmaNaziv}</p>
       </div>
 

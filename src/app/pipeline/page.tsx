@@ -2,16 +2,17 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import {
   DEAL_STAGES,
-  DEAL_STAGE_BS,
+  DEAL_STAGE_LABEL,
   DEAL_STAGE_COLOR,
   DEAL_STAGE_PROBABILITY,
   type DealStage,
 } from "@/lib/dealStages";
+import { ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-function fmtEur(n: number): string {
-  return `${Math.round(n).toLocaleString("fr-FR")} €`;
+function fmtCurrency(n: number): string {
+  return `€${Math.round(n).toLocaleString("en-US")}`;
 }
 
 export default async function PipelinePage() {
@@ -60,42 +61,59 @@ export default async function PipelinePage() {
 
   return (
     <div className="max-w-7xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Pipeline</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            Otvoreni deal-ovi nakon što je prospect odgovorio. Probability-weighted forecast.
+          <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Pipeline</p>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">Deals in motion</h1>
+          <p className="text-zinc-500 text-sm mt-1 max-w-xl">
+            Open deals once a prospect has engaged. Forecast is probability-weighted by stage.
           </p>
         </div>
         <Link
           href="/prospects"
-          className="text-zinc-400 hover:text-white text-sm px-3 py-1.5 rounded-lg border border-[#1f1f2e] hover:border-[#2f2f3e] transition-colors"
+          className="inline-flex items-center gap-2 text-zinc-400 hover:text-white text-sm px-3 py-1.5 rounded-lg border border-[#1c1c28] hover:border-[#2e2e3e] hover:bg-white/[0.02] transition-colors"
         >
-          ← Svi prospekti
+          <ArrowLeft className="w-3.5 h-3.5" />
+          All prospects
         </Link>
       </div>
 
       {/* Forecast cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5">
-          <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Otvoreni pipeline</p>
-          <p className="text-3xl font-bold text-white">{fmtEur(openPipeline)}</p>
-          <p className="text-zinc-600 text-xs mt-1">
-            Suma neugovorenih dealova (Discovery / Proposal / Negotiating)
+        <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
+          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">Open pipeline</p>
+          <p
+            className="text-3xl text-white tabular-nums tracking-tight"
+            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+          >
+            {fmtCurrency(openPipeline)}
+          </p>
+          <p className="text-zinc-600 text-xs mt-1.5">
+            Sum across Discovery / Proposal / Negotiating
           </p>
         </div>
-        <div className="rounded-xl bg-blue-950/30 border border-blue-900/40 p-5">
-          <p className="text-blue-400 text-xs uppercase tracking-wider mb-2">Forecast (vjerovatnoća × vrijednost)</p>
-          <p className="text-3xl font-bold text-blue-300">{fmtEur(forecast)}</p>
-          <p className="text-blue-200/60 text-xs mt-1">
+        <div className="rounded-xl bg-gradient-to-br from-emerald-500/[0.06] to-[#0d0d12] border border-emerald-500/20 p-5 card-elevation">
+          <p className="text-emerald-400 text-[10px] uppercase tracking-widest font-medium mb-2">Forecast (probability × value)</p>
+          <p
+            className="text-3xl text-emerald-300 tabular-nums tracking-tight"
+            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+          >
+            {fmtCurrency(forecast)}
+          </p>
+          <p className="text-emerald-200/60 text-xs mt-1.5">
             Discovery 20% · Proposal 45% · Negotiating 65%
           </p>
         </div>
-        <div className="rounded-xl bg-emerald-950/30 border border-emerald-900/40 p-5">
-          <p className="text-emerald-400 text-xs uppercase tracking-wider mb-2">Dobijeno</p>
-          <p className="text-3xl font-bold text-emerald-300">{fmtEur(won)}</p>
-          <p className="text-emerald-200/60 text-xs mt-1">
-            {byStage.Won?.length ?? 0} klijent{(byStage.Won?.length ?? 0) === 1 ? "" : "a"}
+        <div className="rounded-xl bg-gradient-to-br from-amber-500/[0.05] to-[#0d0d12] border border-amber-500/20 p-5 card-elevation">
+          <p className="text-amber-400 text-[10px] uppercase tracking-widest font-medium mb-2">Won this period</p>
+          <p
+            className="text-3xl text-amber-300 tabular-nums tracking-tight"
+            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+          >
+            {fmtCurrency(won)}
+          </p>
+          <p className="text-amber-200/60 text-xs mt-1.5">
+            {byStage.Won?.length ?? 0} {(byStage.Won?.length ?? 0) === 1 ? "client" : "clients"}
           </p>
         </div>
       </div>
@@ -108,39 +126,39 @@ export default async function PipelinePage() {
           return (
             <div
               key={stage}
-              className="rounded-xl bg-[#0d0d14] border border-[#1f1f2e] p-3 min-h-[200px] flex flex-col"
+              className="rounded-xl bg-[#0a0a12] border border-[#1c1c28] p-3 min-h-[200px] flex flex-col"
             >
-              <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1f1f2e]">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${DEAL_STAGE_COLOR[stage]}`}>
-                  {DEAL_STAGE_BS[stage]}
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#1c1c28]">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium uppercase tracking-wider border ${DEAL_STAGE_COLOR[stage]}`}>
+                  {DEAL_STAGE_LABEL[stage]}
                 </span>
-                <span className="text-zinc-500 text-xs">{items.length}</span>
+                <span className="text-zinc-500 text-xs tabular-nums">{items.length}</span>
               </div>
               {sum > 0 && (
-                <p className="text-zinc-400 text-xs font-medium mb-2">{fmtEur(sum)}</p>
+                <p className="text-zinc-400 text-xs font-medium mb-2 tabular-nums">{fmtCurrency(sum)}</p>
               )}
               <div className="space-y-2 flex-1">
                 {items.length === 0 ? (
-                  <p className="text-zinc-700 text-xs italic mt-2">prazno</p>
+                  <p className="text-zinc-700 text-xs italic mt-2">empty</p>
                 ) : (
                   items.map((p) => (
                     <Link
                       key={p.id}
                       href={`/prospects/${p.id}`}
-                      className="block rounded-md bg-[#111118] border border-[#1f1f2e] hover:border-[#2f2f3e] p-3 transition-colors group"
+                      className="block rounded-md bg-[#0d0d12] border border-[#1c1c28] hover:border-emerald-500/30 hover:bg-emerald-500/[0.03] p-3 transition-colors group"
                     >
-                      <p className="text-zinc-200 text-sm font-medium group-hover:text-blue-300 transition-colors truncate">
+                      <p className="text-zinc-200 text-sm font-medium group-hover:text-emerald-300 transition-colors truncate">
                         {p.firmaNaziv}
                       </p>
                       <p className="text-zinc-500 text-xs mt-0.5 truncate">
                         {p.nisa} · {p.grad}
                       </p>
                       {p.dealValue ? (
-                        <p className="text-emerald-400 text-xs font-medium mt-1.5">
-                          {fmtEur(p.dealValue)}
+                        <p className="text-emerald-400 text-xs font-medium mt-1.5 tabular-nums">
+                          {fmtCurrency(p.dealValue)}
                         </p>
                       ) : (
-                        <p className="text-zinc-600 text-xs mt-1.5">— bez vrijednosti</p>
+                        <p className="text-zinc-600 text-xs mt-1.5">— no value set</p>
                       )}
                     </Link>
                   ))
@@ -152,9 +170,9 @@ export default async function PipelinePage() {
       </div>
 
       {prospects.length === 0 && (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
-          <p className="text-zinc-500 text-sm">
-            Nema otvorenih deal-ova. Kad ti prospect odgovori sa interesovanjem, postavi mu stage iz njegove kartice.
+        <div className="rounded-xl border border-dashed border-[#1c1c28] p-10 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+          <p className="text-zinc-400 text-sm">
+            No open deals yet. When a prospect replies with interest, set their stage from their detail page.
           </p>
         </div>
       )}

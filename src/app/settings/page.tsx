@@ -9,17 +9,17 @@ export const dynamic = "force-dynamic";
 function StatusDot({ ok }: { ok: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium ${ok ? "text-emerald-400" : "text-red-400"}`}
+      className={`inline-flex items-center gap-1.5 text-xs font-medium ${ok ? "text-emerald-400" : "text-rose-400"}`}
     >
-      <span className={`w-2 h-2 rounded-full ${ok ? "bg-emerald-500" : "bg-red-500"}`} />
-      {ok ? "Konfigurisan" : "Nije konfigurisan"}
+      <span className={`w-2 h-2 rounded-full ${ok ? "bg-emerald-500 shadow-lg shadow-emerald-500/40" : "bg-rose-500"}`} />
+      {ok ? "Connected" : "Missing"}
     </span>
   );
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-4 border-b border-[#1f1f2e] last:border-0">
+    <div className="flex items-center justify-between gap-4 py-4 border-b border-[#1c1c28] last:border-0">
       <span className="text-zinc-400 text-sm">{label}</span>
       <div className="text-right">{children}</div>
     </div>
@@ -44,31 +44,24 @@ export default async function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Postavke</h1>
-        <p className="text-zinc-500 text-sm mt-1">Status sistema i konfiguracija</p>
+        <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Settings</p>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">Workspace</h1>
+        <p className="text-zinc-500 text-sm mt-1">System status, voice, content, and dangerous things.</p>
       </div>
 
       {/* API connections */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-        <h2 className="text-white font-medium mb-4">API konekcije</h2>
-        <div className="divide-y divide-[#1f1f2e]">
-          <Row label="Anthropic API (Claude)">
-            <StatusDot ok={anthropicKey} />
-          </Row>
-          <Row label="Resend API (email slanje)">
-            <StatusDot ok={resendKey} />
-          </Row>
-          <Row label="Cron secret">
-            <StatusDot ok={cronSecret} />
-          </Row>
-          <Row label="IMAP reply detection">
-            <StatusDot ok={imapConfigured} />
-          </Row>
-          <Row label="From email">
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+        <h2 className="text-white font-medium mb-4">Connections</h2>
+        <div className="divide-y divide-[#1c1c28]">
+          <Row label="Anthropic API (Claude)"><StatusDot ok={anthropicKey} /></Row>
+          <Row label="Resend API (email)"><StatusDot ok={resendKey} /></Row>
+          <Row label="Cron secret"><StatusDot ok={cronSecret} /></Row>
+          <Row label="IMAP reply detection"><StatusDot ok={imapConfigured} /></Row>
+          <Row label="From address">
             <span className="text-zinc-300 text-sm font-mono">{fromEmail}</span>
           </Row>
           <Row label="Daily send cap">
-            <span className="text-zinc-300 text-sm font-mono">{dailyCap} /dan</span>
+            <span className="text-zinc-300 text-sm font-mono tabular-nums">{dailyCap} / day</span>
           </Row>
         </div>
       </div>
@@ -79,24 +72,24 @@ export default async function SettingsPage() {
       {/* Niche templates */}
       <NicheTemplatesEditor />
 
-      {/* Case studies library — auto-inserted into follow-up #2 */}
+      {/* Case studies library */}
       <CaseStudiesEditor />
 
       {/* Cron info */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-        <h2 className="text-white font-medium mb-4">Cron job</h2>
-        <div className="divide-y divide-[#1f1f2e]">
-          <Row label="Raspored">
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+        <h2 className="text-white font-medium mb-4">Send schedule</h2>
+        <div className="divide-y divide-[#1c1c28]">
+          <Row label="Cron expression">
             <span className="text-zinc-300 text-sm font-mono">0 8 * * *</span>
           </Row>
-          <Row label="Lokalno vreme">
-            <span className="text-zinc-300 text-sm">09:00 Paris (CET/CEST)</span>
+          <Row label="Local time">
+            <span className="text-zinc-300 text-sm">10:00 Paris (CET/CEST)</span>
           </Row>
           <Row label="Endpoint">
             <span className="text-zinc-500 text-xs font-mono">/api/cron/send-followups</span>
           </Row>
-          <Row label="Zakazane kampanje">
-            <span className={`text-sm font-medium ${scheduledProspects > 0 ? "text-sky-400" : "text-zinc-500"}`}>
+          <Row label="Queued campaigns">
+            <span className={`text-sm font-medium tabular-nums ${scheduledProspects > 0 ? "text-emerald-400" : "text-zinc-500"}`}>
               {scheduledProspects}
             </span>
           </Row>
@@ -104,29 +97,29 @@ export default async function SettingsPage() {
       </div>
 
       {/* DB stats */}
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6">
-        <h2 className="text-white font-medium mb-4">Baza podataka</h2>
-        <div className="divide-y divide-[#1f1f2e]">
-          <Row label="Ukupno prospekata">
-            <span className="text-white text-sm font-medium">{totalProspects}</span>
+      <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+        <h2 className="text-white font-medium mb-4">Database</h2>
+        <div className="divide-y divide-[#1c1c28]">
+          <Row label="Total prospects">
+            <span className="text-white text-sm font-medium tabular-nums">{totalProspects}</span>
           </Row>
-          <Row label="Ukupno emailova u bazi">
-            <span className="text-white text-sm font-medium">{totalEmails}</span>
+          <Row label="Total emails">
+            <span className="text-white text-sm font-medium tabular-nums">{totalEmails}</span>
           </Row>
-          <Row label="Poslato emailova">
-            <span className="text-emerald-400 text-sm font-medium">{sentEmails}</span>
+          <Row label="Sent">
+            <span className="text-emerald-400 text-sm font-medium tabular-nums">{sentEmails}</span>
           </Row>
-          <Row label="Neposlato emailova">
-            <span className="text-zinc-400 text-sm font-medium">{totalEmails - sentEmails}</span>
+          <Row label="Unsent">
+            <span className="text-zinc-400 text-sm font-medium tabular-nums">{totalEmails - sentEmails}</span>
           </Row>
         </div>
       </div>
 
       {/* Danger zone */}
-      <div className="rounded-xl bg-red-950/20 border border-red-800/30 p-6">
-        <h2 className="text-red-400 font-medium mb-1">Opasna zona</h2>
+      <div className="rounded-xl bg-rose-950/20 border border-rose-900/40 p-6">
+        <h2 className="text-rose-300 font-medium mb-1">Danger zone</h2>
         <p className="text-zinc-500 text-sm mb-4">
-          Brisanje je trajno i ne može se poništiti.
+          Deletion is permanent and cannot be undone.
         </p>
         <ClearDatabaseButton />
       </div>

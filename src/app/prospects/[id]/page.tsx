@@ -109,7 +109,7 @@ export default async function ProspectDetailPage({
             href={`/prospects/${id}/edit`}
             className="text-zinc-400 hover:text-white text-sm px-3 py-2 rounded-lg hover:bg-[#1a1a28] transition-colors"
           >
-            Uredi
+            Edit
           </Link>
           <DeleteProspectButton
             prospectId={prospect.id}
@@ -121,8 +121,8 @@ export default async function ProspectDetailPage({
 
       {/* Info grid */}
       <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
-        <InfoRow label="Niša" value={prospect.nisa} />
-        <InfoRow label="Grad" value={prospect.grad} />
+        <InfoRow label="Niche" value={prospect.nisa} />
+        <InfoRow label="City" value={prospect.grad} />
         <InfoRow label="Kontakt" value={prospect.kontaktIme} />
         <InfoRow label="Pozicija" value={prospect.kontaktPozicija} />
         <InfoRow label="Website" value={prospect.website} />
@@ -223,7 +223,7 @@ export default async function ProspectDetailPage({
               target="_blank"
               className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-emerald-500/40 p-5 transition-all group card-elevation"
             >
-              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Generiši ponudu →</p>
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Generate ponudu →</p>
               <p className="text-zinc-500 text-xs mt-1.5">4-stranice na francuskom sa 3 cjenovna nivoa + value calculator + Stripe link</p>
             </Link>
           </div>
@@ -381,7 +381,7 @@ export default async function ProspectDetailPage({
         {emails.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
             <p className="text-zinc-500 text-sm">
-              Nema generisanih emailova. Klikni &ldquo;Generiši emailove&rdquo; da Claude napiše kampanju.
+              Nema generisanih emailova. Klikni &ldquo;Generate emailove&rdquo; da Claude napiše kampanju.
             </p>
           </div>
         ) : (

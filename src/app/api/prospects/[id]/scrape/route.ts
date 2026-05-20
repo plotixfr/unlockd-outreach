@@ -18,7 +18,7 @@ export async function POST(
       select: { id: true, website: true },
     });
     if (!prospect) {
-      return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
     if (!prospect.website) {
       return NextResponse.json({ error: "Prospect nema website" }, { status: 400 });

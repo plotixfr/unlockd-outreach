@@ -101,13 +101,13 @@ export function ProspectsTable({ prospects }: Props) {
         body: JSON.stringify({ action, ids: selectedIds, ...extra }),
       });
       let data: { error?: string; sentNow?: number; scheduled?: number; generated?: number; deleted?: number } = {};
-      try { data = await res.json(); } catch { throw new Error("Server nije vratio validan odgovor"); }
-      if (!res.ok) throw new Error(data.error || "Greška");
+      try { data = await res.json(); } catch { throw new Error("Invalid server response"); }
+      if (!res.ok) throw new Error(data.error || "Something went wrong");
       if (action === "delete") setSelected(new Set());
       router.refresh();
       return data;
     } catch (e) {
-      setBulkError(e instanceof Error ? e.message : "Greška");
+      setBulkError(e instanceof Error ? e.message : "Something went wrong");
       return {};
     } finally {
       setBulkLoading(null);
@@ -133,10 +133,10 @@ export function ProspectsTable({ prospects }: Props) {
     setReplyingId(id);
     try {
       const res = await fetch(`/api/prospects/${id}/reply`, { method: "POST" });
-      if (!res.ok) throw new Error("Greška");
+      if (!res.ok) throw new Error("Something went wrong");
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Greška");
+      alert(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setReplyingId(null);
     }
@@ -149,11 +149,11 @@ export function ProspectsTable({ prospects }: Props) {
       const res = await fetch(`/api/prospects/${deleteTarget.id}`, { method: "DELETE" });
       if (!res.ok) {
         const d = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(d.error || "Greška pri brisanju");
+        throw new Error(d.error || "Delete failed");
       }
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Greška");
+      alert(e instanceof Error ? e.message : "Something went wrong");
     } finally {
       setDeletingId(null);
       setDeleteTarget(null);
@@ -164,44 +164,44 @@ export function ProspectsTable({ prospects }: Props) {
     <div className="space-y-4">
       {/* Bulk action bar */}
       {selected.size > 0 && (
-        <div className="sticky top-4 z-10 flex items-center gap-3 bg-[#111118] border border-blue-600/40 rounded-xl px-4 py-3 shadow-xl">
-          <span className="text-blue-400 text-sm font-medium">
-            {selected.size} {selected.size === 1 ? "odabran" : "odabrano"}
+        <div className="sticky top-4 z-10 flex items-center gap-3 bg-[#0d0d12] border border-emerald-500/40 rounded-xl px-4 py-3 shadow-xl card-elevation-strong">
+          <span className="text-emerald-300 text-sm font-medium">
+            {selected.size} selected
           </span>
           <div className="flex-1" />
-          {bulkError && <p className="text-red-400 text-xs">{bulkError}</p>}
+          {bulkError && <p className="text-rose-400 text-xs">{bulkError}</p>}
           <button
             onClick={() => bulkAction("generate")}
             disabled={!!bulkLoading}
-            className="text-sm px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            className="text-sm px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
             {bulkLoading === "generate" && (
-              <span className="inline-block w-3 h-3 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-emerald-300/30 border-t-emerald-300 rounded-full animate-spin" />
             )}
-            Generiši emailove
+            Generate emails
           </button>
           <button
             onClick={() => setShowScheduleModal(true)}
             disabled={!!bulkLoading}
-            className="text-sm px-3 py-1.5 rounded-lg bg-sky-600/20 text-sky-300 hover:bg-sky-600/30 transition-colors disabled:opacity-50"
+            className="text-sm px-3 py-1.5 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 transition-colors disabled:opacity-50"
           >
-            Zakaži kampanju
+            Schedule campaign
           </button>
           <button
             onClick={() => bulkAction("delete")}
             disabled={!!bulkLoading}
-            className="text-sm px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            className="text-sm px-3 py-1.5 rounded-lg bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 transition-colors disabled:opacity-50 flex items-center gap-1.5"
           >
             {bulkLoading === "delete" && (
-              <span className="inline-block w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-rose-300/30 border-t-rose-300 rounded-full animate-spin" />
             )}
-            Obriši
+            Delete
           </button>
           <button
             onClick={() => setSelected(new Set())}
             className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors ml-1"
           >
-            Otkaži
+            Cancel
           </button>
         </div>
       )}
@@ -216,10 +216,10 @@ export function ProspectsTable({ prospects }: Props) {
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="rounded border-zinc-700 bg-transparent accent-blue-600 cursor-pointer"
+                  className="rounded border-zinc-700 bg-transparent accent-emerald-500 cursor-pointer"
                 />
               </th>
-              {["Firma", "Email", "Niša", "Grad", "Score", "Status", "Emails", "Kreiran", ""].map((h) => (
+              {["Company", "Email", "Niche", "City", "Score", "Status", "Emails", "Added", ""].map((h) => (
                 <th
                   key={h}
                   className="text-left px-4 py-3 text-zinc-500 text-xs uppercase tracking-wider font-medium"
@@ -233,21 +233,21 @@ export function ProspectsTable({ prospects }: Props) {
             {prospects.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-12 text-center text-zinc-600 text-sm">
-                  Nema prospekata za ove filtere.
+                  No prospects match these filters.
                 </td>
               </tr>
             ) : (
               prospects.map((p) => (
                 <tr
                   key={p.id}
-                  className={`hover:bg-white/[0.02] transition-colors group ${selected.has(p.id) ? "bg-blue-950/20" : ""}`}
+                  className={`hover:bg-white/[0.02] transition-colors group ${selected.has(p.id) ? "bg-emerald-950/25" : ""}`}
                 >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selected.has(p.id)}
                       onChange={() => toggle(p.id)}
-                      className="rounded border-zinc-700 bg-transparent accent-blue-600 cursor-pointer"
+                      className="rounded border-zinc-700 bg-transparent accent-emerald-500 cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-3">
@@ -268,10 +268,10 @@ export function ProspectsTable({ prospects }: Props) {
                           p.qualityScore >= 8
                             ? "bg-emerald-950/60 text-emerald-300"
                             : p.qualityScore >= 6
-                              ? "bg-yellow-950/60 text-yellow-300"
+                              ? "bg-amber-950/60 text-amber-300"
                               : p.qualityScore >= 4
                                 ? "bg-orange-950/60 text-orange-300"
-                                : "bg-red-950/60 text-red-400"
+                                : "bg-rose-950/60 text-rose-400"
                         }`}
                       >
                         {p.qualityScore}/10
@@ -285,11 +285,11 @@ export function ProspectsTable({ prospects }: Props) {
                   </td>
                   <td className="px-4 py-3 text-zinc-500">
                     {p._count.emails > 0 ? (
-                      <span className="text-blue-400">{p._count.emails}/4</span>
+                      <span className="text-emerald-400">{p._count.emails}/4</span>
                     ) : "—"}
                   </td>
                   <td className="px-4 py-3 text-zinc-600 text-xs">
-                    {new Date(p.createdAt).toLocaleDateString("fr-FR")}
+                    {new Date(p.createdAt).toLocaleDateString("en-US")}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -327,7 +327,7 @@ export function ProspectsTable({ prospects }: Props) {
               onClick={() => setMenuPos(null)}
               className="flex items-center px-3 py-2.5 text-sm text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
             >
-              Uredi
+              Edit
             </Link>
             <button
               onClick={() => {
@@ -338,7 +338,7 @@ export function ProspectsTable({ prospects }: Props) {
               disabled={replyingId === menuPos.id}
               className="w-full flex items-center px-3 py-2.5 text-sm text-emerald-400 hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors disabled:opacity-50"
             >
-              Označi kao odgovoreno
+              Mark as replied
             </button>
             <button
               onClick={() => {
@@ -346,9 +346,9 @@ export function ProspectsTable({ prospects }: Props) {
                 if (p) setDeleteTarget({ id: p.id, name: p.firmaNaziv });
                 setMenuPos(null);
               }}
-              className="w-full flex items-center px-3 py-2.5 text-sm text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors"
+              className="w-full flex items-center px-3 py-2.5 text-sm text-rose-400 hover:bg-rose-950/40 hover:text-rose-300 transition-colors"
             >
-              Obriši
+              Delete
             </button>
           </div>,
           document.body
@@ -358,11 +358,11 @@ export function ProspectsTable({ prospects }: Props) {
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#0d0d12] border border-[#1c1c28] card-elevation rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
-            <h3 className="text-white font-semibold mb-2">Obriši prospekta</h3>
+            <h3 className="text-white font-semibold mb-2">Delete prospect</h3>
             <p className="text-zinc-400 text-sm mb-6">
-              Da li ste sigurni da želite obrisati{" "}
+              Delete{" "}
               <span className="text-white font-medium">{deleteTarget.name}</span>?
-              Ovo će obrisati i sve generisane emailove.
+              All generated emails will be removed too.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -370,17 +370,17 @@ export function ProspectsTable({ prospects }: Props) {
                 disabled={!!deletingId}
                 className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-white/[0.02] transition-colors"
               >
-                Odustani
+                Cancel
               </button>
               <button
                 onClick={handleSingleDelete}
                 disabled={!!deletingId}
-                className="px-4 py-2 text-sm bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {deletingId && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                {deletingId ? "Brisanje..." : "Da, obriši"}
+                {deletingId ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>
@@ -392,27 +392,27 @@ export function ProspectsTable({ prospects }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#0d0d12] border border-[#1c1c28] card-elevation rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl space-y-5">
             <div>
-              <h3 className="text-white font-semibold">Zakaži kampanju</h3>
+              <h3 className="text-white font-semibold">Schedule campaign</h3>
               <p className="text-zinc-500 text-sm mt-1">
-                Za {selected.size} odabranih prospekata
+                For {selected.size} selected {selected.size === 1 ? "prospect" : "prospects"}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-                  Datum i vrijeme prvog emaila
+                  First email — date &amp; time
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduledInitial}
                   onChange={(e) => setScheduledInitial(e.target.value)}
-                  className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+                  className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
               {[
-                { label: "Follow-up 1 (dani)", val: follow1Days, set: setFollow1Days },
-                { label: "Follow-up 2 (dani)", val: follow2Days, set: setFollow2Days },
-                { label: "Follow-up 3 (dani)", val: follow3Days, set: setFollow3Days },
+                { label: "Follow-up 1 (days)", val: follow1Days, set: setFollow1Days },
+                { label: "Follow-up 2 (days)", val: follow2Days, set: setFollow2Days },
+                { label: "Follow-up 3 (days)", val: follow3Days, set: setFollow3Days },
               ].map(({ label, val, set }) => (
                 <div key={label}>
                   <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
@@ -424,7 +424,7 @@ export function ProspectsTable({ prospects }: Props) {
                     max={30}
                     value={val}
                     onChange={(e) => set(Number(e.target.value))}
-                    className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+                    className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
               ))}
@@ -435,19 +435,19 @@ export function ProspectsTable({ prospects }: Props) {
                 disabled={!!bulkLoading}
                 className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-white/[0.02] transition-colors"
               >
-                Odustani
+                Cancel
               </button>
               <button
                 onClick={handleBulkSchedule}
                 disabled={!!bulkLoading}
-                className="px-4 py-2 text-sm bg-sky-700 hover:bg-sky-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {bulkLoading === "schedule" && (
-                  <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="inline-block w-3.5 h-3.5 border-2 border-emerald-950/30 border-t-emerald-950 rounded-full animate-spin" />
                 )}
                 {bulkLoading === "schedule"
-                  ? (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Slanje..." : "Zakazivanje...")
-                  : (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Pošalji odmah i zakaži follow-up" : "Pokreni kampanje")}
+                  ? (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Sending…" : "Scheduling…")
+                  : (new Date(scheduledInitial).getTime() <= Date.now() + 10 * 60 * 1000 ? "Send now + queue follow-ups" : "Launch campaign")}
               </button>
             </div>
           </div>

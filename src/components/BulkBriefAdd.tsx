@@ -59,11 +59,11 @@ export function BulkBriefAdd() {
         }),
       });
       const data: { results?: BulkResult[]; error?: string } = await res.json();
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       setResults(data.results ?? []);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export function BulkBriefAdd() {
         <p className="text-zinc-500 text-xs mt-1">
           Pasteuj listu: <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-blue-300">niche, grad</code> po liniji.
           Opcionalno: <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded">niche, grad, country, minRating, minReviews</code>.
-          Niše su slobodno polje — radi sa avocati, dentisti, fotografi, automehaničari, šta god.
+          Niches su slobodno polje — radi sa avocati, dentisti, fotografi, automehaničari, šta god.
         </p>
       </div>
 

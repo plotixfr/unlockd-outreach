@@ -10,7 +10,7 @@ export async function POST(
 
     const prospect = await prisma.prospect.findUnique({ where: { id } });
     if (!prospect) {
-      return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
 
     await prisma.prospect.update({

@@ -28,14 +28,14 @@ export async function POST(req: NextRequest) {
       emailId = body?.emailId;
     } catch {
       return NextResponse.json(
-        { error: "Neispravan JSON request" },
+        { error: "Invalid JSON request" },
         { status: 400 }
       );
     }
 
     if (!emailId) {
       return NextResponse.json(
-        { error: "emailId je obavezan" },
+        { error: "emailId required" },
         { status: 400 }
       );
     }
@@ -47,14 +47,14 @@ export async function POST(req: NextRequest) {
 
     if (!email) {
       return NextResponse.json(
-        { error: "Email nije pronađen" },
+        { error: "Email not found" },
         { status: 404 }
       );
     }
 
     if (email.poslat) {
       return NextResponse.json(
-        { error: "Email je već poslan" },
+        { error: "Email already sent" },
         { status: 400 }
       );
     }

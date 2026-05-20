@@ -30,12 +30,12 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON request" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON request" }, { status: 400 });
     }
 
     const { prospectId, regenerate = false, rescrape = false } = body;
     if (!prospectId) {
-      return NextResponse.json({ error: "prospectId je obavezan" }, { status: 400 });
+      return NextResponse.json({ error: "prospectId required" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.findUnique({
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!prospect) {
-      return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
     }
 
     if (prospect.emails.length > 0 && !regenerate) {

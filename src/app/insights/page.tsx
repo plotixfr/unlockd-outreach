@@ -42,7 +42,7 @@ function pct(n: number, d: number) {
 
 function pickWinner(ab: AbStats): { label: string; tone: "a" | "b" | "tie" | "none" } {
   // Need a minimum sample on both sides before we declare a winner.
-  if (ab.sentA < 5 || ab.sentB < 5) return { label: "Trop tôt", tone: "none" };
+  if (ab.sentA < 5 || ab.sentB < 5) return { label: "Too early", tone: "none" };
   const replyA = ab.repliedA / ab.sentA;
   const replyB = ab.repliedB / ab.sentB;
   const openA = ab.openedA / ab.sentA;
@@ -54,7 +54,7 @@ function pickWinner(ab: AbStats): { label: string; tone: "a" | "b" | "tie" | "no
   if (Math.abs(openA - openB) > 0.005) {
     return openA > openB ? { label: "A", tone: "a" } : { label: "B", tone: "b" };
   }
-  return { label: "Égalité", tone: "tie" };
+  return { label: "Tie", tone: "tie" };
 }
 
 export default async function InsightsPage() {
@@ -88,12 +88,12 @@ export default async function InsightsPage() {
   ]);
 
   const funnelStages: FunnelStage[] = [
-    { label: "Otkriveno", count: totalProspects, detail: "Prospekti u bazi", tone: "neutral" },
-    { label: "Poslato", count: totalSent, detail: "Initial + follow-up sends", tone: "neutral" },
-    { label: "Otvoreno", count: totalOpened, detail: "Pixel-tracked opens", tone: "ok" },
-    { label: "Odgovorilo", count: totalReplied, detail: "IMAP-matched replies", tone: "ok" },
-    { label: "Meeting", count: meetingsBooked, detail: "Calendly klikovi + deal stage", tone: "good" },
-    { label: "Zatvoreno", count: totalConverted, detail: "Status = Converted", tone: "great" },
+    { label: "Discovered", count: totalProspects, detail: "Prospects in database", tone: "neutral" },
+    { label: "Sent", count: totalSent, detail: "Initial + follow-up sends", tone: "neutral" },
+    { label: "Opened", count: totalOpened, detail: "Pixel-tracked opens", tone: "ok" },
+    { label: "Replied", count: totalReplied, detail: "IMAP-matched replies", tone: "ok" },
+    { label: "Meeting", count: meetingsBooked, detail: "Calendly clicks + active deal stage", tone: "good" },
+    { label: "Closed", count: totalConverted, detail: "Status = Converted", tone: "great" },
   ];
 
   const totalSpend = totalProspects * COST_PER_PROSPECT_EUR + totalRepliesHandled * COST_PER_REPLY_HANDLED_EUR;
@@ -256,8 +256,9 @@ export default async function InsightsPage() {
   return (
     <div className="max-w-5xl space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-white">Analitika</h1>
-        <p className="text-zinc-500 text-sm mt-1">
+        <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Insights</p>
+        <h1 className="text-3xl font-semibold text-white tracking-tight">What&apos;s working</h1>
+        <p className="text-zinc-500 text-sm mt-1 max-w-xl">
           Funnel, cost-per-meeting, per-niche performance, A/B winners.
         </p>
       </div>
@@ -273,18 +274,18 @@ export default async function InsightsPage() {
       {/* Totals */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
-          { label: "Prospekata", value: totals.prospects },
-          { label: "Aktiviranih", value: totals.emailed },
+          { label: "Prospects", value: totals.prospects },
+          { label: "Activated", value: totals.emailed },
           { label: "Open rate", value: pct(totals.opened, totals.emailed) },
           { label: "Reply rate", value: pct(totals.replied, totals.emailed) },
           {
             label: "Revenue",
-            value: totals.revenue > 0 ? `${totals.revenue.toLocaleString("fr-FR")} €` : "—",
+            value: totals.revenue > 0 ? `€${Math.round(totals.revenue).toLocaleString("en-US")}` : "—",
           },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-4 card-elevation">
-            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1.5">{label}</p>
-            <p className="text-white text-xl font-semibold">{value}</p>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">{label}</p>
+            <p className="text-white text-xl font-semibold tabular-nums">{value}</p>
           </div>
         ))}
       </div>
@@ -295,14 +296,14 @@ export default async function InsightsPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-zinc-200 font-medium text-sm">Top subject lines</h2>
-              <p className="text-zinc-600 text-xs mt-0.5">Po open rate-u — minimum 5 sendova za uvrštavanje</p>
+              <p className="text-zinc-600 text-xs mt-0.5">By open rate — minimum 5 sends to qualify</p>
             </div>
           </div>
           <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
-                  {["Subject", "Niša", "Sent", "Opened", "Replied", "Open rate"].map((h) => (
+                  {["Subject", "Niche", "Sent", "Opened", "Replied", "Open rate"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium">
                       {h}
                     </th>
@@ -336,15 +337,15 @@ export default async function InsightsPage() {
 
       {/* Per-niche table */}
       {stats.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
-          <p className="text-zinc-500 text-sm">Nema podataka. Uploaduj prospekte i pokreni kampanje.</p>
+        <div className="rounded-xl border border-dashed border-[#1c1c28] p-10 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+          <p className="text-zinc-400 text-sm">No data yet. Upload prospects or run Autopilot to see per-niche performance.</p>
         </div>
       ) : (
         <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
-                {["Niša", "Prospekti", "Poslato", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
+                {["Niche", "Prospects", "Sent", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium"
@@ -364,24 +365,24 @@ export default async function InsightsPage() {
                     <td className="px-4 py-3 text-white font-medium">{s.nisa}</td>
                     <td className="px-4 py-3 text-zinc-400">{s.prospects}</td>
                     <td className="px-4 py-3 text-zinc-400">{s.emailed}</td>
-                    <td className={`px-4 py-3 ${openRate >= 0.3 ? "text-emerald-400" : openRate > 0 ? "text-yellow-400" : "text-zinc-600"}`}>
+                    <td className={`px-4 py-3 tabular-nums ${openRate >= 0.3 ? "text-emerald-400" : openRate > 0 ? "text-amber-400" : "text-zinc-600"}`}>
                       {pct(s.opened, s.emailed)}
                     </td>
-                    <td className={`px-4 py-3 ${replyRate >= 0.05 ? "text-emerald-400" : replyRate > 0 ? "text-yellow-400" : "text-zinc-600"}`}>
+                    <td className={`px-4 py-3 tabular-nums ${replyRate >= 0.05 ? "text-emerald-400" : replyRate > 0 ? "text-amber-400" : "text-zinc-600"}`}>
                       {pct(s.replied, s.emailed)}
                     </td>
-                    <td className={`px-4 py-3 ${convRate > 0 ? "text-green-400" : "text-zinc-600"}`}>
+                    <td className={`px-4 py-3 tabular-nums ${convRate > 0 ? "text-emerald-400" : "text-zinc-600"}`}>
                       {pct(s.converted, s.emailed)}
                     </td>
-                    <td className="px-4 py-3 text-zinc-300">
-                      {s.revenue > 0 ? `${s.revenue.toLocaleString("fr-FR")} €` : "—"}
+                    <td className="px-4 py-3 text-zinc-300 tabular-nums">
+                      {s.revenue > 0 ? `€${Math.round(s.revenue).toLocaleString("en-US")}` : "—"}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {(() => {
                         const winner = pickWinner(s.ab);
                         const cls =
                           winner.tone === "a"
-                            ? "bg-blue-950/60 text-blue-300"
+                            ? "bg-sky-950/60 text-sky-300"
                             : winner.tone === "b"
                               ? "bg-emerald-950/60 text-emerald-300"
                               : winner.tone === "tie"

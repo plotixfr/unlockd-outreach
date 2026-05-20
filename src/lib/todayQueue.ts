@@ -106,7 +106,7 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: r.prospect.nisa,
       priority: 1,
       estimateMin: 4,
-      title: `Pošalji draft odgovora — ${r.prospect.firmaNaziv}`,
+      title: `Send draft odgovora — ${r.prospect.firmaNaziv}`,
       hint: `${r.classification} · odgovorio ${rel(r.receivedAt, now)}`,
       href: `/prospects/${r.prospectId}`,
       badge: "🔥",

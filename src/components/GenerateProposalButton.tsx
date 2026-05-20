@@ -28,10 +28,10 @@ export function GenerateProposalButton({ prospectId }: { prospectId: string }) {
         body: "{}",
       });
       const data: { ok?: boolean; error?: string } = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || "Greška");
+      if (!res.ok || !data.ok) throw new Error(data.error || "Error");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export function GenerateProposalButton({ prospectId }: { prospectId: string }) {
         className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-medium px-5 py-3 rounded-lg transition-all"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-        {loading ? "Generišem… (do 30s)" : "Generiši ponudu"}
+        {loading ? "Generišem… (do 30s)" : "Generate ponudu"}
       </button>
       {error && <p className="text-red-600 text-xs mt-3">{error}</p>}
     </>

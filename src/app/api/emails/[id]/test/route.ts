@@ -20,7 +20,7 @@ export async function POST(
 
     const res = await sendTestEmail(id, to);
     if (!res.ok) {
-      return NextResponse.json({ error: res.error ?? "Greška" }, { status: 502 });
+      return NextResponse.json({ error: res.error ?? "Error" }, { status: 502 });
     }
     return NextResponse.json({ success: true, to, messageId: res.messageId });
   } catch (err) {

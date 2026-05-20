@@ -117,7 +117,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
         }),
       });
       const data: { brief?: Brief; error?: string } = await res.json();
-      if (!res.ok || !data.brief) throw new Error(data.error || "Greška");
+      if (!res.ok || !data.brief) throw new Error(data.error || "Error");
       setForm({
         name: "",
         niche: "",
@@ -133,7 +133,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
       });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     }
   };
 
@@ -153,7 +153,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
       await load();
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setRunning(null);
     }
@@ -207,14 +207,14 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
           />
           <input
             type="text"
-            placeholder="Niša (npr. 'Hotel')"
+            placeholder="Niche (npr. 'Hotel')"
             value={form.niche}
             onChange={(e) => setForm({ ...form, niche: e.target.value })}
             className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="text"
-            placeholder="Grad (opcionalno)"
+            placeholder="City (opcionalno)"
             value={form.city}
             onChange={(e) => setForm({ ...form, city: e.target.value })}
             className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
@@ -386,7 +386,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
                     {running === b.id && (
                       <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     )}
-                    {running === b.id ? "Tražim…" : "▶ Pokreni"}
+                    {running === b.id ? "Tražim…" : "▶ Run"}
                   </button>
                   <button
                     onClick={() => toggleActive(b)}

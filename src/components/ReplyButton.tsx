@@ -30,11 +30,11 @@ export function ReplyButton({ prospectId, currentStatus }: Props) {
     try {
       const res = await fetch(`/api/prospects/${prospectId}/reply`, { method: "POST" });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       setDone(true);
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Greška");
+      alert(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }

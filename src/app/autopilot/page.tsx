@@ -73,10 +73,10 @@ export default async function AutopilotPage() {
       <div>
         <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Autopilot</p>
         <h1 className="text-3xl font-semibold text-white tracking-tight">
-          Sistem koji sam pravi klijente
+          The system that finds your clients
         </h1>
         <p className="text-zinc-500 text-sm mt-2 max-w-xl">
-          Otkriva prospekte, enrich-uje, ocjenjuje, generiše mailove, šalje. Ti samo otvaraš inbox kad se topli lead pojavi.
+          Discovers prospects, enriches them, scores them, drafts emails, sends. You only open your inbox when a warm lead lands.
         </p>
       </div>
 
@@ -105,37 +105,37 @@ export default async function AutopilotPage() {
                   }`}
                 />
                 <p className={`text-xs uppercase tracking-widest font-semibold ${autopilotLive ? "text-emerald-300" : "text-amber-300"}`}>
-                  {autopilotLive ? "Aktivan" : "Nije u funkciji"}
+                  {autopilotLive ? "Live" : "Paused"}
                 </p>
               </div>
               <p className="text-white text-base font-medium mt-1">
                 {autopilotLive
-                  ? `${activeBriefs} brief${activeBriefs === 1 ? "" : "ova"} radi automatski`
+                  ? `${activeBriefs} ${activeBriefs === 1 ? "brief" : "briefs"} running automatically`
                   : !discoveryConfigured
-                    ? "GOOGLE_PLACES_API_KEY nije postavljen"
-                    : "Nema aktivnih briefova"}
+                    ? "GOOGLE_PLACES_API_KEY not set"
+                    : "No active briefs"}
               </p>
               <p className="text-zinc-500 text-xs mt-1">
                 {autopilotLive
-                  ? "Sljedeći radni dan u 08:00 Paris ide nova runda"
+                  ? "Next batch fires at 8:00 AM Paris on the next business day"
                   : !discoveryConfigured
-                    ? "Postavi ključ u Vercel Env da discovery proradi"
-                    : "Klikni Quick Setup ili Bulk Add ispod"}
+                    ? "Add the key to Vercel Env to enable discovery"
+                    : "Click Quick Setup or Bulk Add below"}
               </p>
               {inactiveBriefs > 0 && (
-                <p className="text-zinc-600 text-[11px] mt-1">{inactiveBriefs} pauziran{inactiveBriefs === 1 ? "" : "ih"}</p>
+                <p className="text-zinc-600 text-[11px] mt-1">{inactiveBriefs} paused</p>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 shrink-0">
             <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-medium">Idući run</p>
+              <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-medium">Next run</p>
               <p className="text-zinc-200 text-sm font-medium mt-1 tabular-nums">{relativeFromNow(nextAutopilot, now)}</p>
               <p className="text-zinc-600 text-[11px] mt-0.5 tabular-nums">{formatParisDateTime(nextAutopilot)}</p>
             </div>
             <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-medium">Idući send</p>
+              <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-medium">Next send</p>
               <p className="text-zinc-200 text-sm font-medium mt-1 tabular-nums">{relativeFromNow(nextSend, now)}</p>
               <p className="text-zinc-600 text-[11px] mt-0.5 tabular-nums">{formatParisDateTime(nextSend)}</p>
             </div>
@@ -145,10 +145,10 @@ export default async function AutopilotPage() {
 
       {/* Snapshot stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard icon={Send} label="Šalje se danas" value={sendingTodayInitial + sendingTodayFollowups} sub={`${sendingTodayInitial} novih + ${sendingTodayFollowups} follow-up`} tone="indigo" />
-        <StatCard icon={Clock} label="Sutra zakazano" value={sendingTomorrow} sub="novih kampanja" tone="sky" />
-        <StatCard icon={Database} label="Auto-otkriveno" value={totalAutoProspects} sub="iz Google Places" tone="neutral" />
-        <StatCard icon={Flame} label="Calendly klikovi" value={calendlyClicks} sub="topli leadovi" tone="amber" />
+        <StatCard icon={Send} label="Sending today" value={sendingTodayInitial + sendingTodayFollowups} sub={`${sendingTodayInitial} new + ${sendingTodayFollowups} follow-ups`} tone="emerald" />
+        <StatCard icon={Clock} label="Queued tomorrow" value={sendingTomorrow} sub="new campaigns" tone="sky" />
+        <StatCard icon={Database} label="Auto-discovered" value={totalAutoProspects} sub="from Google Places" tone="neutral" />
+        <StatCard icon={Flame} label="Calendly clicks" value={calendlyClicks} sub="warm leads" tone="amber" />
       </div>
 
       {/* Quick setup */}
@@ -166,15 +166,15 @@ export default async function AutopilotPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-zinc-200 font-medium text-sm flex items-center gap-2">
               <Sparkles strokeWidth={2} className="w-4 h-4 text-emerald-400" />
-              Posljednji runs
+              Recent runs
             </h2>
-            <p className="text-zinc-600 text-xs">{recentRuns.length} najnovijih</p>
+            <p className="text-zinc-600 text-xs">Showing {recentRuns.length}</p>
           </div>
           <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
-                  {["Brief", "Status", "Found", "Created", "Qualified", "Scheduled", "Kada"].map((h) => (
+                  {["Brief", "Status", "Found", "Created", "Qualified", "Scheduled", "When"].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium">
                       {h}
                     </th>
@@ -191,8 +191,8 @@ export default async function AutopilotPage() {
                           r.status === "done"
                             ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                             : r.status === "running"
-                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
-                              : "bg-red-500/10 text-red-300 border border-red-500/20"
+                              ? "bg-sky-500/10 text-sky-300 border border-sky-500/20"
+                              : "bg-rose-500/10 text-rose-300 border border-rose-500/20"
                         }`}
                       >
                         {r.status}
@@ -203,7 +203,7 @@ export default async function AutopilotPage() {
                     <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.qualified}</td>
                     <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.scheduled}</td>
                     <td className="px-4 py-3 text-zinc-600 text-xs tabular-nums">
-                      {new Date(r.startedAt).toLocaleString("fr-FR", {
+                      {new Date(r.startedAt).toLocaleString("en-US", {
                         day: "numeric",
                         month: "short",
                         hour: "2-digit",
@@ -227,23 +227,23 @@ export default async function AutopilotPage() {
               {discoveryConfigured ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-zinc-300"><strong className="text-zinc-100">GOOGLE_PLACES_API_KEY</strong> u Vercel</p>
-              <p className="text-zinc-600 text-xs mt-0.5">{discoveryConfigured ? "Konfigurisan — discovery radi" : "Nedostaje — postavi u Vercel Env"}</p>
+              <p className="text-zinc-300"><strong className="text-zinc-100">GOOGLE_PLACES_API_KEY</strong> in Vercel</p>
+              <p className="text-zinc-600 text-xs mt-0.5">{discoveryConfigured ? "Configured — discovery is live" : "Missing — add it to Vercel Env"}</p>
             </div>
           </li>
           <li className="flex items-start gap-2.5">
             <span className="mt-0.5 text-zinc-600"><Clock className="w-4 h-4" /></span>
             <div className="flex-1 min-w-0">
-              <p className="text-zinc-300"><strong className="text-zinc-100">Calendly webhook</strong> (opcionalno)</p>
-              <p className="text-zinc-600 text-xs mt-0.5">Bez njega dobivaš samo email replyje. Sa njim — instant notifikaciju kad neko book-uje.</p>
+              <p className="text-zinc-300"><strong className="text-zinc-100">Calendly webhook</strong> (optional)</p>
+              <p className="text-zinc-600 text-xs mt-0.5">Without it, you only see email replies. With it — instant booking notifications.</p>
               <p className="text-zinc-700 text-[11px] font-mono mt-1">{process.env.NEXT_PUBLIC_SITE_URL || "https://your-domain"}/api/webhooks/calendly</p>
             </div>
           </li>
           <li className="flex items-start gap-2.5">
             <span className="mt-0.5 text-zinc-600"><Sparkles className="w-4 h-4" /></span>
             <div className="flex-1">
-              <p className="text-zinc-300"><strong className="text-zinc-100">Cron schedule</strong> (već radi)</p>
-              <p className="text-zinc-600 text-xs mt-0.5">Pon-pet 08:00 autopilot · svaki dan 09:00 send · svaki dan 18:00 summary (Paris vrijeme)</p>
+              <p className="text-zinc-300"><strong className="text-zinc-100">Cron schedule</strong> (already live)</p>
+              <p className="text-zinc-600 text-xs mt-0.5">Mon–Fri 8:00 AM discovery · Daily 10:00 AM send · Daily 8:30 AM Calendly nudge · Daily 7:00 PM summary (Paris time)</p>
             </div>
           </li>
         </ul>
@@ -263,17 +263,15 @@ function StatCard({
   label: string;
   value: number;
   sub: string;
-  tone: "indigo" | "sky" | "neutral" | "amber" | "emerald";
+  tone: "sky" | "neutral" | "amber" | "emerald";
 }) {
   const toneClass = {
-    indigo: "text-emerald-400",
     sky: "text-sky-400",
     amber: "text-amber-400",
     emerald: "text-emerald-400",
     neutral: "text-zinc-200",
   }[tone];
   const iconBg = {
-    indigo: "bg-emerald-500/10 text-emerald-400",
     sky: "bg-sky-500/10 text-sky-400",
     amber: "bg-amber-500/10 text-amber-400",
     emerald: "bg-emerald-500/10 text-emerald-400",

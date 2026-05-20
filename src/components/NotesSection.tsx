@@ -91,7 +91,7 @@ export function NotesSection({ prospectId, initialNotes }: Props) {
                   onClick={() => handleDelete(n.id)}
                   disabled={deletingId === n.id}
                   className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 text-lg leading-none disabled:opacity-40 mt-0.5"
-                  title="Obriši bilješku"
+                  title="Delete bilješku"
                 >
                   {deletingId === n.id ? "…" : "×"}
                 </button>

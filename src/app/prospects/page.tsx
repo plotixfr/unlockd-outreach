@@ -4,6 +4,7 @@ import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
 import { FilterActions } from "@/components/FilterActions";
 import { ScoreUnscoredButton } from "@/components/ScoreUnscoredButton";
+import { Plus, Search, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -60,58 +61,59 @@ export default async function ProspectsPage({
   };
 
   const currentFilters = { search, nisa, status };
+  const hasFilter = Boolean(search || nisa || status);
 
   return (
     <div className="max-w-6xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Prospects</h1>
-          <p className="text-zinc-500 text-sm mt-1">
-            {prospects.length} {prospects.length === 1 ? "prospect" : "prospekata"}
-            {(search || nisa || status) && " (filtrirano)"}
-          </p>
+          <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Prospects</p>
+          <h1 className="text-3xl font-semibold text-white tracking-tight">
+            {prospects.length} {prospects.length === 1 ? "lead" : "leads"}{hasFilter && " (filtered)"}
+          </h1>
         </div>
         <Link
           href="/upload"
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-[0_6px_18px_-8px_rgba(16,185,129,0.45)]"
         >
-          + Dodaj listu
+          <Plus className="w-4 h-4" strokeWidth={2.5} />
+          Import list
         </Link>
       </div>
 
-      {/* Filteri — niša */}
+      {/* Filters — niche */}
       <div className="flex gap-3 flex-wrap">
-        <div className="flex gap-1 bg-[#111118] border border-[#1f1f2e] rounded-lg p-1 flex-wrap">
+        <div className="flex gap-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg p-1 flex-wrap">
           <Link
             href={makeHref("nisa", "", { ...currentFilters, nisa: undefined })}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!nisa ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white hover:bg-[#1a1a28]"}`}
+            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!nisa ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
           >
-            Sve niše
+            All niches
           </Link>
           {availableNise.map((n) => (
             <Link
               key={n}
               href={makeHref("nisa", n, currentFilters)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${nisa === n ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white hover:bg-[#1a1a28]"}`}
+              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${nisa === n ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
             >
               {n}
             </Link>
           ))}
         </div>
 
-        {/* Filteri — status */}
-        <div className="flex gap-1 bg-[#111118] border border-[#1f1f2e] rounded-lg p-1 flex-wrap">
+        {/* Filters — status */}
+        <div className="flex gap-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg p-1 flex-wrap">
           <Link
             href={makeHref("status", "", { ...currentFilters, status: undefined })}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!status ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white hover:bg-[#1a1a28]"}`}
+            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!status ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
           >
-            Svi statusi
+            All statuses
           </Link>
           {STATUSI.map((s) => (
             <Link
               key={s}
               href={makeHref("status", s, currentFilters)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${status === s ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white hover:bg-[#1a1a28]"}`}
+              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${status === s ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
             >
               {s}
             </Link>
@@ -120,41 +122,54 @@ export default async function ProspectsPage({
       </div>
 
       {/* Search */}
-      <form method="GET" action="/prospects">
+      <form method="GET" action="/prospects" className="relative">
         {nisa && <input type="hidden" name="nisa" value={nisa} />}
         {status && <input type="hidden" name="status" value={status} />}
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={1.75} />
         <input
           type="text"
           name="search"
           defaultValue={search}
-          placeholder="Pretraži po nazivu firme, emailu ili gradu..."
-          className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
+          placeholder="Search by company, email, or city…"
+          className="w-full bg-[#0d0d12] border border-[#1c1c28] rounded-lg pl-10 pr-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:bg-[#10101a] transition-colors"
         />
       </form>
 
-      {/* Filter-aware bulk actions (export, generate-all, delete-all) */}
+      {/* Filter-aware bulk actions */}
       <FilterActions filter={{ search, nisa, status }} total={prospects.length} />
 
-      {/* Quality scoring — backfill score for prospects added before this feature */}
+      {/* Quality scoring nudge */}
       {unscoredCount > 0 && (
-        <div className="flex items-center justify-between rounded-xl bg-[#111118] border border-[#1f1f2e] px-4 py-3">
-          <p className="text-zinc-400 text-sm">
-            <span className="text-emerald-400 font-medium">{unscoredCount}</span> prospekata bez quality score-a.
-            <span className="text-zinc-600 ml-2 text-xs">Sortiraj po score-u prije slanja da ne trošiš dnevni cap na loš fit.</span>
-          </p>
+        <div className="flex items-center justify-between rounded-xl bg-[#0d0d12] border border-[#1c1c28] px-4 py-3 gap-4 flex-wrap">
+          <div className="flex items-start gap-3 min-w-0">
+            <Sparkles className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+            <p className="text-zinc-400 text-sm">
+              <span className="text-emerald-400 font-medium">{unscoredCount}</span> {unscoredCount === 1 ? "prospect" : "prospects"} without a quality score.
+              <span className="text-zinc-600 ml-2 text-xs">Sort by score before sending so the daily cap doesn&apos;t burn on weak fits.</span>
+            </p>
+          </div>
           <ScoreUnscoredButton unscoredCount={unscoredCount} />
         </div>
       )}
 
-      {prospects.length === 0 && !search && !nisa && !status ? (
-        <div className="rounded-xl border border-dashed border-[#1f1f2e] p-12 text-center">
-          <p className="text-zinc-500 text-sm">Nema prospekata. Uploaduj CSV da počneš.</p>
-          <Link
-            href="/upload"
-            className="mt-3 inline-block text-blue-500 text-sm hover:text-blue-400 transition-colors"
-          >
-            Upload CSV →
-          </Link>
+      {prospects.length === 0 && !hasFilter ? (
+        <div className="rounded-2xl border border-dashed border-[#1c1c28] p-12 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+          <p className="text-zinc-400 text-sm">No prospects yet. Upload a CSV or run Autopilot to get started.</p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <Link
+              href="/upload"
+              className="text-emerald-400 text-sm font-medium hover:text-emerald-300 transition-colors"
+            >
+              Upload CSV →
+            </Link>
+            <span className="text-zinc-700">·</span>
+            <Link
+              href="/autopilot"
+              className="text-emerald-400 text-sm font-medium hover:text-emerald-300 transition-colors"
+            >
+              Open Autopilot →
+            </Link>
+          </div>
         </div>
       ) : (
         <ProspectsTable prospects={prospects} />

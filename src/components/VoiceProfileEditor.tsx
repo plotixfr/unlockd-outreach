@@ -60,10 +60,10 @@ export function VoiceProfileEditor() {
         body: JSON.stringify({ samples: cleaned }),
       });
       const data: { voice?: VoiceRow; error?: string } = await res.json();
-      if (!res.ok || !data.voice) throw new Error(data.error || "Greška");
+      if (!res.ok || !data.voice) throw new Error(data.error || "Error");
       setVoice(data.voice);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setSaving(false);
     }
@@ -125,7 +125,7 @@ export function VoiceProfileEditor() {
               onClick={remove}
               disabled={saving}
               className="shrink-0 text-zinc-500 hover:text-red-400 transition-colors p-1.5"
-              title="Obriši voice profile"
+              title="Delete voice profile"
             >
               <Trash2 className="w-4 h-4" />
             </button>

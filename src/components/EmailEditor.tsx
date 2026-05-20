@@ -46,12 +46,12 @@ export function EmailEditor({
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Greška pri snimanju");
+      if (!res.ok) throw new Error(data.error || "Error snimanju");
       setEditing(false);
       setMessage({ kind: "ok", text: "Sačuvano" });
       router.refresh();
     } catch (e) {
-      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Greška" });
+      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Error" });
     } finally {
       setLoading(false);
     }
@@ -67,10 +67,10 @@ export function EmailEditor({
         body: JSON.stringify({}),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       setMessage({ kind: "ok", text: `Test poslan na ${data.to}` });
     } catch (e) {
-      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Greška" });
+      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Error" });
     } finally {
       setTestLoading(false);
     }
@@ -85,7 +85,7 @@ export function EmailEditor({
               onClick={() => setEditing(true)}
               className="text-xs px-2.5 py-1 rounded-lg bg-[#1a1a28] text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
             >
-              Uredi
+              Edit
             </button>
           )}
           <button
@@ -96,7 +96,7 @@ export function EmailEditor({
             {testLoading && (
               <span className="inline-block w-3 h-3 border-2 border-amber-300/30 border-t-amber-300 rounded-full animate-spin" />
             )}
-            Pošalji test
+            Send test
           </button>
           {message && (
             <span className={`text-xs ${message.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>
@@ -158,7 +158,7 @@ export function EmailEditor({
           {loading && (
             <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Snimam..." : "Sačuvaj"}
+          {loading ? "Snimam..." : "Save"}
         </button>
         <button
           onClick={() => {
@@ -171,7 +171,7 @@ export function EmailEditor({
           disabled={loading}
           className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
         >
-          Odustani
+          Cancel
         </button>
       </div>
     </div>

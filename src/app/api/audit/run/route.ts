@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
   const rawUrl = body.url?.trim();
   if (!rawUrl) {
-    return NextResponse.json({ error: "URL je obavezan" }, { status: 400 });
+    return NextResponse.json({ error: "URL required" }, { status: 400 });
   }
 
   // Run scrape + PSI in parallel — both bounded by their internal timeouts.

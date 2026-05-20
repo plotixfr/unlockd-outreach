@@ -31,10 +31,10 @@ export function SendEmailButton({ emailId, poslat }: Props) {
         body: JSON.stringify({ emailId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Greška pri slanju");
+      if (!res.ok) throw new Error(data.error || "Error slanju");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,7 @@ export function SendEmailButton({ emailId, poslat }: Props) {
         {loading && (
           <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         )}
-        {loading ? "Šaljem..." : "Pošalji"}
+        {loading ? "Sending…" : "Pošalji"}
       </button>
     </div>
   );

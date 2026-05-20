@@ -59,8 +59,8 @@ function buildPrompt(p: TalkingPointsInput): string {
 
 Prospect:
 - Firma: ${p.firmaNaziv}
-- Niša: ${p.nisa}
-- Grad: ${p.grad}
+- Niche: ${p.nisa}
+- City: ${p.grad}
 - Kontakt: ${p.kontaktIme || "nepoznat"}
 - Website: ${p.website || "nema"}
 

@@ -27,7 +27,7 @@ export async function POST(
       where: { id },
       select: { id: true, firmaNaziv: true, nisa: true, grad: true, mockupUrl: true },
     });
-    if (!prospect) return NextResponse.json({ error: "Prospect nije pronađen" }, { status: 404 });
+    if (!prospect) return NextResponse.json({ error: "Prospect not found" }, { status: 404 });
 
     if (prospect.mockupUrl && !body.force) {
       return NextResponse.json({ ok: true, url: prospect.mockupUrl, cached: true });
@@ -41,7 +41,7 @@ export async function POST(
     });
 
     if (!result.ok || !result.url) {
-      return NextResponse.json({ error: result.error || "Greška" }, { status: 502 });
+      return NextResponse.json({ error: result.error || "Error" }, { status: 502 });
     }
 
     await prisma.prospect.update({

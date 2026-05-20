@@ -45,7 +45,7 @@ export function FilterActions({ filter, total }: Props) {
         body: JSON.stringify({ action, filter }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       if (action === "delete") {
         setMessage({ kind: "ok", text: `Obrisano ${data.deleted} prospekata` });
         router.refresh();
@@ -57,12 +57,12 @@ export function FilterActions({ filter, total }: Props) {
           body: JSON.stringify({ action: "generate", ids: data.ids }),
         });
         const genData = await genRes.json().catch(() => ({}));
-        if (!genRes.ok) throw new Error(genData.error || "Greška pri generisanju");
+        if (!genRes.ok) throw new Error(genData.error || "Error generisanju");
         setMessage({ kind: "ok", text: `Generisano za ${genData.generated} prospekata` });
         router.refresh();
       }
     } catch (e) {
-      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Greška" });
+      setMessage({ kind: "err", text: e instanceof Error ? e.message : "Error" });
     } finally {
       setLoading(null);
     }
@@ -86,7 +86,7 @@ export function FilterActions({ filter, total }: Props) {
             {loading === "ids" && (
               <span className="inline-block w-3 h-3 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
             )}
-            Generiši za {filterLabel} ({total})
+            Generate za {filterLabel} ({total})
           </button>
           <button
             onClick={() => bulkByFilter("delete", `Obrisati svih ${total} prospekata u filteru "${filterLabel}"?`)}
@@ -96,7 +96,7 @@ export function FilterActions({ filter, total }: Props) {
             {loading === "delete" && (
               <span className="inline-block w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
             )}
-            Obriši {filterLabel} ({total})
+            Delete {filterLabel} ({total})
           </button>
         </>
       )}

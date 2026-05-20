@@ -11,7 +11,7 @@ export async function PATCH(
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: "Neispravan JSON" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
     const data: { subject?: string; subjectB?: string | null; body?: string } = {};
@@ -38,11 +38,11 @@ export async function PATCH(
 
     const existing = await prisma.email.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json({ error: "Email nije pronađen" }, { status: 404 });
+      return NextResponse.json({ error: "Email not found" }, { status: 404 });
     }
     if (existing.poslat) {
       return NextResponse.json(
-        { error: "Email je već poslan i ne može se mijenjati" },
+        { error: "Email already sent i ne može se mijenjati" },
         { status: 400 }
       );
     }

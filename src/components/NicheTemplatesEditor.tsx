@@ -30,7 +30,7 @@ export function NicheTemplatesEditor() {
       setTemplates(data.templates ?? []);
       setActiveNiches(data.activeNiches ?? []);
     } catch {
-      setError("Greška pri učitavanju");
+      setError("Error učitavanju");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export function NicheTemplatesEditor() {
 
   const save = async () => {
     if (!nisa.trim() || !hint.trim()) {
-      setError("Niša i hint su obavezni");
+      setError("Niche i hint su obavezni");
       return;
     }
     setSaving(true);
@@ -75,11 +75,11 @@ export function NicheTemplatesEditor() {
         body: JSON.stringify({ nisa: nisa.trim(), promptHint: hint.trim() }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       cancel();
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setSaving(false);
     }
@@ -89,10 +89,10 @@ export function NicheTemplatesEditor() {
     if (!confirm(`Obrisati hint za "${n}"?`)) return;
     try {
       const res = await fetch(`/api/niches?nisa=${encodeURIComponent(n)}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Greška");
+      if (!res.ok) throw new Error("Error");
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     }
   };
 
@@ -119,13 +119,13 @@ export function NicheTemplatesEditor() {
       </div>
 
       {loading ? (
-        <p className="text-zinc-600 text-sm">Učitavam...</p>
+        <p className="text-zinc-600 text-sm">Loading…</p>
       ) : (
         <>
           {editing && (
             <div className="rounded-lg bg-[#0a0a0f] border border-[#1f1f2e] p-4 space-y-3">
               <div>
-                <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Niša</label>
+                <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Niche</label>
                 {editing === "__new__" ? (
                   <input
                     type="text"
@@ -164,10 +164,10 @@ export function NicheTemplatesEditor() {
                   {saving && (
                     <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
-                  {saving ? "Snimam..." : "Sačuvaj"}
+                  {saving ? "Snimam..." : "Save"}
                 </button>
                 <button onClick={cancel} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-                  Odustani
+                  Cancel
                 </button>
               </div>
             </div>
@@ -187,13 +187,13 @@ export function NicheTemplatesEditor() {
                         onClick={() => startEdit(t)}
                         className="text-zinc-500 hover:text-zinc-200 text-xs transition-colors"
                       >
-                        Uredi
+                        Edit
                       </button>
                       <button
                         onClick={() => remove(t.nisa)}
                         className="text-red-500 hover:text-red-400 text-xs transition-colors"
                       >
-                        Obriši
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export function NicheTemplatesEditor() {
           {niseBezHinta.length > 0 && (
             <div className="pt-2 border-t border-[#1f1f2e]">
               <p className="text-zinc-600 text-xs mb-2">
-                Niše u bazi bez hint-a (generišu se sa default-nim promptom):
+                Niches u bazi bez hint-a (generišu se sa default-nim promptom):
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {niseBezHinta.map((n) => (

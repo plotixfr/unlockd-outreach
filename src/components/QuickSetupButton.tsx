@@ -31,7 +31,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
     try {
       const res = await fetch("/api/autopilot/quick-setup", { method: "POST" });
       const data: { created?: number; skipped?: number; createdNames?: string[]; error?: string } = await res.json();
-      if (!res.ok) throw new Error(data.error || "Greška");
+      if (!res.ok) throw new Error(data.error || "Error");
       setDone({
         created: data.created ?? 0,
         skipped: data.skipped ?? 0,
@@ -39,7 +39,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
       });
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
           className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap strokeWidth={2} className="w-4 h-4" />}
-          {loading ? "Kreiram…" : "Pokreni Quick Setup"}
+          {loading ? "Kreiram…" : "Run Quick Setup"}
         </button>
       </div>
       {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
