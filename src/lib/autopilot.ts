@@ -252,7 +252,7 @@ async function generateEmailsInline(
  * what fixes the cold-start: previously the first day after a reset always
  * showed 0 sends because everything was bucketed to tomorrow.
  */
-async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promise<Date> {
+export async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promise<Date> {
   // Bucket boundary = UTC midnight. Send cron runs in Paris business hours, so
   // this is a slight day-boundary skew (Paris midnight ≠ UTC midnight); not
   // meaningful for cap accounting.
@@ -280,6 +280,9 @@ async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promis
         status: "Scheduled",
       },
     });
+    console.log(
+      `[pickFirstAvailableDay] probe=${probe.start.toISOString()} isToday=${probe.isToday} count=${count} cap=${cap} businessWindow=${isParisBusinessWindow()} parisNow=${new Date().toLocaleString("en-GB", { timeZone: "Europe/Paris" })}`
+    );
     if (count < cap) {
       return probe.isToday ? slotImmediate() : slotInDay(probe.start);
     }
