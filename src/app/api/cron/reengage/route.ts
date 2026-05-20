@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runReengageBatch } from "@/lib/reengage";
 
-export const maxDuration = 300;
+// Hobby caps at 60s regardless of what we ask. On Pro upgrade, raise to 300.
+export const maxDuration = 60;
 
 /**
  * Weekly re-engagement cron. Scans for dormant prospects (90/180/365 days

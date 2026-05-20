@@ -3,6 +3,10 @@ import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { checkReplies } from "@/lib/checkReplies";
 
+// IMAP poll (checkReplies) + Claude classification on matched replies can run
+// 20-40s on a busy inbox. Default ~10s Hobby cap was too tight.
+export const maxDuration = 60;
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SUMMARY_TO = "temim.fr@gmail.com";
 const FROM = process.env.FROM_EMAIL ?? "temim@unlockd.art";

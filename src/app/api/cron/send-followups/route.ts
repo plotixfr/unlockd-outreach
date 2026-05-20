@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processDueEmails } from "@/lib/sendEmail";
 
+// Without this, Hobby caps the function at ~10s. Today's send cron hit that
+// after one wave (5 parallel sends ~5s) and died with 12 due prospects still
+// un-sent. 60s is the Hobby ceiling; on Pro this can go to 300.
+export const maxDuration = 60;
+
 async function run(req: NextRequest) {
   try {
     const auth = req.headers.get("authorization");

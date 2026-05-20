@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runUpsellBatch } from "@/lib/upsell";
 
-export const maxDuration = 300;
+// Hobby caps at 60s regardless of what we ask. On Pro upgrade, raise to 300.
+export const maxDuration = 60;
 
 /**
  * Weekly post-conversion engine. Walks every Converted prospect and triggers
