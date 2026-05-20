@@ -252,7 +252,7 @@ async function generateEmailsInline(
  * what fixes the cold-start: previously the first day after a reset always
  * showed 0 sends because everything was bucketed to tomorrow.
  */
-export async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promise<Date> {
+async function pickFirstAvailableDay(cap: number, lookaheadDays: number): Promise<Date> {
   // Bucket boundary = UTC midnight. Send cron runs in Paris business hours, so
   // this is a slight day-boundary skew (Paris midnight ≠ UTC midnight); not
   // meaningful for cap accounting.
@@ -280,9 +280,6 @@ export async function pickFirstAvailableDay(cap: number, lookaheadDays: number):
         status: "Scheduled",
       },
     });
-    console.log(
-      `[pickFirstAvailableDay] probe=${probe.start.toISOString()} isToday=${probe.isToday} count=${count} cap=${cap} businessWindow=${isParisBusinessWindow()} parisNow=${new Date().toLocaleString("en-GB", { timeZone: "Europe/Paris" })}`
-    );
     if (count < cap) {
       return probe.isToday ? slotImmediate() : slotInDay(probe.start);
     }
@@ -323,8 +320,12 @@ function slotImmediate(): Date {
 }
 
 function slotInDay(dayStart: Date): Date {
-  // Random Paris business hour 09:00–16:59 → back to UTC.
-  const hourLocal = 9 + Math.floor(Math.random() * 8);
+  // Pick Paris time 06:00–08:59 so the scheduledInitial is always BEFORE the
+  // 10:00 Paris send cron fire time (even with Hobby's ±1h drift). Anything
+  // after ~09:00 risks being skipped by the cron because the prospect isn't
+  // yet due at fire time, and the send cron only runs once a day — so it'd
+  // sit a full extra day.
+  const hourLocal = 6 + Math.floor(Math.random() * 3);
   const minute = Math.floor(Math.random() * 60);
   const localStr = `${dayStart.getUTCFullYear()}-${String(dayStart.getUTCMonth() + 1).padStart(2, "0")}-${String(dayStart.getUTCDate()).padStart(2, "0")}T${String(hourLocal).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
   const guessUtc = new Date(`${localStr}Z`);

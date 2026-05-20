@@ -79,7 +79,20 @@ export async function POST(req: NextRequest) {
   if (body.briefId) {
     try {
       const summary = await runBrief(body.briefId);
-      return NextResponse.json({ ok: true, summary });
+      // Single-brief mode also runs the send sweep so a manual UI trigger of
+      // a Swiss/FR brief in business hours ships its same-day-scheduled
+      // prospects right away, not on the next cron. enforceBusinessHours
+      // keeps the cold-send timing safety.
+      let sendSweep: Awaited<ReturnType<typeof processDueEmails>> | null = null;
+      try {
+        sendSweep = await processDueEmails({ enforceBusinessHours: true });
+        console.log(
+          `[autopilot] single-brief post-sweep: ${sendSweep.totalSent} sent, ${sendSweep.totalSkipped} skipped`
+        );
+      } catch (e) {
+        console.error("[autopilot] single-brief post-sweep failed:", e);
+      }
+      return NextResponse.json({ ok: true, summary, sendSweep });
     } catch (e) {
       return NextResponse.json(
         { error: e instanceof Error ? e.message : "run failed" },
