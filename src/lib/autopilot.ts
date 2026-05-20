@@ -581,6 +581,37 @@ async function recoverStaleRuns(): Promise<number> {
 }
 
 /**
+ * Round-robin briefs by country so each cron fire processes a balanced mix.
+ *
+ * Without this, the ORDER BY `lastRunAt asc nulls first` has no tie-breaker
+ * for the "never run" pool, and Postgres returns rows in an arbitrary order.
+ * With 34 FR + 8 CH briefs that are all unrun, a 60s Vercel fire might land
+ * on 4 FR-only briefs and never touch Swiss for days. After interleaving
+ * (FR1, CH1, FR2, CH2, ...), the smaller-pool country always gets at least
+ * one brief per fire (assuming concurrency >= countries-with-work).
+ *
+ * Generic over country: works for FR + CH today, will scale if DE/IT/ES
+ * briefs are added later without code changes.
+ */
+function interleaveByCountry<T extends { country: string }>(briefs: T[]): T[] {
+  const buckets = new Map<string, T[]>();
+  for (const b of briefs) {
+    const list = buckets.get(b.country) ?? [];
+    list.push(b);
+    buckets.set(b.country, list);
+  }
+  const queues = Array.from(buckets.values());
+  const out: T[] = [];
+  while (queues.some((q) => q.length > 0)) {
+    for (const q of queues) {
+      const item = q.shift();
+      if (item) out.push(item);
+    }
+  }
+  return out;
+}
+
+/**
  * Run every active brief in parallel waves of BRIEF_CONCURRENCY. Watches
  * RUN_TIME_BUDGET_MS — when we approach Vercel's serverless ceiling, stops
  * launching new waves and returns what we have; the next cron picks up the
@@ -597,10 +628,14 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
   const startedAt = Date.now();
   // Rotate the order so the same briefs don't always get processed first
   // (and the same briefs aren't always cut off when we hit the time budget).
-  const briefs = await prisma.searchBrief.findMany({
+  const raw = await prisma.searchBrief.findMany({
     where: { active: true },
     orderBy: { lastRunAt: { sort: "asc", nulls: "first" } },
   });
+  // Interleave by country so every cron fire balances FR + CH (and any future
+  // markets) rather than burning the whole 60s budget on one country's
+  // backlog. See interleaveByCountry comment.
+  const briefs = interleaveByCountry(raw);
   const out: BriefRunSummary[] = [];
 
   async function runOne(b: { id: string; name: string }): Promise<BriefRunSummary> {
