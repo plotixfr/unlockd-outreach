@@ -383,7 +383,7 @@ export default async function InsightsPage() {
                           winner.tone === "a"
                             ? "bg-blue-950/60 text-blue-300"
                             : winner.tone === "b"
-                              ? "bg-violet-950/60 text-violet-300"
+                              ? "bg-emerald-950/60 text-emerald-300"
                               : winner.tone === "tie"
                                 ? "bg-zinc-800 text-zinc-400"
                                 : "bg-zinc-900 text-zinc-600";

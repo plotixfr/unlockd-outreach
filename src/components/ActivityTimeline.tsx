@@ -45,7 +45,7 @@ const ICON_FOR_KIND: Record<ActivityKind, React.ComponentType<{ className?: stri
 };
 
 const TONE_CLASS: Record<NonNullable<ActivityEvent["tone"]>, { ring: string; icon: string; bar: string }> = {
-  info: { ring: "ring-indigo-500/30", icon: "bg-indigo-500/15 text-indigo-400", bar: "bg-indigo-500/40" },
+  info: { ring: "ring-emerald-500/30", icon: "bg-emerald-500/15 text-emerald-400", bar: "bg-emerald-500/40" },
   success: { ring: "ring-emerald-500/30", icon: "bg-emerald-500/15 text-emerald-400", bar: "bg-emerald-500/40" },
   warning: { ring: "ring-amber-500/30", icon: "bg-amber-500/15 text-amber-400", bar: "bg-amber-500/40" },
   danger: { ring: "ring-red-500/30", icon: "bg-red-500/15 text-red-400", bar: "bg-red-500/40" },

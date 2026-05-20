@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { BRAND } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display serif for concept previews — the typography of Aman, Hermès, Tiempos.
-// Loaded site-wide so any /preview route can use it without per-page setup.
+// Display serif used for hero typography on dashboard + public preview pages.
 const cormorant = Cormorant_Garamond({
   variable: "--font-display-serif",
   subsets: ["latin"],
@@ -24,8 +24,8 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Unlockd Outreach",
-  description: "Cold email outreach tool by Unlockd Studio",
+  title: `${BRAND.name} — ${BRAND.tagline}`,
+  description: BRAND.description,
 };
 
 export default async function RootLayout({
@@ -37,17 +37,17 @@ export default async function RootLayout({
   const hasSession = cookieStore.has("unlockd_session");
   const hdrs = await headers();
   const pathname = hdrs.get("x-pathname") || "";
-  // Pages that should render edge-to-edge without the operator sidebar even
-  // when Temim is logged in: the public audit widget and the printable
-  // brief/proposal documents.
+  // Pages that render edge-to-edge without the operator sidebar even when
+  // logged in: the public audit widget, printable brief/proposal documents,
+  // and the concept preview gallery.
   const standalone =
     pathname.startsWith("/audit") ||
     pathname.startsWith("/preview/") ||
     /^\/prospects\/[^/]+\/(brief|proposal)/.test(pathname);
 
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full`}>
-      <body className="bg-[#07070b] text-[#f4f4f6] min-h-screen antialiased">
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full`}>
+      <body className="bg-[#07070a] text-[#f5f5f7] min-h-screen antialiased">
         {hasSession && !standalone ? (
           <div className="flex min-h-screen print:block">
             <div className="print:hidden">

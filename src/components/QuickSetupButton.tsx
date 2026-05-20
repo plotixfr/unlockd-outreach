@@ -69,12 +69,12 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
   }
 
   return (
-    <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.07] via-[#0d0d12] to-[#0a0a12] p-6 card-elevation">
+    <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.07] via-[#0d0d12] to-[#0a0a12] p-6 card-elevation">
       <div className="flex items-start justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-2xl">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-md bg-indigo-500/15 flex items-center justify-center">
-              <Zap strokeWidth={2} className="w-4 h-4 text-indigo-400" />
+            <div className="w-7 h-7 rounded-md bg-emerald-500/15 flex items-center justify-center">
+              <Zap strokeWidth={2} className="w-4 h-4 text-emerald-400" />
             </div>
             <h2 className="text-white font-semibold text-base">Quick Setup — Unlockd target market</h2>
           </div>
@@ -88,7 +88,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
         <button
           onClick={run}
           disabled={loading}
-          className="shrink-0 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 flex items-center gap-2"
+          className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap strokeWidth={2} className="w-4 h-4" />}
           {loading ? "Kreiram…" : "Pokreni Quick Setup"}

@@ -253,7 +253,7 @@ export function ProspectsTable({ prospects }: Props) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/prospects/${p.id}`}
-                      className="text-white font-medium group-hover:text-indigo-400 transition-colors"
+                      className="text-white font-medium group-hover:text-emerald-400 transition-colors"
                     >
                       {p.firmaNaziv}
                     </Link>

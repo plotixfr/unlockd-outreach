@@ -66,7 +66,7 @@ export default async function PublicPreviewPage({
           </div>
           <a
             href="https://calendly.com/temim-unlockd/30min"
-            className="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
             Réserver 30 minutes →
           </a>

@@ -162,7 +162,7 @@ export default async function WarmupPage() {
               </div>
               <div className="h-2 rounded-full bg-[#1f1f2e]">
                 <div
-                  className="h-2 rounded-full bg-violet-600"
+                  className="h-2 rounded-full bg-emerald-600"
                   style={{ width: abBSent > 0 ? `${(abBOpened / abBSent) * 100}%` : "0%" }}
                 />
               </div>

@@ -203,35 +203,35 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
             placeholder="Naziv brief-a (npr. 'Premium hoteli Paris')"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="text"
             placeholder="Niša (npr. 'Hotel')"
             value={form.niche}
             onChange={(e) => setForm({ ...form, niche: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="text"
             placeholder="Grad (opcionalno)"
             value={form.city}
             onChange={(e) => setForm({ ...form, city: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="text"
             placeholder="Country code (FR / IT / MC)"
             value={form.country}
             onChange={(e) => setForm({ ...form, country: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="text"
             placeholder="Custom query (override — opcionalno)"
             value={form.query}
             onChange={(e) => setForm({ ...form, query: e.target.value })}
-            className="sm:col-span-2 bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="sm:col-span-2 bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="number"
@@ -241,7 +241,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
             placeholder="Min rating (0–5)"
             value={form.minRating}
             onChange={(e) => setForm({ ...form, minRating: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <input
             type="number"
@@ -249,7 +249,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
             placeholder="Min broj recenzija"
             value={form.minReviews}
             onChange={(e) => setForm({ ...form, minReviews: e.target.value })}
-            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+            className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
           />
           <div>
             <label className="block text-zinc-500 text-[11px] uppercase tracking-wider mb-1">Max po runu (1–20)</label>
@@ -259,7 +259,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
               max={20}
               value={form.maxPerRun}
               onChange={(e) => setForm({ ...form, maxPerRun: parseInt(e.target.value) || 5 })}
-              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
             />
           </div>
           <div>
@@ -270,7 +270,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
               max={10}
               value={form.qualityThreshold}
               onChange={(e) => setForm({ ...form, qualityThreshold: parseInt(e.target.value) || 6 })}
-              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors"
             />
           </div>
         </div>
@@ -280,7 +280,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
               type="checkbox"
               checked={form.autoGenerate}
               onChange={(e) => setForm({ ...form, autoGenerate: e.target.checked })}
-              className="accent-indigo-500"
+              className="accent-emerald-500"
             />
             Auto-generiši emailove
           </label>
@@ -289,7 +289,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
               type="checkbox"
               checked={form.autoSchedule}
               onChange={(e) => setForm({ ...form, autoSchedule: e.target.checked })}
-              className="accent-indigo-500"
+              className="accent-emerald-500"
             />
             Auto-zakaži kampanju
           </label>
@@ -298,7 +298,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
           {error && <p className="text-red-400 text-xs">{error}</p>}
           <button
             onClick={create}
-            className="ml-auto bg-indigo-500 hover:bg-indigo-400 text-white text-sm px-4 py-2 rounded-md transition-colors"
+            className="ml-auto bg-emerald-500 hover:bg-emerald-400 text-white text-sm px-4 py-2 rounded-md transition-colors"
           >
             + Dodaj brief
           </button>
@@ -358,12 +358,12 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
                       score≥{b.qualityThreshold}
                     </span>
                     {b.autoGenerate && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-300">
                         auto-gen
                       </span>
                     )}
                     {b.autoSchedule && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-950/60 text-violet-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-300">
                         auto-zakaži
                       </span>
                     )}
@@ -381,7 +381,7 @@ export function BriefsEditor({ discoveryConfigured }: { discoveryConfigured: boo
                   <button
                     onClick={() => runBrief(b.id)}
                     disabled={running === b.id || !discoveryConfigured}
-                    className="bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
+                    className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5"
                   >
                     {running === b.id && (
                       <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />

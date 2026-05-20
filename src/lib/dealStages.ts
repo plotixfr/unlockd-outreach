@@ -36,7 +36,7 @@ export const DEAL_STAGE_BS: Record<DealStage, string> = {
 export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
   Discovery: "bg-sky-950/60 text-sky-300 border-sky-900/40",
   Proposal: "bg-blue-950/60 text-blue-300 border-blue-900/40",
-  Negotiating: "bg-violet-950/60 text-violet-300 border-violet-900/40",
+  Negotiating: "bg-emerald-950/60 text-emerald-300 border-emerald-900/40",
   Won: "bg-emerald-950/60 text-emerald-300 border-emerald-900/40",
   Lost: "bg-zinc-900 text-zinc-500 border-zinc-800",
 };

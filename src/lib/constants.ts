@@ -29,9 +29,9 @@ export type Status = (typeof STATUSI)[number];
 export const STATUS_BOJE: Record<string, string> = {
   New:          "bg-zinc-800/60 text-zinc-300 border border-zinc-700/40",
   Scheduled:    "bg-sky-500/10 text-sky-300 border border-sky-500/20",
-  Emailed:      "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20",
-  Follow1:      "bg-indigo-500/15 text-indigo-300 border border-indigo-500/25",
-  Follow2:      "bg-violet-500/15 text-violet-300 border border-violet-500/25",
+  Emailed:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
+  Follow1:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
+  Follow2:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
   Follow3:      "bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25",
   Replied:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
   Converted:    "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",

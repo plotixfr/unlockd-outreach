@@ -100,7 +100,7 @@ export default function AuditPage() {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(99, 102, 241, 0.12), transparent 60%), radial-gradient(ellipse 40% 30% at 20% 100%, rgba(167, 139, 250, 0.06), transparent 60%)",
+            "radial-gradient(ellipse 70% 60% at 50% 0%, rgba(16, 185, 129, 0.12), transparent 60%), radial-gradient(ellipse 40% 30% at 20% 100%, rgba(245, 158, 11, 0.06), transparent 60%)",
         }}
       />
 
@@ -108,7 +108,7 @@ export default function AuditPage() {
         {/* Brand */}
         <div className="text-center mb-12">
           <a href="https://unlockd.art" className="inline-flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-emerald-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <span className="text-white font-bold text-sm tracking-tighter">U</span>
             </div>
             <div className="text-left">
@@ -120,7 +120,7 @@ export default function AuditPage() {
 
         {/* Hero */}
         <div className="text-center mb-10">
-          <p className="text-indigo-400 text-xs uppercase tracking-[0.18em] font-medium mb-3">Audit gratuit · 30 secondes</p>
+          <p className="text-emerald-400 text-xs uppercase tracking-[0.18em] font-medium mb-3">Audit gratuit · 30 secondes</p>
           <h1 className="text-4xl sm:text-5xl font-semibold text-white tracking-tight leading-[1.05]">
             Découvrez ce que <span className="text-gradient-brand">votre site</span><br />
             vous fait perdre.
@@ -141,12 +141,12 @@ export default function AuditPage() {
                 onChange={(e) => setUrl(e.target.value)}
                 required
                 autoFocus
-                className="flex-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                className="flex-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg px-4 py-3 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
               />
               <button
                 type="submit"
                 disabled={scanning}
-                className="bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-sm font-medium px-5 py-3 rounded-lg transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 flex items-center gap-2"
+                className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-sm font-medium px-5 py-3 rounded-lg transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 flex items-center gap-2"
               >
                 {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
                 {scanning ? "Analyse…" : "Analyser"}
@@ -159,7 +159,7 @@ export default function AuditPage() {
         {/* Scanning shimmer */}
         {scanning && !result && (
           <div className="mt-12 max-w-xl mx-auto rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-8 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto" />
+            <Loader2 className="w-6 h-6 animate-spin text-emerald-400 mx-auto" />
             <p className="text-zinc-400 text-sm mt-4">Mesure Lighthouse, scan du contenu, détection des signaux…</p>
             <p className="text-zinc-600 text-xs mt-1">~30 secondes</p>
           </div>
@@ -175,7 +175,7 @@ export default function AuditPage() {
                 <p className="text-amber-200/60 text-sm mt-1">{result.error || "Le site n'est pas accessible publiquement."}</p>
                 <button
                   onClick={() => { setResult(null); setUrl(""); }}
-                  className="mt-5 text-indigo-400 hover:text-indigo-300 text-sm transition-colors"
+                  className="mt-5 text-emerald-400 hover:text-emerald-300 text-sm transition-colors"
                 >
                   Essayer un autre URL →
                 </button>
@@ -261,11 +261,11 @@ export default function AuditPage() {
                 {!claimed ? (
                   <form
                     onSubmit={claim}
-                    className="rounded-2xl bg-gradient-to-br from-indigo-500/[0.06] to-[#0d0d12] border border-indigo-500/20 p-8 card-elevation"
+                    className="rounded-2xl bg-gradient-to-br from-emerald-500/[0.06] to-[#0d0d12] border border-emerald-500/20 p-8 card-elevation"
                   >
                     <div className="flex items-start gap-3 mb-4">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0">
-                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                      <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-4 h-4 text-emerald-400" />
                       </div>
                       <div>
                         <h2 className="text-white font-semibold">Recevoir l&apos;audit complet</h2>
@@ -280,7 +280,7 @@ export default function AuditPage() {
                         placeholder="Prénom (optionnel)"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                        className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
                       />
                       <input
                         type="email"
@@ -288,13 +288,13 @@ export default function AuditPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                        className="bg-[#07070b] border border-[#1c1c28] rounded-lg px-3 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={claiming}
-                      className="mt-4 w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 flex items-center justify-center gap-2"
+                      className="mt-4 w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 flex items-center justify-center gap-2"
                     >
                       {claiming && <Loader2 className="w-4 h-4 animate-spin" />}
                       {claiming ? "Envoi…" : "Recevoir l'audit"}
@@ -333,17 +333,17 @@ export default function AuditPage() {
         {/* Footer trust signals */}
         <div className="mt-16 pt-10 border-t border-[#1c1c28] grid grid-cols-3 gap-4 text-center max-w-2xl mx-auto">
           <div>
-            <Zap className="w-5 h-5 text-indigo-400 mx-auto mb-2" strokeWidth={1.75} />
+            <Zap className="w-5 h-5 text-emerald-400 mx-auto mb-2" strokeWidth={1.75} />
             <p className="text-zinc-300 text-xs font-medium">30 secondes</p>
             <p className="text-zinc-600 text-[11px] mt-0.5">Audit instantané, sans installation</p>
           </div>
           <div>
-            <ShieldCheck className="w-5 h-5 text-indigo-400 mx-auto mb-2" strokeWidth={1.75} />
+            <ShieldCheck className="w-5 h-5 text-emerald-400 mx-auto mb-2" strokeWidth={1.75} />
             <p className="text-zinc-300 text-xs font-medium">Confidentiel</p>
             <p className="text-zinc-600 text-[11px] mt-0.5">Vos données restent privées</p>
           </div>
           <div>
-            <Sparkles className="w-5 h-5 text-indigo-400 mx-auto mb-2" strokeWidth={1.75} />
+            <Sparkles className="w-5 h-5 text-emerald-400 mx-auto mb-2" strokeWidth={1.75} />
             <p className="text-zinc-300 text-xs font-medium">Rapport personnalisé</p>
             <p className="text-zinc-600 text-[11px] mt-0.5">Analyse par Unlockd, pas un robot</p>
           </div>

@@ -31,8 +31,8 @@ const TIP_LABELS: Record<string, string> = {
 
 const TIP_COLORS: Record<string, string> = {
   initial: "bg-blue-900 text-blue-200",
-  follow1: "bg-indigo-900 text-indigo-200",
-  follow2: "bg-violet-900 text-violet-200",
+  follow1: "bg-emerald-900 text-emerald-200",
+  follow2: "bg-emerald-900 text-emerald-200",
   follow3: "bg-purple-900 text-purple-200",
 };
 
@@ -213,17 +213,17 @@ export default async function ProspectDetailPage({
             <Link
               href={`/prospects/${prospect.id}/brief`}
               target="_blank"
-              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-indigo-500/40 p-5 transition-all group card-elevation"
+              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-emerald-500/40 p-5 transition-all group card-elevation"
             >
-              <p className="text-zinc-200 font-medium text-sm group-hover:text-indigo-300 transition-colors">Pre-meeting brief →</p>
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Pre-meeting brief →</p>
               <p className="text-zinc-500 text-xs mt-1.5">1-stranica za pripremu poziva: PSI, signali, talking points, top 3 konkurenta</p>
             </Link>
             <Link
               href={`/prospects/${prospect.id}/proposal`}
               target="_blank"
-              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-indigo-500/40 p-5 transition-all group card-elevation"
+              className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-emerald-500/40 p-5 transition-all group card-elevation"
             >
-              <p className="text-zinc-200 font-medium text-sm group-hover:text-indigo-300 transition-colors">Generiši ponudu →</p>
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Generiši ponudu →</p>
               <p className="text-zinc-500 text-xs mt-1.5">4-stranice na francuskom sa 3 cjenovna nivoa + value calculator + Stripe link</p>
             </Link>
           </div>

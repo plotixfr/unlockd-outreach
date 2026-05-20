@@ -61,8 +61,8 @@ function buildSummaryHtml(data: {
 <body style="background:#0a0a0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:32px 16px;">
   <div style="max-width:600px;margin:0 auto;">
     <div style="margin-bottom:24px;">
-      <span style="color:#fff;font-weight:700;font-size:16px;letter-spacing:0.1em;text-transform:uppercase;">UNLOCKD</span>
-      <span style="color:#52525b;font-size:12px;margin-left:8px;">Outreach Studio</span>
+      <span style="color:#fff;font-weight:700;font-size:16px;letter-spacing:0.1em;text-transform:uppercase;">SALVO</span>
+      <span style="color:#52525b;font-size:12px;margin-left:8px;">Outbound on autopilot</span>
     </div>
 
     <div style="background:#111118;border:1px solid #1f1f2e;border-radius:12px;padding:24px;margin-bottom:20px;">
@@ -102,7 +102,7 @@ function buildSummaryHtml(data: {
 
     ${remindersSection}
 
-    <p style="color:#3f3f46;font-size:11px;margin-top:32px;text-align:center;">Unlockd Outreach — automated daily report</p>
+    <p style="color:#3f3f46;font-size:11px;margin-top:32px;text-align:center;">Salvo — automated daily report</p>
   </div>
 </body>
 </html>`;
@@ -236,7 +236,7 @@ export async function GET(req: NextRequest) {
   const { error } = await resend.emails.send({
     from: FROM,
     to: [SUMMARY_TO],
-    subject: `Unlockd Outreach — Daily Summary ${now.toISOString().slice(0, 10)}`,
+    subject: `Salvo — Daily Summary ${now.toISOString().slice(0, 10)}`,
     html,
   });
 

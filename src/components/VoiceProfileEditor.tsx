@@ -90,8 +90,8 @@ export function VoiceProfileEditor() {
   return (
     <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation space-y-5">
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-indigo-500/15 flex items-center justify-center shrink-0">
-          <MicVocal strokeWidth={2} className="w-5 h-5 text-indigo-400" />
+        <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+          <MicVocal strokeWidth={2} className="w-5 h-5 text-emerald-400" />
         </div>
         <div className="flex-1">
           <h2 className="text-white font-semibold">Voice Profile</h2>
@@ -142,7 +142,7 @@ export function VoiceProfileEditor() {
               onChange={(e) => updateSample(i, e.target.value)}
               placeholder={`Email ${i + 1} — pasteuj cijeli body (od "Bonjour" do sign-off-a)`}
               rows={5}
-              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-md px-3 py-2.5 text-xs text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors leading-relaxed font-mono"
+              className="w-full bg-[#07070b] border border-[#1c1c28] rounded-md px-3 py-2.5 text-xs text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors leading-relaxed font-mono"
             />
             {samples.length > 1 && (
               <button
@@ -169,7 +169,7 @@ export function VoiceProfileEditor() {
         <button
           onClick={submit}
           disabled={saving || loading}
-          className="ml-auto bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+          className="ml-auto bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : voice ? <RefreshCw className="w-4 h-4" /> : <MicVocal className="w-4 h-4" />}
           {saving ? "Izvlačim stil…" : voice ? "Regeneriši voice" : "Izvuci moj stil"}

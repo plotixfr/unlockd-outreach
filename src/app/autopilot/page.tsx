@@ -165,7 +165,7 @@ export default async function AutopilotPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-zinc-200 font-medium text-sm flex items-center gap-2">
-              <Sparkles strokeWidth={2} className="w-4 h-4 text-indigo-400" />
+              <Sparkles strokeWidth={2} className="w-4 h-4 text-emerald-400" />
               Posljednji runs
             </h2>
             <p className="text-zinc-600 text-xs">{recentRuns.length} najnovijih</p>
@@ -191,7 +191,7 @@ export default async function AutopilotPage() {
                           r.status === "done"
                             ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                             : r.status === "running"
-                              ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
                               : "bg-red-500/10 text-red-300 border border-red-500/20"
                         }`}
                       >
@@ -201,7 +201,7 @@ export default async function AutopilotPage() {
                     <td className="px-4 py-3 text-zinc-400 tabular-nums">{r.found}</td>
                     <td className="px-4 py-3 text-zinc-400 tabular-nums">{r.created}</td>
                     <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.qualified}</td>
-                    <td className="px-4 py-3 text-indigo-400 tabular-nums font-medium">{r.scheduled}</td>
+                    <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.scheduled}</td>
                     <td className="px-4 py-3 text-zinc-600 text-xs tabular-nums">
                       {new Date(r.startedAt).toLocaleString("fr-FR", {
                         day: "numeric",
@@ -266,14 +266,14 @@ function StatCard({
   tone: "indigo" | "sky" | "neutral" | "amber" | "emerald";
 }) {
   const toneClass = {
-    indigo: "text-indigo-400",
+    indigo: "text-emerald-400",
     sky: "text-sky-400",
     amber: "text-amber-400",
     emerald: "text-emerald-400",
     neutral: "text-zinc-200",
   }[tone];
   const iconBg = {
-    indigo: "bg-indigo-500/10 text-indigo-400",
+    indigo: "bg-emerald-500/10 text-emerald-400",
     sky: "bg-sky-500/10 text-sky-400",
     amber: "bg-amber-500/10 text-amber-400",
     emerald: "bg-emerald-500/10 text-emerald-400",

@@ -99,7 +99,7 @@ export function LinkedInDmButton({ prospectId, initialTouchedAt }: Props) {
 
             {loading && (
               <div className="py-10 text-center">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-400 mx-auto" />
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-400 mx-auto" />
                 <p className="text-zinc-500 text-xs mt-3">Claude piše u tvom stilu…</p>
               </div>
             )}

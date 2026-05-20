@@ -16,6 +16,7 @@ import {
   Flame,
   CheckCircle2,
 } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +27,13 @@ function utcMidnight(offsetDays = 0): Date {
   return d;
 }
 
-function fmtEur(n: number): string {
-  if (n === 0) return "0 €";
-  return `${Math.round(n).toLocaleString("fr-FR")} €`;
+function fmtCurrency(n: number): string {
+  if (n === 0) return "€0";
+  return `€${Math.round(n).toLocaleString("en-US")}`;
+}
+
+function pluralize(n: number, singular: string, plural: string): string {
+  return n === 1 ? singular : plural;
 }
 
 export default async function DashboardPage() {
@@ -38,13 +43,12 @@ export default async function DashboardPage() {
   const todayStart = utcMidnight();
   const fourteenDaysAgo = utcMidnight(-14);
 
-  const [tasks, forecast, momentum, activeBriefs, emailsToday, recentSendDays, totalProspects] =
+  const [tasks, forecast, momentum, activeBriefs, recentSendDays, totalProspects] =
     await Promise.all([
       getTodayQueue(),
       getForecast(),
       getMomentum(),
       prisma.searchBrief.count({ where: { active: true } }),
-      prisma.email.count({ where: { poslat: true, poslatAt: { gte: todayStart } } }),
       prisma.email.findMany({
         where: { poslat: true, poslatAt: { gte: fourteenDaysAgo } },
         select: { poslatAt: true },
@@ -67,12 +71,15 @@ export default async function DashboardPage() {
   const maxDay = Math.max(...chartDays.map((d) => d.count), 1);
   const totalEstimate = tasks.reduce((acc, t) => acc + t.estimateMin, 0);
 
+  // Use simple void access to satisfy linter on todayStart variable
+  void todayStart;
+
   return (
     <div className="max-w-6xl space-y-10">
       {/* ─── Hero — what's happening right now ─── */}
       <div className="flex flex-col gap-2">
         <p className="text-zinc-500 text-[11px] uppercase tracking-[0.22em] font-medium">
-          {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+          {new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" })}
         </p>
         <h1
           className="text-white text-4xl sm:text-5xl tracking-tight leading-[1.05]"
@@ -80,44 +87,44 @@ export default async function DashboardPage() {
         >
           {tasks.length === 0
             ? totalProspects === 0
-              ? "Sve počinje sutra ujutro."
-              : "Inbox je čist. Pipeline radi za tebe."
-            : `${tasks.length} zadat${tasks.length === 1 ? "ak" : tasks.length < 5 ? "ka" : "aka"} čeka.`}
+              ? "Everything starts tomorrow morning."
+              : "Inbox clear. Pipeline runs itself."
+            : `${tasks.length} ${pluralize(tasks.length, "task", "tasks")} waiting.`}
         </h1>
         <p className="text-zinc-500 text-sm">
           {tasks.length > 0
-            ? `~${totalEstimate} minuta fokusiranog rada. Autopilot opet skenira ${relativeFromNow(nextAutopilot, now)}.`
-            : `Autopilot opet skenira ${relativeFromNow(nextAutopilot, now)} · sljedeći send batch ${relativeFromNow(nextSend, now)}.`}
+            ? `~${totalEstimate} minutes of focused work. Autopilot scans again ${relativeFromNow(nextAutopilot, now)}.`
+            : `Autopilot scans again ${relativeFromNow(nextAutopilot, now)} · next send batch ${relativeFromNow(nextSend, now)}.`}
         </p>
       </div>
 
       {/* ─── Revenue forecast strip ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
-          label="Pipeline otvoren"
-          value={fmtEur(forecast.pipelineValueOpen)}
-          sub="Suma open deal-ova"
+          label="Open pipeline"
+          value={fmtCurrency(forecast.pipelineValueOpen)}
+          sub="Sum of open deals"
           tone="neutral"
         />
         <MetricCard
-          label="Forecast 30 dana"
-          value={fmtEur(forecast.expectedNext30)}
+          label="30-day forecast"
+          value={fmtCurrency(forecast.expectedNext30)}
           sub="Probability-weighted"
-          tone="indigo"
+          tone="accent"
         />
         <MetricCard
-          label="Zatvoreno ovaj mjesec"
-          value={fmtEur(forecast.closedThisMonth)}
+          label="Closed this month"
+          value={fmtCurrency(forecast.closedThisMonth)}
           sub={forecast.closedLastMonth > 0
-            ? `${forecast.trend30 >= 0 ? "+" : ""}${Math.round(forecast.trend30)}% vs prošli`
-            : "Prvi mjesec sa konverzijama"}
+            ? `${forecast.trend30 >= 0 ? "+" : ""}${Math.round(forecast.trend30)}% vs last`
+            : "First month with conversions"}
           trendValue={forecast.closedLastMonth > 0 ? forecast.trend30 : null}
           tone="emerald"
         />
         <MetricCard
-          label="Sastanci ovaj mjesec"
+          label="Meetings this month"
           value={momentum.meetingsThisMonth.toString()}
-          sub={`Pipeline u nastajanju`}
+          sub="Pipeline forming"
           tone="amber"
         />
       </div>
@@ -127,10 +134,10 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CheckCircle2 strokeWidth={2} className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-zinc-200 font-medium text-sm">Šta uraditi sada</h2>
+            <h2 className="text-zinc-200 font-medium text-sm">What to do now</h2>
           </div>
           {tasks.length > 0 && (
-            <span className="text-zinc-500 text-xs">{totalEstimate} min ukupno</span>
+            <span className="text-zinc-500 text-xs">{totalEstimate} min total</span>
           )}
         </div>
         {tasks.length === 0 ? (
@@ -148,21 +155,21 @@ export default async function DashboardPage() {
           label="Streak"
           value={`${momentum.daysWithRepliesStreak}d`}
           sub={momentum.daysWithRepliesStreak >= 3
-            ? `${momentum.daysWithRepliesStreak} dana zaredom sa replyjima 🔥`
-            : "Dani zaredom sa replyjima"}
+            ? `${momentum.daysWithRepliesStreak} days straight with replies`
+            : "Days in a row with replies"}
           tone={momentum.daysWithRepliesStreak >= 3 ? "good" : "muted"}
         />
         <MomentumTile
-          label="Emailovi ove sedmice"
+          label="Emails this week"
           value={momentum.emailsThisWeek.toString()}
-          sub={`${momentum.emailsLastWeek} prošla · ${momentum.emailsTrend >= 0 ? "+" : ""}${Math.round(momentum.emailsTrend)}%`}
+          sub={`${momentum.emailsLastWeek} last week · ${momentum.emailsTrend >= 0 ? "+" : ""}${Math.round(momentum.emailsTrend)}%`}
           tone={momentum.emailsTrend >= 0 ? "good" : "warning"}
           trendValue={momentum.emailsTrend}
         />
         <MomentumTile
-          label="Replyji ove sedmice"
+          label="Replies this week"
           value={momentum.repliesThisWeek.toString()}
-          sub={`${momentum.repliesLastWeek} prošla · ${momentum.repliesTrend >= 0 ? "+" : ""}${Math.round(momentum.repliesTrend)}%`}
+          sub={`${momentum.repliesLastWeek} last week · ${momentum.repliesTrend >= 0 ? "+" : ""}${Math.round(momentum.repliesTrend)}%`}
           tone={momentum.repliesTrend >= 0 ? "good" : "warning"}
           trendValue={momentum.repliesTrend}
         />
@@ -173,19 +180,19 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Activity strokeWidth={2} className="w-4 h-4 text-zinc-500" />
-            <h2 className="text-zinc-200 text-sm font-medium">14 dana</h2>
+            <h2 className="text-zinc-200 text-sm font-medium">Last 14 days</h2>
           </div>
-          <p className="text-zinc-600 text-xs tabular-nums">{recentSendDays.length} mailova</p>
+          <p className="text-zinc-600 text-xs tabular-nums">{recentSendDays.length} emails</p>
         </div>
         {recentSendDays.length === 0 ? (
-          <p className="text-zinc-600 text-sm py-6 text-center">Send cron još nije isporučio prvi batch.</p>
+          <p className="text-zinc-600 text-sm py-6 text-center">Send cron hasn&apos;t shipped the first batch yet.</p>
         ) : (
           <div className="flex items-end gap-1.5 h-24">
             {chartDays.map((day) => (
               <div key={day.key} className="flex-1 flex items-end justify-center">
                 <div
                   title={`${day.key}: ${day.count}`}
-                  className="w-full rounded-md bg-gradient-to-t from-indigo-600/30 to-indigo-400/60"
+                  className="w-full rounded-md bg-gradient-to-t from-emerald-700/35 to-emerald-400/65"
                   style={{ height: `${Math.max((day.count / maxDay) * 96, day.count > 0 ? 4 : 2)}px` }}
                 />
               </div>
@@ -193,12 +200,12 @@ export default async function DashboardPage() {
           </div>
         )}
         <p className="text-zinc-700 text-[10px] mt-3 tracking-widest uppercase tabular-nums">
-          {chartDays[0].key.slice(5)} → {chartDays[chartDays.length - 1].key.slice(5)} · Sljedeći send {formatParisDateTime(nextSend)}
+          {chartDays[0].key.slice(5)} → {chartDays[chartDays.length - 1].key.slice(5)} · Next send {formatParisDateTime(nextSend)}
         </p>
       </section>
 
       <p className="text-center text-zinc-700 text-[11px] uppercase tracking-widest pt-6">
-        Unlockd · {new Date().getFullYear()}
+        {BRAND.name} · {new Date().getFullYear()}
       </p>
     </div>
   );
@@ -216,12 +223,12 @@ function MetricCard({
   label: string;
   value: string;
   sub: string;
-  tone: "neutral" | "indigo" | "emerald" | "amber";
+  tone: "neutral" | "accent" | "emerald" | "amber";
   trendValue?: number | null;
 }) {
   const toneClass = {
     neutral: "text-zinc-100",
-    indigo: "text-indigo-300",
+    accent: "text-emerald-300",
     emerald: "text-emerald-300",
     amber: "text-amber-300",
   }[tone];
@@ -286,9 +293,9 @@ function MomentumTile({
 
 function TaskRow({ task }: { task: TodayTask }) {
   const badgeTone = {
-    danger: "bg-red-500/15 text-red-300 ring-red-500/25",
+    danger: "bg-rose-500/15 text-rose-300 ring-rose-500/25",
     warning: "bg-amber-500/15 text-amber-300 ring-amber-500/25",
-    info: "bg-indigo-500/15 text-indigo-300 ring-indigo-500/25",
+    info: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
     success: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/25",
   }[task.badgeTone ?? "info"];
   return (
@@ -311,7 +318,7 @@ function TaskRow({ task }: { task: TodayTask }) {
       </div>
       <div className="flex items-center gap-3 shrink-0">
         <span className="text-zinc-600 text-xs tabular-nums">~{task.estimateMin} min</span>
-        <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+        <ArrowRight className="w-4 h-4 text-zinc-700 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
       </div>
     </Link>
   );
@@ -320,19 +327,19 @@ function TaskRow({ task }: { task: TodayTask }) {
 function EmptyToday({ activeBriefs, totalProspects }: { activeBriefs: number; totalProspects: number }) {
   if (totalProspects === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#1c1c28] p-10 text-center bg-gradient-to-br from-indigo-500/[0.02] to-transparent">
-        <Flame className="w-6 h-6 text-indigo-400 mx-auto mb-3" />
-        <p className="text-zinc-300 font-medium">Autopilot još nije odradio prvi run.</p>
+      <div className="rounded-2xl border border-dashed border-[#1c1c28] p-10 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+        <Flame className="w-6 h-6 text-emerald-400 mx-auto mb-3" />
+        <p className="text-zinc-300 font-medium">Autopilot hasn&apos;t run yet.</p>
         <p className="text-zinc-500 text-sm mt-1 max-w-md mx-auto">
           {activeBriefs > 0
-            ? `${activeBriefs} brief${activeBriefs === 1 ? "" : "ova"} čeka sljedeći radni dan u 08:00 Paris.`
-            : "Postavi briefove na /autopilot da kreneš."}
+            ? `${activeBriefs} ${pluralize(activeBriefs, "brief", "briefs")} queued — next discovery fires at 8:00 AM Paris.`
+            : "Add briefs in Autopilot to get started."}
         </p>
         <Link
           href="/autopilot"
-          className="mt-5 inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+          className="mt-5 inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
-          Otvori autopilot
+          Open Autopilot
           <ArrowUpRight strokeWidth={2} className="w-4 h-4" />
         </Link>
       </div>
@@ -341,9 +348,9 @@ function EmptyToday({ activeBriefs, totalProspects }: { activeBriefs: number; to
   return (
     <div className="rounded-2xl border border-dashed border-emerald-500/15 p-10 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
       <CheckCircle2 className="w-6 h-6 text-emerald-400 mx-auto mb-3" />
-      <p className="text-emerald-300 font-medium">Sve je pod kontrolom.</p>
+      <p className="text-emerald-300 font-medium">All clear.</p>
       <p className="text-zinc-500 text-sm mt-1 max-w-md mx-auto">
-        Nema hot replyja, Calendly klikova ni stuck deal-ova. Pipeline kuva — vrati se kad zvecne notifikacija.
+        No hot replies, no Calendly clicks pending, no stuck deals. Pipeline runs — we&apos;ll ping you when something needs you.
       </p>
     </div>
   );

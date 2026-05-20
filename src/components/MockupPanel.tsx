@@ -68,7 +68,7 @@ export function MockupPanel({
     <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Wand2 strokeWidth={2} className="w-4 h-4 text-indigo-400" />
+          <Wand2 strokeWidth={2} className="w-4 h-4 text-emerald-400" />
           <div>
             <h2 className="text-zinc-200 font-medium text-sm">Concept preview</h2>
             <p className="text-zinc-600 text-xs mt-0.5">
@@ -88,7 +88,7 @@ export function MockupPanel({
           </a>
           <button
             onClick={copyLink}
-            className="inline-flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-md transition-all border border-indigo-500/30"
+            className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-md transition-all border border-emerald-500/30"
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
             {copied ? "Kopirano" : "Kopiraj share link"}

@@ -16,7 +16,7 @@ interface Props {
 
 const TONE_STYLES = {
   neutral: { bar: "bg-zinc-700/60", text: "text-zinc-300" },
-  ok: { bar: "bg-indigo-500/60", text: "text-indigo-300" },
+  ok: { bar: "bg-emerald-500/60", text: "text-emerald-300" },
   good: { bar: "bg-emerald-500/60", text: "text-emerald-300" },
   great: { bar: "bg-emerald-500/80", text: "text-emerald-200" },
 };
