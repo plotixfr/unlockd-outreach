@@ -460,15 +460,20 @@ export async function processDueEmails(opts?: {
     results.push({ rule, sent, skipped, errors });
   }
 
-  // ── Standalone touches: initial + re-engagement + post-conversion upsells ──
-  // All share the scheduledInitial slot since each is a fresh thread to the
-  // recipient. Status filter intentionally excludes only opt-out states so
-  // upsell touches to Converted clients still flow through here.
+  // ── Standalone touches: initial + re-engagement + post-conversion upsells
+  // + calendly_nudge ──
+  // All share the scheduledInitial slot since each is dispatched on its own
+  // queue time (not derived from FOLLOWUP_RULES). calendly_nudge is the
+  // exception in look-and-feel: it threads into the original conversation
+  // (handled in sendOneEmail via the non-standaloneTouch path), but is
+  // dispatched here because it has its own send-time independent of the
+  // initial → follow1 → follow2 cadence.
   {
     const standaloneTips = [
       "initial",
       "reengage90", "reengage180", "reengage365",
       "referral30", "retainer60", "retainer180", "retainer365",
+      "calendly_nudge",
     ];
     const prospects = await prisma.prospect.findMany({
       where: {

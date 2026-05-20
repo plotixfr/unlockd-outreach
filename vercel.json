@@ -9,6 +9,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/calendly-nudges",
+      "schedule": "30 6 * * *"
+    },
+    {
       "path": "/api/cron/daily-summary",
       "schedule": "0 17 * * *"
     },
