@@ -21,27 +21,29 @@ function siteScreenshotUrl(siteUrl: string | null | undefined): string | null {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Resend free/Pro tier caps at 5 requests/second per account. With
-// concurrency=5 workers and sub-second send latency, two waves complete
-// inside the same 1s window and we hit the limit — that's exactly the
-// "Too many requests. You can only make 5 requests per second" rash we
-// saw on 2026-05-20: 5 sent, 8 rate-limited.
+// Resend caps at 5 requests/second per account. Our gate has to be stricter
+// because (a) the start-timestamp in our bucket is not exactly when Resend
+// receives the request — there's ~20-200ms network latency, which can shift
+// requests into Resend's neighbouring window, and (b) Vercel can sometimes
+// run multiple invocations of the same cron close together. 3/sec gives us
+// 40% headroom and still lets us clear 60 sends in a single 60s function.
 //
-// Sliding-window gate keeps us at MAX_RESEND_RPS starts per rolling second.
+// Sliding-window gate over MAX_RESEND_RPS starts in a 1100ms window.
 // Module-level state is fine here: one serverless instance = one bucket.
-const MAX_RESEND_RPS = 4;
+const MAX_RESEND_RPS = 3;
+const RESEND_WINDOW_MS = 1100;
 const resendCallTimes: number[] = [];
 export async function resendGate(): Promise<void> {
   while (true) {
     const now = Date.now();
-    while (resendCallTimes.length && resendCallTimes[0] < now - 1000) {
+    while (resendCallTimes.length && resendCallTimes[0] < now - RESEND_WINDOW_MS) {
       resendCallTimes.shift();
     }
     if (resendCallTimes.length < MAX_RESEND_RPS) {
       resendCallTimes.push(now);
       return;
     }
-    const wait = 1000 - (now - resendCallTimes[0]) + 30;
+    const wait = RESEND_WINDOW_MS - (now - resendCallTimes[0]) + 50;
     await new Promise((r) => setTimeout(r, wait));
   }
 }
