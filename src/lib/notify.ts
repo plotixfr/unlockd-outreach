@@ -10,6 +10,7 @@
 import { Resend } from "resend";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
+import { resendGate } from "@/lib/sendEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
@@ -146,6 +147,7 @@ export async function notifyMeetingBooked(input: MeetingNotificationInput): Prom
   const html = buildMeetingHtml(input);
   const subject = `📅 ${fmtDateTime(input.meetingTime)} — ${input.prospect.firmaNaziv}`;
   try {
+    await resendGate();
     await resend.emails.send({
       from: FROM_EMAIL,
       to: [TO_EMAIL],
@@ -181,6 +183,7 @@ export async function notifyHotReply(input: {
 </div>
 </body></html>`;
   try {
+    await resendGate();
     await resend.emails.send({ from: FROM_EMAIL, to: [TO_EMAIL], subject, html });
   } catch (e) {
     console.error("[notify] hot reply email failed:", e);
@@ -241,6 +244,7 @@ export async function notifyAutopilotSummary(input: {
   <p style="text-align:center;margin-top:18px;"><a href="${SITE_URL}/autopilot" style="color:#60a5fa;font-size:13px;">Otvori autopilot →</a></p>
 </div></body></html>`;
   try {
+    await resendGate();
     await resend.emails.send({
       from: FROM_EMAIL,
       to: [TO_EMAIL],

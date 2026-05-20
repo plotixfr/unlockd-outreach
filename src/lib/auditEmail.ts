@@ -12,6 +12,7 @@ import { Resend } from "resend";
 import { signatureHtml, signatureText } from "@/lib/signature";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
+import { resendGate } from "@/lib/sendEmail";
 
 const MODEL = "claude-sonnet-4-6";
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -122,6 +123,7 @@ export async function sendAuditEmail(input: AuditEmailInput): Promise<{ ok: bool
   const html = `${copy.bodyHtml}${signatureHtml(input.prospectId)}<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Vous avez reçu cet email après avoir demandé un audit gratuit sur unlockd.art. <a href="${unsubUrl}" style="color:#999;text-decoration:underline;">Se désabonner</a>.</p>`;
   const text = `${copy.bodyText}\n\n${signatureText(input.prospectId)}\n\nSe désabonner : ${unsubUrl}`;
 
+  await resendGate();
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [input.toEmail],

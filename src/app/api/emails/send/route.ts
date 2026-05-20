@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { resendGate } from "@/lib/sendEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SITE_URL =
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
     const subjectToSend =
       email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
+    await resendGate();
     const { data, error } = await resend.emails.send({
       from: process.env.FROM_EMAIL ?? "temim@unlockd.art",
       to: [email.prospect.email],

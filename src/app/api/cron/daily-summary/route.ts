@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { checkReplies } from "@/lib/checkReplies";
+import { resendGate } from "@/lib/sendEmail";
 
 // IMAP poll (checkReplies) + Claude classification on matched replies can run
 // 20-40s on a busy inbox. Default ~10s Hobby cap was too tight.
@@ -204,6 +205,7 @@ export async function GET(req: NextRequest) {
   // Send individual reminder emails
   for (const r of reminders) {
     try {
+      await resendGate();
       await resend.emails.send({
         from: FROM,
         to: [SUMMARY_TO],
@@ -230,6 +232,7 @@ export async function GET(req: NextRequest) {
     reminders,
   });
 
+  await resendGate();
   const { error } = await resend.emails.send({
     from: FROM,
     to: [SUMMARY_TO],

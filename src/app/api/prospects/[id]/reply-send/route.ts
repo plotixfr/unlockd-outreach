@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { signatureHtml, signatureText } from "@/lib/signature";
+import { resendGate } from "@/lib/sendEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
@@ -66,6 +67,7 @@ export async function POST(
       if (initSubject) subjectToSend = `Re: ${initSubject.replace(/^re:\s*/i, "")}`;
     }
 
+    await resendGate();
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: [prospect.email],

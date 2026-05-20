@@ -20,6 +20,32 @@ function siteScreenshotUrl(siteUrl: string | null | undefined): string | null {
 
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Resend free/Pro tier caps at 5 requests/second per account. With
+// concurrency=5 workers and sub-second send latency, two waves complete
+// inside the same 1s window and we hit the limit — that's exactly the
+// "Too many requests. You can only make 5 requests per second" rash we
+// saw on 2026-05-20: 5 sent, 8 rate-limited.
+//
+// Sliding-window gate keeps us at MAX_RESEND_RPS starts per rolling second.
+// Module-level state is fine here: one serverless instance = one bucket.
+const MAX_RESEND_RPS = 4;
+const resendCallTimes: number[] = [];
+export async function resendGate(): Promise<void> {
+  while (true) {
+    const now = Date.now();
+    while (resendCallTimes.length && resendCallTimes[0] < now - 1000) {
+      resendCallTimes.shift();
+    }
+    if (resendCallTimes.length < MAX_RESEND_RPS) {
+      resendCallTimes.push(now);
+      return;
+    }
+    const wait = 1000 - (now - resendCallTimes[0]) + 30;
+    await new Promise((r) => setTimeout(r, wait));
+  }
+}
+
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
@@ -212,6 +238,7 @@ export async function sendOneEmail(
     }
   }
 
+  await resendGate();
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [email.prospect.email],
@@ -450,6 +477,7 @@ export async function sendTestEmail(
   const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml(email.prospect.id)}`;
   const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText(email.prospect.id)}`;
 
+  await resendGate();
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [to],
