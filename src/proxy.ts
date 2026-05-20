@@ -12,6 +12,7 @@ function isPublic(pathname: string): boolean {
     pathname.startsWith("/api/webhooks/") ||
     pathname.startsWith("/api/cron/") ||
     pathname === "/api/autopilot/run" ||
+    pathname.startsWith("/api/_debug/") ||
     pathname === "/audit" ||
     pathname.startsWith("/audit/") ||
     pathname.startsWith("/api/audit/") ||
