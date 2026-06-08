@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { notifyMeetingBooked } from "@/lib/notify";
+import { notifyMeetingBooked, notifyTelegram } from "@/lib/notify";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
 
@@ -71,8 +71,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  // Only care about new bookings here. Cancellations could update dealStage
-  // back to Lost — left as a follow-up.
+  // invitee.canceled: reset deal stage to Lost so the dashboard shows the
+  // outcome. We deliberately don't re-enable cold sequencing — once they
+  // engaged with Calendly, they're not a cold lead anymore.
+  if (payload.event === "invitee.canceled") {
+    const cancelEmail = payload.payload?.email?.toLowerCase().trim();
+    if (cancelEmail) {
+      const found = await prisma.prospect.findUnique({ where: { email: cancelEmail } });
+      if (found) {
+        await prisma.prospect.update({
+          where: { id: found.id },
+          data: { dealStage: "Lost", dealStageAt: new Date() },
+        });
+        void notifyTelegram({
+          prospectId: found.id,
+          firmaNaziv: found.firmaNaziv,
+          classification: "Canceled meeting",
+          replyBody: `Meeting cancelled. Cancel URL: ${payload.payload?.cancel_url ?? "(n/a)"}`,
+        });
+      }
+    }
+    return NextResponse.json({ ok: true, event: "canceled" });
+  }
+
   if (payload.event !== "invitee.created") {
     return NextResponse.json({ ok: true, ignored: payload.event });
   }
@@ -106,13 +127,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, matched: false });
   }
 
-  // Advance the deal pipeline.
+  // Advance the deal pipeline AND close the cold sequence — they booked,
+  // they don't need more follow-ups. Status → Replied (terminal for the
+  // cold sequence's send rules). Clearing scheduled* fields is belt-and-
+  // braces: even if the rules already skip a Replied prospect, an old row
+  // could still trigger a stale send if status was somehow rolled back.
   await prisma.prospect.update({
     where: { id: prospect.id },
     data: {
       dealStage: "Discovery",
       dealStageAt: new Date(),
+      status: prospect.status === "Converted" ? "Converted" : "Replied",
+      datumOdgovora: prospect.datumOdgovora ?? new Date(),
+      scheduledFollow1: null,
+      scheduledFollow2: null,
+      scheduledFollow3: null,
+      scheduledBreakup: null,
     },
+  });
+
+  // Instant Telegram push — booking is the conversion event, the operator
+  // should know immediately. Email notify follows below with full context.
+  void notifyTelegram({
+    prospectId: prospect.id,
+    firmaNaziv: prospect.firmaNaziv,
+    classification: "📅 Meeting booked",
+    replyBody: `${inviteeName} (${inviteeEmail}) booked ${new Date(startTime).toLocaleString(
+      "fr-FR",
+      { timeZone: "Europe/Paris" }
+    )}`,
   });
 
   // Fire the rich notification.

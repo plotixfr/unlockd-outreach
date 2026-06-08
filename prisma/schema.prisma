@@ -59,6 +59,13 @@ model Prospect {
   upsellCount        Int          @default(0)
   lastUpsellAt       DateTime?
   linkedinTouchedAt  DateTime?
+  verifiedEmail      Boolean      @default(false)
+  verifiedAt         DateTime?
+  verifyResult       String?
+  auditFindings      Json?
+  auditFindingsAt    DateTime?
+  scheduledBreakup   DateTime?
+  datumBreakup       DateTime?
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   emails             Email[]
@@ -84,7 +91,19 @@ model Email {
   messageId        String?
   calendlyClicked  Boolean   @default(false)
   calendlyClickedAt DateTime?
+  bounced          Boolean   @default(false)
+  bouncedAt        DateTime?
+  bouncedReason    String?
+  spamScore        Int?
+  spamWords        String?   @db.Text
   createdAt        DateTime  @default(now())
+}
+
+model SuppressedDomain {
+  domain    String   @id
+  reason    String
+  prospectId String?
+  createdAt DateTime @default(now())
 }
 
 model Reply {

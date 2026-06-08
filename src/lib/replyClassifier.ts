@@ -59,10 +59,10 @@ Le draft doit :
 - Commencer par "Bonjour ${ctx.contactFirstName || "[Prénom]"},"
 - Faire 60–120 mots max
 - Ne JAMAIS donner de prix dans le draft (Temim discute toujours prix en visio)
-- Pour "Interested" → proposer un échange de 30 min, mentionner Calendly
+- Pour "Interested" → proposer un échange de 20-30 min et TERMINER le draft par cette ligne EXACTE: "Si ça vous va, voici 20 minutes dispo : https://calendly.com/temim-unlockd/30min". Pas de variante — copie cette URL telle quelle.
 - Pour "NotNow" → confirmer la note pour relancer dans 2-3 mois, rester chaleureux
 - Pour "WrongPerson" → remercier, demander politement le bon contact
-- Pour "Question" → répondre à la question si possible, sinon proposer un appel
+- Pour "Question" → répondre à la question si possible, puis TERMINER par : "Si vous voulez en discuter de vive voix : https://calendly.com/temim-unlockd/30min"
 - Pour "Negative" → un message court de remerciement et fermer poliment
 - Pour "OutOfOffice"/"AutoReply"/"Unsubscribe" → laisser le draft vide ("")
 - N'ajoute PAS de signature à la fin (elle est ajoutée automatiquement)

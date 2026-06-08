@@ -164,8 +164,15 @@ export async function notifyHotReply(input: {
   firmaNaziv: string;
   classification: string;
   replyBody: string;
+  draft?: string | null;
 }): Promise<void> {
   const subject = `🔥 ${input.firmaNaziv} — ${input.classification}`;
+  const draftBlock = input.draft
+    ? `<div style="background:#0d2818;border:1px solid #065f46;border-radius:12px;padding:16px;margin-top:14px;">
+        <p style="margin:0 0 6px;color:#a7f3d0;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">Suggested draft</p>
+        <pre style="margin:0;color:#d1fae5;font-size:13px;font-family:inherit;white-space:pre-wrap;line-height:1.5;">${input.draft.slice(0, 1500)}</pre>
+      </div>`
+    : "";
   const html = `<!DOCTYPE html>
 <html><body style="background:#0a0a0f;font-family:-apple-system,sans-serif;padding:24px 16px;">
 <div style="max-width:560px;margin:0 auto;">
@@ -177,17 +184,95 @@ export async function notifyHotReply(input: {
   <div style="background:#111118;border:1px solid #1f1f2e;border-radius:12px;padding:16px;margin-top:14px;">
     <pre style="margin:0;color:#d4d4d8;font-size:13px;font-family:inherit;white-space:pre-wrap;line-height:1.5;">${input.replyBody.slice(0, 1500)}</pre>
   </div>
+  ${draftBlock}
   <div style="text-align:center;margin-top:16px;">
     <a href="${SITE_URL}/prospects/${input.prospectId}" style="display:inline-block;background:#3b82f6;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Odgovori sada →</a>
   </div>
 </div>
 </body></html>`;
-  try {
-    await resendGate();
-    await resend.emails.send({ from: FROM_EMAIL, to: [TO_EMAIL], subject, html });
-  } catch (e) {
-    console.error("[notify] hot reply email failed:", e);
+  // Fire email + Telegram in parallel. Email is the durable record; Telegram
+  // is the <60s push to the operator's phone.
+  await Promise.all([
+    (async () => {
+      try {
+        await resendGate();
+        await resend.emails.send({ from: FROM_EMAIL, to: [TO_EMAIL], subject, html });
+      } catch (e) {
+        console.error("[notify] hot reply email failed:", e);
+      }
+    })(),
+    notifyTelegram({
+      prospectId: input.prospectId,
+      firmaNaziv: input.firmaNaziv,
+      classification: input.classification,
+      replyBody: input.replyBody,
+      draft: input.draft ?? null,
+    }),
+  ]);
+}
+
+/**
+ * Sends a high-signal push to the operator's phone via Telegram Bot API.
+ * Free, no-quota, sub-second delivery — strictly better than SMS for this.
+ *
+ * Set up:
+ *   1. Talk to @BotFather in Telegram, /newbot, copy the token
+ *   2. Send any message to the bot from your account
+ *   3. curl https://api.telegram.org/bot<TOKEN>/getUpdates to find your chat_id
+ *   4. Set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID env vars
+ *
+ * Skips silently when env vars are missing so the system keeps working even
+ * if Telegram isn't configured yet.
+ */
+export async function notifyTelegram(input: {
+  prospectId: string;
+  firmaNaziv: string;
+  classification: string;
+  replyBody: string;
+  draft?: string | null;
+}): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  const lines: string[] = [
+    `🔥 *${escapeMarkdown(input.firmaNaziv)}*`,
+    `_${escapeMarkdown(input.classification)}_`,
+    "",
+    escapeMarkdown(input.replyBody.slice(0, 600)),
+  ];
+  if (input.draft && input.draft.trim().length > 0) {
+    lines.push("", "*Draft:*", escapeMarkdown(input.draft.slice(0, 600)));
   }
+  lines.push("", `[Open prospect](${SITE_URL}/prospects/${input.prospectId})`);
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: lines.join("\n"),
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn("[notify] telegram returned", res.status, body.slice(0, 200));
+    }
+  } catch (e) {
+    console.warn("[notify] telegram fetch failed:", e);
+  }
+}
+
+/**
+ * Escapes the characters Telegram's "Markdown" parse mode treats as control
+ * (underscore, asterisk, square/grave). Just enough so a prospect name like
+ * "L*Atelier" or "co_op" doesn't break the message.
+ */
+function escapeMarkdown(s: string): string {
+  return s.replace(/([_*`\[])/g, "\\$1");
 }
 
 export async function notifyAutopilotSummary(input: {

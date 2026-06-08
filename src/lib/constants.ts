@@ -19,6 +19,7 @@ export const STATUSI = [
   "Follow1",
   "Follow2",
   "Follow3",
+  "Breakup",
   "Replied",
   "Converted",
   "Unsubscribed",
@@ -33,6 +34,7 @@ export const STATUS_BOJE: Record<string, string> = {
   Follow1:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
   Follow2:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
   Follow3:      "bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25",
+  Breakup:      "bg-amber-500/15 text-amber-300 border border-amber-500/25",
   Replied:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
   Converted:    "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
   Unsubscribed: "bg-red-500/10 text-red-300 border border-red-500/20",
@@ -40,6 +42,6 @@ export const STATUS_BOJE: Record<string, string> = {
 };
 
 export const PIPELINE_ORDER: Status[] = [
-  "New", "Scheduled", "Emailed", "Follow1", "Follow2", "Follow3",
+  "New", "Scheduled", "Emailed", "Follow1", "Follow2", "Follow3", "Breakup",
   "Replied", "Converted",
 ];

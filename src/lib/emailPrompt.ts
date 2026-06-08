@@ -16,6 +16,7 @@ import { pagespeedToPromptFacts } from "@/lib/pagespeed";
 import type { DecisionMakerResult } from "@/lib/decisionMakers";
 import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMakers";
 import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
+import type { AuditResult } from "@/lib/auditFindings";
 
 const EMAIL_SYSTEM_BASE = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui conçoit et développe des sites web premium pour des marques exigeantes — hôtels, restaurants, architectes, agences immobilières, marques de luxe, professionnels indépendants, e-commerce haut de gamme. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
 
@@ -90,6 +91,9 @@ export interface BuildPromptOpts {
   pagespeed?: PageSpeedSnapshot | null;
   decisionMakers?: DecisionMakerResult | null;
   caseStudy?: PromptCaseStudy | null;
+  audit?: AuditResult | null;
+  mockupUrl?: string | null;
+  auditUrl?: string | null;
 }
 
 function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
@@ -110,6 +114,29 @@ function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
       `Case study à mentionner dans le follow-up #2 ("preuve sociale") : ${cs.title}${metric}. Résumé : ${cs.summary}`
     );
   }
+  if (opts.audit && opts.audit.findings.length > 0) {
+    const findingsText = opts.audit.findings
+      .map((f, i) => `${i + 1}. ${f.observation} → ${f.impact} → Fix : ${f.fix}`)
+      .join("\n");
+    blocks.push(
+      `Audit 3-findings DÉJÀ GÉNÉRÉ pour ce prospect — Follow2 doit présenter ces 3 findings tels quels, formattés en HTML compact (chaque finding = 1 paragraphe avec <strong>n. observation</strong><br>→ impact<br><em>Fix : ...</em>). NE PAS reformuler ni inventer d'autres findings.\n${findingsText}`
+    );
+  }
+  if (opts.auditUrl) {
+    // The audit landing page renders findings + mockup + Calendly CTA. F2
+    // links here; Claude must NOT try to reproduce all findings in the
+    // email body (the landing page already does that, better).
+    const mockupHint = opts.mockupUrl
+      ? " La page contient aussi une direction visuelle pour leur site (mockup)."
+      : "";
+    blocks.push(
+      `Page d'audit DÉJÀ PRÉPARÉE pour ce prospect : ${opts.auditUrl}\n\nFollow2 doit se terminer par UNE phrase courte qui pointe vers cette URL, exemple : "J'ai préparé un audit personnalisé pour vous — <a href='${opts.auditUrl}'>les 3 points concrets ici →</a>". Garde l'URL EXACTE dans un <a href>. Pas besoin de réécrire les findings dans le mail, la page les présente déjà.${mockupHint}\n\nFollow1 peut faire une légère allusion ("je vous prépare un audit ciblé, je vous l'envoie d'ici quelques jours") sans donner le lien — le lien tombe en Follow2.`
+    );
+  } else if (opts.mockupUrl) {
+    blocks.push(
+      `Mockup visuel DÉJÀ GÉNÉRÉ (image hero premium du site refait) : ${opts.mockupUrl}\n\nFollow2 doit se terminer par UNE phrase qui pointe vers le mockup, exemple : "J'ai esquissé à quoi votre site pourrait ressembler — <a href='${opts.mockupUrl}'>première impression visuelle ici</a>." (adapte la formulation mais garde l'URL telle quelle, dans un <a href>).`
+    );
+  }
   return blocks.length === 0 ? "" : `\n\n${blocks.join("\n\n")}`;
 }
 
@@ -127,14 +154,14 @@ export function buildEmailPrompt(p: PromptProspect, opts: BuildPromptOpts = {}):
     : `Commence par "Bonjour," sans nom inventé.`;
 
   if (opts.compact) {
-    return `Génère 4 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Pas de site"}. Instagram: ${p.instagram || "N/A"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5. Notes: ${p.napomena || "Aucune"}.${factsSection}
+    return `Génère 5 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Pas de site"}. Instagram: ${p.instagram || "N/A"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5. Notes: ${p.napomena || "Aucune"}.${factsSection}
 
-Types: "initial","follow1","follow2","follow3". Adapte ton, références et arguments au secteur "${nicheLabel}". ${greetingHint} Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email, pas de prix, pas de signature ni nom de société à la fin (la signature est ajoutée automatiquement après ton message). Pour chaque email, deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing.${hintBlock}
+Types: "initial","follow1","follow2","follow3","breakup". Adapte ton, références et arguments au secteur "${nicheLabel}". ${greetingHint} Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email (breakup max 40 mots), pas de prix, pas de signature ni nom de société à la fin (la signature est ajoutée automatiquement après ton message). Pour chaque email, deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing.${hintBlock}
 
-Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
+Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
   }
 
-  return `Génère 4 cold emails pour ce prospect.
+  return `Génère 5 cold emails pour ce prospect.
 
 Prospect:
 - Nom: ${p.firmaNaziv}
@@ -152,19 +179,20 @@ Types à générer (adapte ton, références et arguments au secteur "${nicheLab
 2. "follow1" — Ce qu'ils perdent sans site premium dans leur secteur. Si un signal négatif a été détecté (LCP > 4s, pas de viewport mobile, plateforme générique type Wix, peu d'images, pas de réservation), évoque-le concrètement.
 3. "follow2" — Preuve sociale concrète. Si une case study a été fournie ci-dessus, utilise-la (titre + résultat chiffré). Sinon, reste qualitatif — n'invente AUCUN chiffre.
 4. "follow3" — Email final très court, simple oui/non, un seul appel à l'action.
+5. "breakup" — Email de rupture, format UNIQUEMENT: "Bonjour ${greetingFirstName ?? "[Prénom]"}, dois-je clôturer cette piste ou c'est juste un mauvais timing ?" — 1 phrase, 25-40 mots max, ton humain et désarmé, sans pitch. Sujet: 3-5 mots minuscules (ex: "dernière relance", "clôture du dossier", "encore ouvert ?").
 
 Règles:
 - Français impeccable, ton premium
 - ${greetingHint}
 - Corps HTML: balises p, br, strong uniquement
-- Maximum 120 mots par email
+- Maximum 120 mots par email (breakup max 40 mots)
 - Ne jamais mentionner de prix
 - Ne pas ajouter de signature, de nom ni de nom de société à la fin. La signature est ajoutée automatiquement par le système après ton message. L'email se termine par la dernière phrase utile.
 - Générer deux lignes d'objet pour chaque email : "subject" (version A, sobre et direct) et "subjectB" (version B, plus orienté bénéfice ou question) — tons légèrement différents pour A/B testing
 - N'invente AUCUN fait spécifique sur le prospect qui ne figure pas dans les données ci-dessus${hintBlock}
 
 Return ONLY the JSON array, nothing else:
-[{"tip":"initial","subject":"Ligne objet A...","subjectB":"Ligne objet B...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
+[{"tip":"initial","subject":"Ligne objet A...","subjectB":"Ligne objet B...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
 }
 
 export function extractJsonArray(text: string): string {

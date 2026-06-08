@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray } from "@/lib/emailPrompt";
 import { processDueEmails } from "@/lib/sendEmail";
+import { generateMockup } from "@/lib/mockup";
 
 const MODEL = "claude-sonnet-4-6";
 const SEND_NOW_WINDOW_MS = 10 * 60 * 1000;
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
         where: { nisa: { in: nichesInBatch } },
       });
       const hintByNiche = new Map(hintRows.map((h) => [h.nisa, h.promptHint]));
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
 
       let generated = 0;
       const failed: string[] = [];
@@ -65,7 +68,19 @@ export async function POST(req: NextRequest) {
               system: await getEmailSystemPrompt(),
               messages: [{
                 role: "user",
-                content: buildEmailPrompt(prospect, { compact: true, nicheHint: hintByNiche.get(prospect.nisa) ?? null }),
+                content: buildEmailPrompt(prospect, {
+                  compact: true,
+                  nicheHint: hintByNiche.get(prospect.nisa) ?? null,
+                  // Include enrichment that already exists on the prospect
+                  // so manual regen produces emails consistent with the
+                  // autopilot version (audit landing link, mockup ref, etc.)
+                  siteSnapshot: prospect.siteSnapshot as never,
+                  pagespeed: prospect.pagespeed as never,
+                  decisionMakers: prospect.decisionMakers as never,
+                  audit: prospect.auditFindings as never,
+                  mockupUrl: prospect.mockupUrl,
+                  auditUrl: `${siteUrl}/audit/${prospect.id}`,
+                }),
               }],
             });
 
@@ -115,6 +130,9 @@ export async function POST(req: NextRequest) {
       const follow1 = new Date(initial.getTime() + f1Days * 86400000);
       const follow2 = new Date(follow1.getTime() + f2Days * 86400000);
       const follow3 = new Date(follow2.getTime() + f3Days * 86400000);
+      // Breakup ~5d after F3 so the bulk-scheduled campaign mirrors the
+      // autopilot cadence — last shot before the prospect goes silent.
+      const breakup = new Date(follow3.getTime() + 5 * 86400000);
 
       const prospects = await prisma.prospect.findMany({
         where: { id: { in: ids } },
@@ -139,6 +157,7 @@ export async function POST(req: NextRequest) {
             scheduledFollow1: follow1,
             scheduledFollow2: follow2,
             scheduledFollow3: follow3,
+            scheduledBreakup: breakup,
           },
         });
         scheduled++;
@@ -158,6 +177,67 @@ export async function POST(req: NextRequest) {
       }
 
       return NextResponse.json({ success: true, scheduled, skipped, sentNow });
+    }
+
+    // ── MOCKUP ──
+    // Generates a Replicate Flux Schnell mockup for any selected prospect
+    // that doesn't already have one. ~3s/image, ~$0.003 each. The hero
+    // image is what gets injected into F2 — biggest single conversion
+    // lever for premium web prospects ("here's what your site could look
+    // like").
+    if (action === "mockup") {
+      if (!process.env.REPLICATE_API_TOKEN) {
+        return NextResponse.json(
+          { error: "REPLICATE_API_TOKEN nije postavljen u Vercel Env" },
+          { status: 500 }
+        );
+      }
+      const prospects = await prisma.prospect.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, firmaNaziv: true, nisa: true, grad: true, mockupUrl: true },
+      });
+      const candidates = prospects.filter((p) => !p.mockupUrl);
+
+      let generatedCount = 0;
+      const failed: string[] = [];
+
+      // 3 in parallel — Replicate's free tier handles bursts and our function
+      // budget is 60s. 5 prospects ≈ 12-15s at this concurrency.
+      const concurrency = 3;
+      let i = 0;
+      const workers = Array.from({ length: Math.min(concurrency, candidates.length) }, async () => {
+        while (true) {
+          const idx = i++;
+          if (idx >= candidates.length) return;
+          const p = candidates[idx];
+          const result = await generateMockup({
+            id: p.id,
+            firmaNaziv: p.firmaNaziv,
+            nisa: p.nisa,
+            grad: p.grad,
+          });
+          if (result.ok && result.url) {
+            await prisma.prospect.update({
+              where: { id: p.id },
+              data: {
+                mockupUrl: result.url,
+                mockupPrompt: result.prompt ?? null,
+                mockupAt: new Date(),
+              },
+            });
+            generatedCount++;
+          } else {
+            failed.push(`${p.firmaNaziv}: ${result.error ?? "unknown"}`);
+          }
+        }
+      });
+      await Promise.all(workers);
+      return NextResponse.json({
+        success: true,
+        generated: generatedCount,
+        alreadyHad: prospects.length - candidates.length,
+        failed,
+      });
     }
 
     return NextResponse.json({ error: "Nepoznata akcija" }, { status: 400 });

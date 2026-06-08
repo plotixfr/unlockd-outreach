@@ -2,6 +2,7 @@ import { ImapFlow } from "imapflow";
 import { prisma } from "@/lib/prisma";
 import { analyzeReply, prospectActionFor } from "@/lib/replyClassifier";
 import { notifyHotReply } from "@/lib/notify";
+import { suppressDomain } from "@/lib/suppression";
 
 /**
  * Pulls recent INBOX messages over IMAP and:
@@ -128,15 +129,16 @@ export async function checkReplies(): Promise<{
             draft = analysis.draft || null;
             const msgDate = messageDate instanceof Date ? messageDate : new Date(messageDate);
             prospectAction = prospectActionFor(analysis.classification, msgDate);
-            // Fire a high-signal email immediately for hot categories so the
-            // operator can respond fast — speed-to-reply is the single biggest
-            // predictor of close on a warm prospect.
+            // Fire a high-signal email + Telegram push immediately for hot
+            // categories so the operator can respond fast — speed-to-reply
+            // is the single biggest predictor of close on a warm prospect.
             if (analysis.classification === "Interested" || analysis.classification === "Question") {
               void notifyHotReply({
                 prospectId: prospect.id,
                 firmaNaziv: prospect.firmaNaziv,
                 classification: analysis.classification,
                 replyBody: body,
+                draft: analysis.draft || null,
               });
             }
           }
@@ -170,6 +172,19 @@ export async function checkReplies(): Promise<{
             if (prospectAction.status === "Replied" && prospect.status !== "Replied") {
               matched++;
             }
+            // Domain-level suppression: a reply (any flavor) means we should
+            // not cold-mail colleagues at the same company. Negative /
+            // Unsubscribe reasons are the strongest signal; "Interested"
+            // also suppresses because once the conversation is live, you
+            // don't want a second person at the company getting a cold
+            // pitch from the same address.
+            const sup =
+              prospectAction.status === "Unsubscribed"
+                ? ("unsubscribed" as const)
+                : classification === "Negative"
+                  ? ("negative" as const)
+                  : ("replied" as const);
+            await suppressDomain(prospect.email, sup, prospect.id);
           } else if (!prospectAction && prospect.status !== "Replied") {
             // No classifier output (offline / quota) — fall back to old
             // behaviour: any matched reply means "Replied".
@@ -177,6 +192,7 @@ export async function checkReplies(): Promise<{
               where: { id: prospect.id },
               data: { status: "Replied", datumOdgovora: messageDate },
             });
+            await suppressDomain(prospect.email, "replied", prospect.id);
             matched++;
           }
         } catch (e) {

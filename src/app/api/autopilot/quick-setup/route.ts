@@ -79,6 +79,49 @@ const PRESETS: Preset[] = [
 
   // ── Auto premium ──
   { name: "Concessionnaires haut de gamme Paris", niche: "Concessionnaire automobile", city: "Paris", country: "FR", minRating: 4.2, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+
+  // ── Lyon — top niches ──
+  { name: "Hôtels 4-5★ Lyon",                  niche: "Hotel",                  city: "Lyon", country: "FR", minRating: 4.3, minReviews: 80, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes Lyon",                  niche: "Architecte",             city: "Lyon", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes d'intérieur Lyon",      niche: "Architecte d'intérieur", city: "Lyon", country: "FR", minRating: 4.5, minReviews: 12, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Immobilier prestige Lyon",          niche: "Agence immobilière",     city: "Lyon", country: "FR", minRating: 4.2, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Spas premium Lyon",                 niche: "Spa",                    city: "Lyon", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Cliniques esthétiques Lyon",        niche: "Clinique esthétique",    city: "Lyon", country: "FR", minRating: 4.4, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Bijouteries Lyon",                  niche: "Bijouterie",             city: "Lyon", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Cabinets dentaires Lyon",           niche: "Cabinet dentaire",       city: "Lyon", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+
+  // ── Marseille — top niches ──
+  { name: "Hôtels 4-5★ Marseille",             niche: "Hotel",                  city: "Marseille", country: "FR", minRating: 4.2, minReviews: 60, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Restaurants gastro Marseille",      niche: "Restaurant",             city: "Marseille", country: "FR", minRating: 4.5, minReviews: 60, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes Marseille",             niche: "Architecte",             city: "Marseille", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Immobilier prestige Marseille",     niche: "Agence immobilière",     city: "Marseille", country: "FR", minRating: 4.2, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Cabinets dentaires Marseille",      niche: "Cabinet dentaire",       city: "Marseille", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+
+  // ── Nice & Côte d'Azur (extension) ──
+  { name: "Restaurants gastro Nice",           niche: "Restaurant",             city: "Nice",   country: "FR", minRating: 4.5, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes Côte d'Azur",           niche: "Architecte",             city: "Nice",   country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Spas premium Côte d'Azur",          niche: "Spa",                    city: "Nice",   country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Bijouteries Cannes",                niche: "Bijouterie",             city: "Cannes", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Galeries d'art Saint-Paul-de-Vence", niche: "Galerie d'art",         city: "Saint-Paul-de-Vence", country: "FR", minRating: 4.5, minReviews: 8, maxPerRun: 2, qualityThreshold: 5 },
+
+  // ── Bordeaux (extension) ──
+  { name: "Restaurants gastro Bordeaux",       niche: "Restaurant",             city: "Bordeaux", country: "FR", minRating: 4.5, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes Bordeaux",              niche: "Architecte",             city: "Bordeaux", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Châteaux viticoles Bordeaux",       niche: "Château viticole",       city: "Bordeaux", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 5 },
+  { name: "Immobilier prestige Bordeaux",      niche: "Agence immobilière",     city: "Bordeaux", country: "FR", minRating: 4.2, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+
+  // ── Toulouse ──
+  { name: "Hôtels 4-5★ Toulouse",              niche: "Hotel",                  city: "Toulouse", country: "FR", minRating: 4.3, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Architectes Toulouse",              niche: "Architecte",             city: "Toulouse", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Cabinets dentaires Toulouse",       niche: "Cabinet dentaire",       city: "Toulouse", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+
+  // ── High-AOV niches (any major city) ──
+  { name: "Wedding planners premium Paris",    niche: "Wedding planner",        city: "Paris", country: "FR", minRating: 4.7, minReviews: 20, maxPerRun: 2, qualityThreshold: 7 },
+  { name: "Traiteurs événementiels Paris",     niche: "Traiteur",               city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Fleuristes haut de gamme Paris",    niche: "Fleuriste",              city: "Paris", country: "FR", minRating: 4.6, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Tailors / mesure Paris",            niche: "Tailleur",               city: "Paris", country: "FR", minRating: 4.6, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Chocolatiers premium Paris",        niche: "Chocolatier",            city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "Galeristes design Paris",           niche: "Galerie design",         city: "Paris", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 5 },
 ];
 
 export async function POST(_req: NextRequest) {

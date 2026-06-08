@@ -21,6 +21,11 @@ import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
 import { scoreProspect } from "@/lib/qualityScore";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
+import { verifyEmail } from "@/lib/verifyEmail";
+import { isDomainSuppressed } from "@/lib/suppression";
+import { generateAuditFindings } from "@/lib/auditFindings";
+import { generateMockup } from "@/lib/mockup";
+import { pickSubjectVariant } from "@/lib/subjectWinner";
 
 const EMAIL_MODEL = "claude-sonnet-4-6";
 // Throughput knobs — defaults are Vercel-Hobby-safe (60s function cap). On
@@ -48,6 +53,16 @@ const PSI_TIMEOUT_MS = 10_000;
 const DM_TIMEOUT_MS = 8_000;
 const EMAIL_FIND_TIMEOUT_MS = 10_000;
 const GEN_TIMEOUT_MS = 22_000;
+const VERIFY_TIMEOUT_MS = 9_000;
+const AUDIT_TIMEOUT_MS = 22_000;
+const MOCKUP_TIMEOUT_MS = 30_000;
+// Toggle: defaults true if REPLICATE_API_TOKEN is set. Skips when missing
+// so the autopilot doesn't error on every prospect when Replicate quota /
+// billing is off.
+const MOCKUP_ENABLED = !!process.env.REPLICATE_API_TOKEN;
+// Toggle: defaults true. Set EMAIL_VERIFY=false to disable (e.g. if a host
+// blocks outbound port 25 and every verify returns "unknown").
+const EMAIL_VERIFY_ENABLED = process.env.EMAIL_VERIFY !== "false";
 
 /**
  * Resolves to the promise's value, or null if it doesn't settle within `ms`.
@@ -192,6 +207,14 @@ async function generateEmailsInline(
       }
     : null;
 
+  // Pick up the cached 3-finding audit + mockup URL if processPlace
+  // generated either; they drive Follow2 (audit findings as body) and
+  // F1/F2 (mockup link as visual proof of concept).
+  const audit = (prospect.auditFindings as unknown as
+    | import("@/lib/auditFindings").AuditResult
+    | null) ?? null;
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
   const message = await withTimeout(
     anthropic.messages.create({
       model: EMAIL_MODEL,
@@ -206,6 +229,9 @@ async function generateEmailsInline(
             pagespeed: ctx.psi,
             decisionMakers: ctx.dm,
             caseStudy,
+            audit,
+            mockupUrl: prospect.mockupUrl,
+            auditUrl: `${siteUrl}/audit/${prospect.id}`,
           }),
         },
       ],
@@ -224,6 +250,9 @@ async function generateEmailsInline(
   } catch {
     return 0;
   }
+  // Bias the A/B pick toward the winner if this niche has enough open-rate
+  // data; otherwise this is just 50/50 random (same behavior as before).
+  const bias = await pickSubjectVariant(prospect.nisa);
   await prisma.email.createMany({
     data: parsed.map((e) => ({
       prospectId,
@@ -231,7 +260,9 @@ async function generateEmailsInline(
       subject: String(e.subject ?? ""),
       subjectB: e.subjectB ? String(e.subjectB) : null,
       body: String(e.body ?? ""),
-      activeSubject: e.subjectB && Math.random() < 0.5 ? "B" : "A",
+      // For prospects with both variants, follow the niche-level winner.
+      // If no winner data, pickSubjectVariant returns a fresh coin-flip.
+      activeSubject: e.subjectB ? bias : "A",
     })),
   });
   await prisma.prospect.update({
@@ -348,9 +379,14 @@ function slotInDay(dayStart: Date): Date {
 async function scheduleInline(prospectId: string): Promise<void> {
   const cap = Number(process.env.DAILY_SEND_CAP ?? 30);
   const initial = await pickFirstAvailableDay(cap, SCHEDULE_LOOKAHEAD_DAYS);
-  const f1 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 4);
-  const f2 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 9);
-  const f3 = nextWorkingSlot(Math.floor((initial.getTime() - Date.now()) / 86400000) + 16);
+  const baseOffset = Math.floor((initial.getTime() - Date.now()) / 86400000);
+  const f1 = nextWorkingSlot(baseOffset + 4);
+  const f2 = nextWorkingSlot(baseOffset + 9);
+  const f3 = nextWorkingSlot(baseOffset + 16);
+  // Breakup ~5 days after F3 → total ~day 21 of the sequence. Highest reply
+  // rate of any cold-outbound touch in our tests; cheap to add given the
+  // prospect already passed all upstream gates.
+  const breakup = nextWorkingSlot(baseOffset + 21);
   await prisma.prospect.update({
     where: { id: prospectId },
     data: {
@@ -359,6 +395,7 @@ async function scheduleInline(prospectId: string): Promise<void> {
       scheduledFollow1: f1,
       scheduledFollow2: f2,
       scheduledFollow3: f3,
+      scheduledBreakup: breakup,
       autoScheduled: true,
     },
   });
@@ -404,6 +441,25 @@ async function processPlace(
   const dupByEmail = await prisma.prospect.findUnique({ where: { email } });
   if (dupByEmail) return { status: "skipped", reason: "email već postoji" };
 
+  // Domain-level suppression: a colleague at the same company already
+  // replied / unsubscribed / bounced — don't waste a slot on a new contact
+  // we're not allowed to mail. Public providers are skipped inside helper.
+  if (await isDomainSuppressed(email)) {
+    return { status: "skipped", reason: "domena je u suppression listi" };
+  }
+
+  // Email verification: MX + SMTP RCPT. Skips on "unknown" so a port-25-
+  // blocked environment doesn't flag everything as bad. Catch-all domains
+  // get accepted but flagged (verifyResult="catchall") so the operator can
+  // see which to send to with caution.
+  let verifyOutcome: Awaited<ReturnType<typeof verifyEmail>> | null = null;
+  if (EMAIL_VERIFY_ENABLED) {
+    verifyOutcome = await withTimeout(verifyEmail(email), VERIFY_TIMEOUT_MS, `verifyEmail(${email})`);
+    if (verifyOutcome?.result === "invalid") {
+      return { status: "skipped", reason: `email nevažeći: ${verifyOutcome.reason}` };
+    }
+  }
+
   const nicheLabel = inferNicheFromPlaceType(place.primaryType, brief.niche);
 
   // Create the prospect now so subsequent enrichment can update it.
@@ -426,6 +482,9 @@ async function processPlace(
       externalId: place.placeId,
       briefId: brief.id,
       status: "New",
+      verifiedEmail: verifyOutcome?.result === "valid",
+      verifiedAt: verifyOutcome ? new Date() : null,
+      verifyResult: verifyOutcome?.result ?? null,
     },
   });
 
@@ -479,6 +538,55 @@ async function processPlace(
 
   if (!brief.autoGenerate) {
     return { status: "qualified", reason: "autoGenerate=false, čeka ručnu generaciju" };
+  }
+
+  // Run audit + mockup in parallel — both are independent of each other and
+  // each takes 15-30s. Doing them sequentially would burn 60s of budget;
+  // parallel keeps the per-prospect floor under 35s.
+  const [audit, mockup] = await Promise.all([
+    site?.ok
+      ? withTimeout(
+          generateAuditFindings({
+            firmaNaziv: place.name,
+            nisa: nicheLabel,
+            grad: place.city ?? brief.city ?? "Unknown",
+            website: place.website,
+            site,
+            psi,
+          }),
+          AUDIT_TIMEOUT_MS,
+          `auditFindings(${place.name})`
+        )
+      : Promise.resolve(null),
+    MOCKUP_ENABLED
+      ? withTimeout(
+          generateMockup({
+            id: prospect.id,
+            firmaNaziv: place.name,
+            nisa: nicheLabel,
+            grad: place.city ?? brief.city ?? "Unknown",
+          }),
+          MOCKUP_TIMEOUT_MS,
+          `mockup(${place.name})`
+        )
+      : Promise.resolve(null),
+  ]);
+
+  const enrichmentUpdate: Record<string, unknown> = {};
+  if (audit) {
+    enrichmentUpdate.auditFindings = audit;
+    enrichmentUpdate.auditFindingsAt = new Date();
+  }
+  if (mockup?.ok && mockup.url) {
+    enrichmentUpdate.mockupUrl = mockup.url;
+    enrichmentUpdate.mockupPrompt = mockup.prompt;
+    enrichmentUpdate.mockupAt = new Date();
+  }
+  if (Object.keys(enrichmentUpdate).length > 0) {
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: enrichmentUpdate as never,
+    });
   }
 
   // Generate emails.

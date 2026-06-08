@@ -4,16 +4,16 @@ import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
 import { FilterActions } from "@/components/FilterActions";
 import { ScoreUnscoredButton } from "@/components/ScoreUnscoredButton";
-import { Plus, Search, Sparkles } from "lucide-react";
+import { Plus, Search, Sparkles, Flame, MessageCircleReply } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProspectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; nisa?: string; status?: string }>;
+  searchParams: Promise<{ search?: string; nisa?: string; status?: string; view?: string }>;
 }) {
-  const { search, nisa, status } = await searchParams;
+  const { search, nisa, status, view } = await searchParams;
 
   const where: Record<string, unknown> = {};
 
@@ -27,10 +27,26 @@ export default async function ProspectsPage({
   if (nisa) where.nisa = nisa;
   if (status) where.status = status;
 
-  const [prospects, niseGroups, unscoredCount] = await Promise.all([
+  // View modes — special filters that override status. "hot" surfaces
+  // prospects who opened 3+ times but never replied (silent-but-curious).
+  // "replies" sorts by most-recent reply so the operator's morning routine
+  // is "check Replies tab → respond to top N".
+  if (view === "hot") {
+    where.status = { notIn: ["Replied", "Converted", "Unsubscribed", "Bounced"] };
+    where.emails = { some: { otvoren: true } };
+  } else if (view === "replies") {
+    where.status = "Replied";
+  }
+
+  const [prospects, niseGroups, unscoredCount, hotCount, repliesCount] = await Promise.all([
     prisma.prospect.findMany({
       where,
-      orderBy: [{ qualityScore: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+      orderBy:
+        view === "replies"
+          ? [{ datumOdgovora: "desc" }]
+          : view === "hot"
+            ? [{ qualityScore: { sort: "desc", nulls: "last" } }, { updatedAt: "desc" }]
+            : [{ qualityScore: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       select: {
         id: true,
         firmaNaziv: true,
@@ -41,6 +57,17 @@ export default async function ProspectsPage({
         qualityScore: true,
         createdAt: true,
         _count: { select: { emails: true } },
+        // Latest reply preview — only needed in hot/replies views to surface
+        // "what they said" inline. Cheaper than a JOIN on every row in the
+        // default list view.
+        replies:
+          view === "replies" || view === "hot"
+            ? {
+                orderBy: { receivedAt: "desc" },
+                take: 1,
+                select: { body: true, classification: true, receivedAt: true },
+              }
+            : false,
       },
     }),
     prisma.prospect.groupBy({
@@ -48,6 +75,13 @@ export default async function ProspectsPage({
       orderBy: { nisa: "asc" },
     }),
     prisma.prospect.count({ where: { qualityScore: null } }),
+    prisma.prospect.count({
+      where: {
+        status: { notIn: ["Replied", "Converted", "Unsubscribed", "Bounced"] },
+        emails: { some: { otvoren: true } },
+      },
+    }),
+    prisma.prospect.count({ where: { status: "Replied" } }),
   ]);
   const availableNise = niseGroups.map((g) => g.nisa);
 
@@ -60,8 +94,8 @@ export default async function ProspectsPage({
     return `/prospects?${params.toString()}`;
   };
 
-  const currentFilters = { search, nisa, status };
-  const hasFilter = Boolean(search || nisa || status);
+  const currentFilters = { search, nisa, status, view };
+  const hasFilter = Boolean(search || nisa || status || view);
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -78,6 +112,30 @@ export default async function ProspectsPage({
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           Import list
+        </Link>
+      </div>
+
+      {/* High-signal view chips: where the operator should look first */}
+      <div className="flex gap-2 flex-wrap">
+        <Link
+          href={makeHref("view", "", { ...currentFilters, view: undefined })}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${!view ? "bg-zinc-500/15 text-zinc-200 ring-1 ring-zinc-400/30" : "text-zinc-500 hover:text-white bg-[#0d0d12] border border-[#1c1c28]"}`}
+        >
+          All ({prospects.length}{!view ? "" : ""})
+        </Link>
+        <Link
+          href={makeHref("view", "hot", { ...currentFilters, view: undefined, status: undefined })}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${view === "hot" ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40" : "text-amber-400/80 hover:text-amber-300 bg-[#0d0d12] border border-amber-500/20"}`}
+        >
+          <Flame className="w-3.5 h-3.5" strokeWidth={2} />
+          Hot ({hotCount})
+        </Link>
+        <Link
+          href={makeHref("view", "replies", { ...currentFilters, view: undefined, status: undefined })}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${view === "replies" ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40" : "text-emerald-400/80 hover:text-emerald-300 bg-[#0d0d12] border border-emerald-500/20"}`}
+        >
+          <MessageCircleReply className="w-3.5 h-3.5" strokeWidth={2} />
+          Replies ({repliesCount})
         </Link>
       </div>
 

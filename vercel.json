@@ -5,6 +5,18 @@
       "schedule": "0 6 * * 1-5"
     },
     {
+      "path": "/api/autopilot/run",
+      "schedule": "0 9 * * 1-5"
+    },
+    {
+      "path": "/api/autopilot/run",
+      "schedule": "0 12 * * 1-5"
+    },
+    {
+      "path": "/api/autopilot/run",
+      "schedule": "0 15 * * 1-5"
+    },
+    {
       "path": "/api/cron/send-followups",
       "schedule": "0 8 * * *"
     },
@@ -13,8 +25,16 @@
       "schedule": "30 6 * * *"
     },
     {
+      "path": "/api/cron/inbound-nurture",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/check-replies",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/daily-summary",
-      "schedule": "0 17 * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/reengage",

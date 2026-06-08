@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { suppressDomain } from "@/lib/suppression";
 
 async function verifySignature(
   secret: string,
@@ -50,7 +51,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
-  let event: { type: string; data: { email_id?: string; to?: string[] } };
+  let event: {
+    type: string;
+    data: { email_id?: string; to?: string[]; bounce?: { message?: string; subType?: string } };
+  };
   try {
     event = JSON.parse(rawBody);
   } catch {
@@ -68,10 +72,14 @@ export async function POST(req: NextRequest) {
 
     // Find email by resendId first, fall back to prospect email address
     let prospectId: string | null = null;
+    let emailId: string | null = null;
 
     if (resendId) {
       const email = await prisma.email.findFirst({ where: { resendId } });
-      if (email) prospectId = email.prospectId;
+      if (email) {
+        prospectId = email.prospectId;
+        emailId = email.id;
+      }
     }
 
     if (!prospectId && toEmail) {
@@ -84,7 +92,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    await prisma.prospect.update({
+    // Mark the prospect terminal + clear pending sends.
+    const prospect = await prisma.prospect.update({
       where: { id: prospectId },
       data: {
         status: newStatus,
@@ -92,10 +101,30 @@ export async function POST(req: NextRequest) {
         scheduledFollow1: null,
         scheduledFollow2: null,
         scheduledFollow3: null,
+        scheduledBreakup: null,
       },
     });
 
-    console.log("[resend-webhook] Updated prospect", prospectId, "→", newStatus);
+    // Persist bounce metadata on the specific email row, so the dashboard
+    // surfaces which send burned and we can audit later.
+    if (emailId && type === "email.bounced") {
+      await prisma.email.update({
+        where: { id: emailId },
+        data: {
+          bounced: true,
+          bouncedAt: new Date(),
+          bouncedReason: data.bounce?.message ?? data.bounce?.subType ?? "bounce",
+        },
+      });
+    }
+
+    // Domain-level suppression: a colleague at the same company shouldn't
+    // get a cold email after a hard bounce / spam complaint. Public
+    // providers (gmail.com etc.) are skipped inside suppressDomain.
+    const reason = type === "email.bounced" ? "bounced" : "complained";
+    await suppressDomain(prospect.email, reason, prospectId);
+
+    console.log("[resend-webhook] Updated prospect", prospectId, "→", newStatus, "+ suppressed domain");
   }
 
   return NextResponse.json({ ok: true });

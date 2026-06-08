@@ -90,15 +90,68 @@ export async function scoreProspect(p: ProspectScoringInput): Promise<QualitySco
     const end = raw.lastIndexOf("}");
     if (start === -1 || end === -1) return null;
     const parsed = JSON.parse(raw.slice(start, end + 1)) as { score?: unknown; note?: unknown };
-    const score =
+    const baseScore =
       typeof parsed.score === "number" && parsed.score >= 1 && parsed.score <= 10
         ? Math.round(parsed.score)
         : null;
-    const note = typeof parsed.note === "string" ? parsed.note.trim().slice(0, 200) : "";
-    if (score === null) return null;
-    return { score, note };
+    const baseNote = typeof parsed.note === "string" ? parsed.note.trim().slice(0, 200) : "";
+    if (baseScore === null) return null;
+    return applyBuyingTriggerBoosts(baseScore, baseNote, p);
   } catch (e) {
     console.warn("[qualityScore] failed:", e);
     return null;
   }
+}
+
+/**
+ * Post-LLM boost: hard-coded buying-trigger heuristics that are way more
+ * reliable than Claude's instinct on this. A premium brand stuck on
+ * Wix/Squarespace is the single highest-conversion signal in this niche
+ * (5× more likely to buy a custom build per Mailshake's 2024 study). We
+ * also penalise Webflow/Shopify since those signal "team already invested
+ * in their stack". Bonuses cap the score at 10.
+ */
+function applyBuyingTriggerBoosts(
+  baseScore: number,
+  baseNote: string,
+  p: ProspectScoringInput
+): QualityScore {
+  let score = baseScore;
+  const notes: string[] = [];
+
+  const tech = p.siteSnapshot?.signals.techHints ?? [];
+  const lowPsi =
+    p.pagespeed?.ok && p.pagespeed.performanceScore !== null && p.pagespeed.performanceScore < 50;
+  const noMobile =
+    p.siteSnapshot?.ok && p.siteSnapshot.signals.responsiveViewport === false;
+  const noReservation =
+    p.siteSnapshot?.ok &&
+    p.siteSnapshot.signals.hasReservation === false &&
+    /hotel|hôtel|restaur/i.test(p.nisa);
+
+  if (tech.includes("Wix") || tech.includes("Squarespace")) {
+    score += 2;
+    notes.push("plateforme générique");
+  } else if (tech.includes("WordPress")) {
+    score += 1;
+    notes.push("WordPress (refresh probable)");
+  } else if (tech.includes("Webflow")) {
+    score -= 1; // équipe déjà investie
+  }
+  if (lowPsi) {
+    score += 1;
+    notes.push("Lighthouse < 50");
+  }
+  if (noMobile) {
+    score += 1;
+    notes.push("pas de mobile viewport");
+  }
+  if (noReservation) {
+    score += 1;
+    notes.push("pas de réservation en ligne");
+  }
+
+  score = Math.max(1, Math.min(10, score));
+  const note = notes.length > 0 ? `${baseNote} · +${notes.join(", ")}` : baseNote;
+  return { score, note: note.slice(0, 200) };
 }

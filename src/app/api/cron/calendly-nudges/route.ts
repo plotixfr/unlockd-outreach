@@ -98,12 +98,15 @@ async function run(req: NextRequest) {
         },
       });
       // scheduledInitial=now so the processDueEmails sweep at the end of
-      // this same run picks it up. status=Nudged so the dashboard and the
-      // duplicate-prevention query (NOT-exists on calendly_nudge) both
-      // reflect the new state.
+      // this same run picks it up. We deliberately do NOT change status:
+      // the calendly_nudge is an additional touch on top of the follow-up
+      // sequence, not a replacement for it. The dedup query already uses
+      // "NOT exists calendly_nudge" so a re-fire is prevented regardless of
+      // status — and leaving status alone lets follow1/2/3/breakup keep
+      // firing on their normal cadence.
       await prisma.prospect.update({
         where: { id: p.id },
-        data: { scheduledInitial: new Date(), status: "Nudged" },
+        data: { scheduledInitial: new Date() },
       });
       summary.push({ prospect: p.email, status: "queued" });
       queued++;

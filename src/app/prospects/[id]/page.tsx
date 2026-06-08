@@ -17,8 +17,10 @@ import { ScoutingReport } from "@/components/ScoutingReport";
 import { ReplyDraftPanel } from "@/components/ReplyDraftPanel";
 import { DealEditor } from "@/components/DealEditor";
 import { MockupPanel } from "@/components/MockupPanel";
+import { AuditDeliverablePanel } from "@/components/AuditDeliverablePanel";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { LinkedInDmButton } from "@/components/LinkedInDmButton";
+import { SendNextNowButton } from "@/components/SendNextNowButton";
 import { getProspectActivity } from "@/lib/activity";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
@@ -101,6 +103,7 @@ export default async function ProspectDetailPage({
           <p className="text-zinc-500 text-sm mt-1">{prospect.email}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          <SendNextNowButton prospectId={prospect.id} currentStatus={prospect.status} />
           <StatusSelector prospectId={prospect.id} currentStatus={prospect.status} />
           <LinkedInDmButton prospectId={prospect.id} initialTouchedAt={prospect.linkedinTouchedAt} />
           <ReplyButton prospectId={prospect.id} currentStatus={prospect.status} />
@@ -201,6 +204,12 @@ export default async function ProspectDetailPage({
       {prospect.website && (
         <div className="space-y-3">
           <h2 className="text-white font-medium">Closing kit</h2>
+          <AuditDeliverablePanel
+            prospectId={prospect.id}
+            mockupUrl={prospect.mockupUrl}
+            mockupAt={prospect.mockupAt}
+            hasAudit={!!prospect.auditFindings}
+          />
           <MockupPanel
             prospectId={prospect.id}
             firmaNaziv={prospect.firmaNaziv}

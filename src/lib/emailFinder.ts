@@ -113,17 +113,62 @@ async function fetchPage(url: string): Promise<string | null> {
   }
 }
 
+// JS / library names that the regex used to chew up as "email addresses"
+// when the entire HTML (including <script>) was passed in. Patterns like
+// `window.location.href` parsed as `window.loc@ion.hr.ef`. Even after we
+// strip <script> blocks, inline event handlers + analytics blobs in
+// <link>/<meta> tags still leak some — so we also reject local-parts that
+// match a known JS identifier prefix.
+const JS_LEAKAGE_LOCAL_PARTS = [
+  "window",
+  "document",
+  "function",
+  "default",
+  "globalthis",
+  "fonts",
+  "gtm",
+  "ga",
+  "dataLayer",
+  "polyfill",
+  "module",
+  "exports",
+  "require",
+  "process",
+  "console",
+  "navigator",
+  "performance",
+  "promise",
+  "react",
+  "next",
+];
+
 function extractEmails(html: string): string[] {
   const out = new Set<string>();
+  // Strip <script>, <style>, <noscript> bodies BEFORE matching. Those blocks
+  // are the ones that produce "emails" like `window.loc@ion.hr.ef` from
+  // minified JS source. The cost is missing emails legitimately encoded in
+  // JS (rare for cold prospect sites) — worth it for the bounce-rate hit
+  // saved when garbage gets through.
+  const cleaned = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+    .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, " ")
+    // HTML comments often contain dev notes with stray fragments
+    .replace(/<!--[\s\S]*?-->/g, " ");
+
   // Standard email regex — kept conservative on TLD (2-24 chars, all alpha).
   const re = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,24}/g;
-  const matches = html.match(re);
+  const matches = cleaned.match(re);
   if (matches) {
     for (const m of matches) {
-      out.add(m.toLowerCase());
+      const lc = m.toLowerCase();
+      if (looksLikeJsLeakage(lc)) continue;
+      out.add(lc);
     }
   }
-  // mailto: links can include URL-encoded characters
+  // mailto: links can include URL-encoded characters — these are nearly
+  // always real (no JS leakage path), so keep matching against the raw html
+  // even after the strip above.
   const mailtoRe = /mailto:([A-Za-z0-9._%+\-@]+)/gi;
   let m: RegExpExecArray | null;
   while ((m = mailtoRe.exec(html))) {
@@ -131,10 +176,32 @@ function extractEmails(html: string): string[] {
   }
   // Common obfuscations: "contact [at] domaine.fr" or "contact (at) domaine . fr"
   const obfRe = /([A-Za-z0-9._%+-]+)\s*[\[(]?at[\])]?\s*([A-Za-z0-9.-]+)\s*[\[(]?\.?[\])]?\s*([A-Za-z]{2,24})/gi;
-  while ((m = obfRe.exec(html))) {
+  while ((m = obfRe.exec(cleaned))) {
     out.add(`${m[1]}@${m[2]}.${m[3]}`.toLowerCase().replace(/\s+/g, ""));
   }
   return Array.from(out);
+}
+
+/**
+ * Returns true if the candidate email is almost certainly a regex hit on JS
+ * source rather than a real address. Three heuristics:
+ *   1. Local part starts with a known JS identifier (window, document, ...)
+ *   2. Domain has 3+ dotted segments where each label is ≤3 chars (a sign
+ *      of `obj.prop.method` style chain misread as `local@dom.ain.tld`)
+ *   3. TLD is 2 chars AND the second-to-last domain label is also 2 chars
+ *      AND the local part contains a dot (matches `fonts.gst@ic.c.om`)
+ */
+function looksLikeJsLeakage(email: string): boolean {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return true;
+  const localStart = local.split(".")[0];
+  if (JS_LEAKAGE_LOCAL_PARTS.includes(localStart)) return true;
+  const labels = domain.split(".");
+  if (labels.length >= 3 && labels.every((l) => l.length <= 3)) return true;
+  if (labels.length >= 3 && labels[labels.length - 1].length === 2 && labels[labels.length - 2].length <= 2 && local.includes(".")) {
+    return true;
+  }
+  return false;
 }
 
 function rankEmail(email: string, prospectDomain: string | null): number {

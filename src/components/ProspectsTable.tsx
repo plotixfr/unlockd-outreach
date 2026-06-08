@@ -16,6 +16,7 @@ interface Prospect {
   qualityScore: number | null;
   createdAt: Date;
   _count: { emails: number };
+  replies?: Array<{ body: string; classification: string | null; receivedAt: Date }>;
 }
 
 interface MenuPos {
@@ -91,7 +92,7 @@ export function ProspectsTable({ prospects }: Props) {
 
   const selectedIds = Array.from(selected);
 
-  const bulkAction = async (action: string, extra?: Record<string, unknown>): Promise<{ error?: string; sentNow?: number; scheduled?: number; generated?: number; deleted?: number }> => {
+  const bulkAction = async (action: string, extra?: Record<string, unknown>): Promise<{ error?: string; sentNow?: number; scheduled?: number; generated?: number; deleted?: number; alreadyHad?: number; failed?: string[] }> => {
     setBulkLoading(action);
     setBulkError("");
     try {
@@ -181,6 +182,17 @@ export function ProspectsTable({ prospects }: Props) {
             Generate emails
           </button>
           <button
+            onClick={() => bulkAction("mockup")}
+            disabled={!!bulkLoading}
+            className="text-sm px-3 py-1.5 rounded-lg bg-fuchsia-500/15 text-fuchsia-300 hover:bg-fuchsia-500/25 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            title="Generate AI mockup hero (Replicate Flux Schnell, ~$0.003 each). Links into Follow2 as visual proof."
+          >
+            {bulkLoading === "mockup" && (
+              <span className="inline-block w-3 h-3 border-2 border-fuchsia-300/30 border-t-fuchsia-300 rounded-full animate-spin" />
+            )}
+            Mockups
+          </button>
+          <button
             onClick={() => setShowScheduleModal(true)}
             disabled={!!bulkLoading}
             className="text-sm px-3 py-1.5 rounded-lg bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 transition-colors disabled:opacity-50"
@@ -257,6 +269,32 @@ export function ProspectsTable({ prospects }: Props) {
                     >
                       {p.firmaNaziv}
                     </Link>
+                    {p.replies && p.replies[0] && (
+                      <div className="mt-1.5 flex items-start gap-2">
+                        {p.replies[0].classification && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                              p.replies[0].classification === "Interested"
+                                ? "bg-emerald-950/60 text-emerald-300"
+                                : p.replies[0].classification === "Question"
+                                  ? "bg-blue-950/60 text-blue-300"
+                                  : p.replies[0].classification === "NotNow"
+                                    ? "bg-amber-950/60 text-amber-300"
+                                    : p.replies[0].classification === "Negative" ||
+                                        p.replies[0].classification === "Unsubscribe"
+                                      ? "bg-red-950/60 text-red-300"
+                                      : "bg-zinc-800 text-zinc-400"
+                            }`}
+                          >
+                            {p.replies[0].classification}
+                          </span>
+                        )}
+                        <p className="text-zinc-500 text-xs leading-snug line-clamp-2 max-w-md">
+                          {p.replies[0].body.slice(0, 140).replace(/\s+/g, " ").trim()}
+                          {p.replies[0].body.length > 140 ? "…" : ""}
+                        </p>
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-zinc-400">{p.email}</td>
                   <td className="px-4 py-3 text-zinc-400">{p.nisa}</td>

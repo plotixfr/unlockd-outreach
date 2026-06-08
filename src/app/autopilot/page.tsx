@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { BriefsEditor } from "@/components/BriefsEditor";
 import { QuickSetupButton } from "@/components/QuickSetupButton";
 import { BulkBriefAdd } from "@/components/BulkBriefAdd";
+import { RunAutopilotNowButton } from "@/components/RunAutopilotNowButton";
 import { isDiscoveryConfigured } from "@/lib/discovery";
 import {
   nextAutopilotRun,
@@ -150,6 +151,9 @@ export default async function AutopilotPage() {
         <StatCard icon={Database} label="Auto-discovered" value={totalAutoProspects} sub="from Google Places" tone="neutral" />
         <StatCard icon={Flame} label="Calendly clicks" value={calendlyClicks} sub="warm leads" tone="amber" />
       </div>
+
+      {/* Manual trigger — short-circuit the cron */}
+      {discoveryConfigured && activeBriefs > 0 && <RunAutopilotNowButton />}
 
       {/* Quick setup */}
       {discoveryConfigured && <QuickSetupButton hasAnyBrief={activeBriefs + inactiveBriefs > 0} />}

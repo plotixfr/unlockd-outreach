@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { suppressDomain } from "@/lib/suppression";
 
 export async function GET(
   _req: NextRequest,
@@ -8,7 +9,7 @@ export async function GET(
   const { prospectId } = await params;
 
   try {
-    await prisma.prospect.update({
+    const prospect = await prisma.prospect.update({
       where: { id: prospectId },
       data: {
         status: "Unsubscribed",
@@ -16,8 +17,13 @@ export async function GET(
         scheduledFollow1: null,
         scheduledFollow2: null,
         scheduledFollow3: null,
+        scheduledBreakup: null,
       },
     });
+    // Suppress the whole company domain so colleagues at the same shop
+    // don't get a cold pitch right after the original recipient opted out.
+    // Public providers (gmail.com etc.) are skipped inside the helper.
+    await suppressDomain(prospect.email, "unsubscribed", prospectId);
   } catch {
     // Already unsubscribed or not found — still show success page
   }

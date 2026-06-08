@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { signatureHtml, signatureText } from "@/lib/signature";
+import { lintForSpam, shouldBlock as shouldSpamBlock } from "@/lib/spamCheck";
+import { isDomainSuppressed } from "@/lib/suppression";
 
 /**
  * Returns a thum.io screenshot URL for the prospect's site. We use thum.io's
@@ -59,13 +61,15 @@ type StatusField =
   | "datumPrvogMaila"
   | "datumFollowUp1"
   | "datumFollowUp2"
-  | "datumFollowUp3";
+  | "datumFollowUp3"
+  | "datumBreakup";
 
 export const TIP_TO_STATUS: Record<string, { status: string; field: StatusField }> = {
   initial: { status: "Emailed", field: "datumPrvogMaila" },
   follow1: { status: "Follow1", field: "datumFollowUp1" },
   follow2: { status: "Follow2", field: "datumFollowUp2" },
   follow3: { status: "Follow3", field: "datumFollowUp3" },
+  breakup: { status: "Breakup", field: "datumBreakup" as StatusField },
 };
 
 /**
@@ -256,6 +260,67 @@ export async function sendOneEmail(
   if (!email) return { ok: false, error: "Email not found" };
   if (email.poslat) return { ok: true, resendId: email.resendId };
 
+  // Domain suppression: if another prospect at the same company already
+  // replied / unsubscribed / complained / bounced, don't cold-mail their
+  // colleague. Their mail admin already has a strike against our domain;
+  // a second strike accelerates the spam classification. Marks the prospect
+  // Unsubscribed so the dashboard reflects it.
+  const suppressed = await isDomainSuppressed(email.prospect.email);
+  if (suppressed) {
+    await prisma.prospect.update({
+      where: { id: email.prospect.id },
+      data: { status: "Unsubscribed" },
+    });
+    return { ok: false, error: "domain suppressed (colleague replied/unsubscribed)" };
+  }
+
+  // Spam-word lint. We score subject + body against a known-trigger list.
+  // High scores get blocked; medium scores still send but persist the score
+  // so the operator can see what tripped (and ask Claude for a re-gen).
+  const baseSubjectForLint =
+    email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
+  const spamCheck = lintForSpam(baseSubjectForLint, email.body);
+  if (shouldSpamBlock(spamCheck)) {
+    await prisma.email.update({
+      where: { id: emailId },
+      data: {
+        spamScore: spamCheck.score,
+        spamWords: spamCheck.matched.concat(spamCheck.reasons).join(", ").slice(0, 1000),
+      },
+    });
+    return {
+      ok: false,
+      error: `blocked by spam linter (score ${spamCheck.score}: ${spamCheck.matched.concat(spamCheck.reasons).join(", ")})`,
+    };
+  }
+  if (spamCheck.score > 0) {
+    // Persist non-blocking score so the operator can see it on the email card.
+    await prisma.email.update({
+      where: { id: emailId },
+      data: {
+        spamScore: spamCheck.score,
+        spamWords: spamCheck.matched.concat(spamCheck.reasons).join(", ").slice(0, 1000),
+      },
+    });
+  }
+
+  // Late binding: if this prospect's mockup or auditFindings were generated
+  // AFTER the email body was created (e.g. bulk "Mockups" run on existing
+  // prospects), the body won't reference them. Inject a styled CTA block
+  // pointing to /audit/[id] (the audit landing page) so the F2 promise
+  // actually delivers something. No-op when body already contains the link.
+  const auditLandingUrl = `${SITE_URL}/audit/${email.prospect.id}`;
+  const shouldInjectAuditCta =
+    email.tip === "follow2" &&
+    !email.body.includes(`/audit/${email.prospect.id}`) &&
+    !!(email.prospect.mockupUrl || email.prospect.auditFindings);
+  const bodyToSend = shouldInjectAuditCta
+    ? email.body +
+      `<p style="margin-top:18px;">J'ai préparé un audit personnalisé pour vous — <a href="${auditLandingUrl}" style="color:#10b981;font-weight:600;">les 3 points concrets ici${
+        email.prospect.mockupUrl ? " + une direction visuelle" : ""
+      } →</a></p>`
+    : email.body;
+
   const isInitial = email.tip === "initial";
   // Re-engagement emails are fresh standalone touches months after the
   // original sequence. Upsell emails (retainer/referral/refresh) go to
@@ -267,12 +332,12 @@ export async function sendOneEmail(
   const baseSubject =
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
 
-  const html = buildHtml(email.body, email.id, email.prospect.id, {
+  const html = buildHtml(bodyToSend, email.id, email.prospect.id, {
     includePixel: standaloneTouch,
     siteUrl: email.prospect.website,
     includeScreenshot: standaloneTouch && !!email.prospect.website,
   });
-  const text = buildText(email.body, email.prospect.id);
+  const text = buildText(bodyToSend, email.prospect.id);
 
   // Threading: follow-ups attach to the initial's Message-ID and reuse "Re:".
   // Re-engagement deliberately doesn't thread.
@@ -414,6 +479,17 @@ const FOLLOWUP_RULES = [
     relativeDateField: "datumFollowUp2" as const,
     relativeDaysWait: 7,
     emailTip: "follow3",
+  },
+  // Breakup: ~5 days after F3 lands the prospect around day 21 of the
+  // sequence (initial + 4 + 5 + 7 + 5). The "should I close this thread?"
+  // ask is the single highest-reply touch in cold outbound — keeps the
+  // sequence from dying silently after Follow3.
+  {
+    requiredStatus: "Follow3",
+    scheduledDateField: "scheduledBreakup" as const,
+    relativeDateField: "datumFollowUp3" as const,
+    relativeDaysWait: 5,
+    emailTip: "breakup",
   },
 ] as const;
 
