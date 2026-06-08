@@ -122,6 +122,34 @@ const IMAGE_POOLS: Record<string, string[]> = {
     "photo-1593079831268-3381b0db4a77", // free weights closeup
     "photo-1540497077202-7c8a3999166f", // boutique fitness studio
   ],
+  consulting: [
+    "photo-1497366216548-37526070297c", // editorial workspace
+    "photo-1556761175-5973dc0f32e7", // modern office meeting
+    "photo-1521737604893-d14cc237f11d", // team discussion
+    "photo-1517245386807-bb43f82c33c4", // sleek office lobby
+    "photo-1573164574572-cb89e39749b4", // boardroom
+  ],
+  law: [
+    "photo-1589994965851-a8f479c573a9", // law library editorial
+    "photo-1521587760476-6c12a4b040da", // courthouse architectural
+    "photo-1505664194779-8beaceb93744", // legal books detail
+    "photo-1450101499163-c8848c66ca85", // pen on document
+    "photo-1505664194779-8beaceb93744", // bookshelf moody
+  ],
+  tech: [
+    "photo-1517694712202-14dd9538aa97", // code on screen editorial
+    "photo-1551434678-e076c223a692", // dev workspace minimal
+    "photo-1605379399642-870262d3d051", // laptop dark room
+    "photo-1531403009284-440f080d1e12", // modern tech office
+    "photo-1518770660439-4636190af475", // circuit board detail
+  ],
+  agency: [
+    "photo-1497366754035-f200968a6e72", // creative workspace
+    "photo-1542744173-8e7e53415bb0", // brainstorm board
+    "photo-1559136555-9303baea8ebd", // designer screen
+    "photo-1520607162513-77705c0f0d4a", // modern studio
+    "photo-1581291518857-4e27b48ff24e", // studio interior
+  ],
   default: [
     "photo-1497366216548-37526070297c", // editorial workspace
     "photo-1497366811353-6870744d04b2", // minimal interior
@@ -173,6 +201,30 @@ const NICHE_COPY: Record<string, { eyebrow: string; ctaPrimary: string; ctaSecon
     ctaSecondary: "Réserver une visite",
     tagline: "L'effort. Le rituel. Le résultat.",
   },
+  consulting: {
+    eyebrow: "Cabinet de conseil",
+    ctaPrimary: "Prendre rendez-vous",
+    ctaSecondary: "Nos expertises",
+    tagline: "Une stratégie nette. Une exécution sans détour.",
+  },
+  law: {
+    eyebrow: "Cabinet d'avocats",
+    ctaPrimary: "Consulter un avocat",
+    ctaSecondary: "Domaines d'intervention",
+    tagline: "Le droit avec la rigueur que mérite votre dossier.",
+  },
+  tech: {
+    eyebrow: "Plateforme",
+    ctaPrimary: "Demander une démo",
+    ctaSecondary: "Documentation",
+    tagline: "Un produit conçu pour ceux qui livrent.",
+  },
+  agency: {
+    eyebrow: "Agence indépendante",
+    ctaPrimary: "Démarrer un projet",
+    ctaSecondary: "Études de cas",
+    tagline: "Des marques qui se voient, sans crier.",
+  },
   default: {
     eyebrow: "Studio",
     ctaPrimary: "Découvrir",
@@ -183,12 +235,20 @@ const NICHE_COPY: Record<string, { eyebrow: string; ctaPrimary: string; ctaSecon
 
 function nicheKey(niche: string): keyof typeof IMAGE_POOLS {
   const n = niche.toLowerCase();
+  // Group A — B2B professional services
+  if (n.includes("avocat") || n.includes("law") || n.includes("legal") || n.includes("notaire")) return "law";
+  if (n.includes("conseil") || n.includes("consulting") || n.includes("expert-comptable") || n.includes("rh") || n.includes("hr")) return "consulting";
+  if (n.includes("agence") || n.includes("communication") || n.includes("marketing") || n.includes("relations presse") || n.includes("pr ") || n.includes("recrutement") || n.includes("formation")) return "agency";
+  if (n.includes("architect")) return "architecture";
+  // Group B — Tech / SaaS (matches both English/French and Sirene NAF codes)
+  if (n.includes("tech") || n.includes("saas") || n.includes("software") || n.includes("logiciel") || n.includes("62.0") || n.includes("63.1")) return "tech";
+  if (n.includes("digital") || n.includes("73.11") || n.includes("74.10")) return "agency";
+  // Legacy fallbacks (existing prospects still have these niches)
   if (n.includes("hotel") || n.includes("hôtel")) return "hotel";
   if (n.includes("restaurant") || n.includes("gastro") || n.includes("patisserie") || n.includes("cave")) return "restaurant";
-  if (n.includes("immobil") || n.includes("property") || n.includes("agence immobilière")) return "property";
-  if (n.includes("architect")) return "architecture";
-  if (n.includes("salle de sport") || n.includes("salle de fitness") || n.includes("gym") || n.includes("fitness") || n.includes("pilates") || n.includes("yoga")) return "fitness";
-  if (n.includes("spa") || n.includes("wellness") || n.includes("beauté") || n.includes("coiffure")) return "spa";
+  if (n.includes("immobil") || n.includes("property")) return "property";
+  if (n.includes("fitness") || n.includes("pilates") || n.includes("yoga") || n.includes("gym") || n.includes("sport")) return "fitness";
+  if (n.includes("spa") || n.includes("wellness") || n.includes("beauté")) return "spa";
   if (n.includes("bijou") || n.includes("jewel") || n.includes("galerie") || n.includes("boutique")) return "jewelry";
   return "default";
 }

@@ -15,6 +15,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { searchPlaces, type DiscoveredPlace } from "@/lib/discovery";
+import { searchSirene } from "@/lib/discoverySirene";
 import { findEmailForSite } from "@/lib/emailFinder";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
@@ -114,18 +115,19 @@ function nextWorkingSlot(daysAhead = 1): Date {
 
 function inferNicheFromPlaceType(primaryType: string | null, briefNiche: string): string {
   if (!primaryType) return briefNiche;
+  // Google Places primaryType → canonical niche label. Mapped only for
+  // categories Unlockd targets (Group A B2B services). Sirene briefs pass
+  // NAF codes here — leave them as-is so the email prompt sees the code
+  // and the operator can map them in the UI.
   const map: Record<string, string> = {
-    lodging: "Hotel",
-    hotel: "Hotel",
-    restaurant: "Restaurant",
-    cafe: "Restaurant",
-    real_estate_agency: "Property",
-    spa: "Spa",
-    beauty_salon: "Spa",
-    art_gallery: "Galerie",
+    lawyer: "Law firm",
+    accounting: "Accountant",
+    consultant: "Consultancy",
+    marketing_agency: "Marketing agency",
+    advertising_agency: "Marketing agency",
     architect: "Architecture",
-    clothing_store: "Boutique",
-    jewelry_store: "Boutique",
+    employment_agency: "Recruiter",
+    insurance_agency: "Insurance broker",
   };
   return map[primaryType] ?? briefNiche;
 }
@@ -137,6 +139,7 @@ interface BriefInput {
   city: string | null;
   country: string;
   query: string | null;
+  source: string;
   minRating: number | null;
   minReviews: number | null;
   maxPerRun: number;
@@ -451,7 +454,7 @@ async function processPlace(
       ]
         .filter(Boolean)
         .join(" · ") || null,
-      source: "google_places",
+      source: brief.source,
       sourceQuery: brief.query || brief.niche,
       externalId: place.placeId,
       briefId: brief.id,
@@ -597,7 +600,12 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
   };
 
   try {
-    const places = await searchPlaces({
+    // Route to the right discovery adapter. Google Places for B2B services
+    // (Group A — consultancies, agencies, law firms via location search).
+    // Sirene for FR tech startups / SaaS (Group B — NAF-code-driven from
+    // the gov registry, free, no API key).
+    const search = brief.source === "sirene_api" ? searchSirene : searchPlaces;
+    const places = await search({
       niche: brief.niche,
       city: brief.city,
       country: brief.country,

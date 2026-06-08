@@ -127,6 +127,7 @@ model SearchBrief {
   city             String?
   country          String   @default("FR")
   query            String?
+  source           String   @default("google_places")
   minRating        Float?
   minReviews       Int?
   maxPerRun        Int      @default(5)

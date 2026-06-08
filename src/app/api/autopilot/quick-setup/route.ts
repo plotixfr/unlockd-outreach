@@ -2,14 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * One-click setup. Creates a wide net of curated SearchBriefs covering every
- * meaningful premium B2B vertical Unlockd can plausibly serve — not just
- * hotels and restaurants. Idempotent on brief name; safe to re-run.
+ * One-click setup. Seeds two focused brief sets aligned with what Unlockd.art
+ * actually sells: brand + website + custom software/automation.
  *
- * Sizing: most briefs are maxPerRun=2 so a daily run discovers ~50–60
- * prospects. Quality gate (score ≥ 6) typically prunes ~half. The send cron
- * then drains them at DAILY_SEND_CAP so the sender domain reputation stays
- * intact.
+ * Group A — B2B professional services (Google Places):
+ *   Consultancies, law firms, accountants, marketing/PR agencies, recruiters,
+ *   B2B trainers, translators. People who need a real website + brand to
+ *   stand out among peers.
+ *
+ * Group B — French tech startups / SaaS (Sirene gov registry, free):
+ *   Software publishers, IT consultancies, web platforms, digital agencies.
+ *   People who need custom internal tools, integrations, or process automation.
+ *
+ * Idempotent on brief name — safe to re-run.
  */
 
 interface Preset {
@@ -17,111 +22,66 @@ interface Preset {
   niche: string;
   city: string;
   country: string;
-  minRating: number;
-  minReviews: number;
+  source: "google_places" | "sirene_api";
+  minRating?: number;
+  minReviews?: number;
   maxPerRun: number;
   qualityThreshold: number;
 }
 
+// NAF code reference for Sirene briefs:
+//   62.01Z  Software development
+//   62.02A  IT consulting
+//   62.02B  Maintenance of computer systems
+//   62.09Z  Other IT activities
+//   63.11Z  Data processing, hosting
+//   63.12Z  Web portals / SaaS platforms
+//   73.11Z  Advertising agencies (digital agencies)
+//   70.22Z  Management consulting
+const NAF_TECH = "62.01Z,62.02A,62.02B,62.09Z,63.11Z,63.12Z";
+const NAF_DIGITAL_AGENCY = "73.11Z,74.10Z";
+const NAF_IT_CONSULT = "62.02A,62.02B,70.22Z";
+
 const PRESETS: Preset[] = [
-  // ── Hospitality premium ──
-  { name: "Hôtels 4-5★ Paris",            niche: "Hotel",      city: "Paris",    country: "FR", minRating: 4.3, minReviews: 100, maxPerRun: 3, qualityThreshold: 6 },
-  { name: "Hôtels Côte d'Azur",           niche: "Hotel",      city: "Nice",     country: "FR", minRating: 4.3, minReviews: 80,  maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Hôtels boutique Bordeaux",     niche: "Hotel",      city: "Bordeaux", country: "FR", minRating: 4.3, minReviews: 50,  maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Hôtels Cannes / Saint-Tropez", niche: "Hotel",      city: "Cannes",   country: "FR", minRating: 4.3, minReviews: 50,  maxPerRun: 2, qualityThreshold: 6 },
+  // ───── Group A — B2B professional services (Google Places) ─────
+  // Paris
+  { name: "[A] Consulting firms Paris",          niche: "cabinet de conseil",          city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Law firms Paris",                 niche: "cabinet d'avocats",           city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Accountants Paris",               niche: "expert-comptable",            city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Marketing agencies Paris",        niche: "agence de communication",     city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] PR agencies Paris",               niche: "agence de relations presse",  city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Recruiters Paris",                niche: "cabinet de recrutement",      city: "Paris",     country: "FR", source: "google_places", minRating: 4.3, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] HR consultants Paris",            niche: "cabinet RH",                  city: "Paris",     country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Architecture studios Paris",      niche: "agence d'architecture",       city: "Paris",     country: "FR", source: "google_places", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Translation agencies Paris",      niche: "agence de traduction",        city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] B2B training firms Paris",        niche: "organisme de formation B2B",  city: "Paris",     country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
 
-  // ── Gastronomie ──
-  { name: "Restaurants gastro Paris",     niche: "Restaurant", city: "Paris", country: "FR", minRating: 4.5, minReviews: 100, maxPerRun: 3, qualityThreshold: 6 },
-  { name: "Restaurants gastro Lyon",      niche: "Restaurant", city: "Lyon",  country: "FR", minRating: 4.5, minReviews: 80,  maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Pâtisseries premium Paris",    niche: "Pâtisserie", city: "Paris", country: "FR", minRating: 4.4, minReviews: 50,  maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Caves à vins Paris",           niche: "Cave à vins", city: "Paris", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
+  // Lyon
+  { name: "[A] Consulting firms Lyon",           niche: "cabinet de conseil",          city: "Lyon",      country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Law firms Lyon",                  niche: "cabinet d'avocats",           city: "Lyon",      country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Accountants Lyon",                niche: "expert-comptable",            city: "Lyon",      country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Marketing agencies Lyon",         niche: "agence de communication",     city: "Lyon",      country: "FR", source: "google_places", minRating: 4.4, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Architecture studios Lyon",       niche: "agence d'architecture",       city: "Lyon",      country: "FR", source: "google_places", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
 
-  // ── Immobilier ──
-  { name: "Immobilier prestige Paris",    niche: "Agence immobilière", city: "Paris",  country: "FR", minRating: 4.2, minReviews: 30, maxPerRun: 3, qualityThreshold: 6 },
-  { name: "Immobilier Côte d'Azur",       niche: "Agence immobilière", city: "Cannes", country: "FR", minRating: 4.0, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
+  // Other major cities (lighter coverage)
+  { name: "[A] Consulting firms Marseille",      niche: "cabinet de conseil",          city: "Marseille", country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Marketing agencies Marseille",    niche: "agence de communication",     city: "Marseille", country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Consulting firms Bordeaux",       niche: "cabinet de conseil",          city: "Bordeaux",  country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Marketing agencies Bordeaux",     niche: "agence de communication",     city: "Bordeaux",  country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
+  { name: "[A] Consulting firms Toulouse",       niche: "cabinet de conseil",          city: "Toulouse",  country: "FR", source: "google_places", minRating: 4.3, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
 
-  // ── Architecture & Design ──
-  { name: "Architectes Paris",            niche: "Architecte",            city: "Paris", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes d'intérieur Paris", niche: "Architecte d'intérieur", city: "Paris", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Wellness / Santé premium ──
-  { name: "Spas premium Paris",           niche: "Spa",                 city: "Paris", country: "FR", minRating: 4.3, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cliniques esthétiques Paris",  niche: "Clinique esthétique", city: "Paris", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cabinets dentaires Paris",     niche: "Cabinet dentaire",    city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Beauté ──
-  { name: "Salons de coiffure premium Paris", niche: "Salon de coiffure", city: "Paris", country: "FR", minRating: 4.5, minReviews: 80, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Instituts de beauté Paris",        niche: "Institut de beauté", city: "Paris", country: "FR", minRating: 4.4, minReviews: 40, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Professions libérales / juridique ──
-  { name: "Cabinets d'avocats Paris",     niche: "Cabinet d'avocats",  city: "Paris", country: "FR", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Notaires Paris",               niche: "Notaire",            city: "Paris", country: "FR", minRating: 4.0, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Experts-comptables Paris",     niche: "Expert-comptable",   city: "Paris", country: "FR", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Retail / luxe ──
-  { name: "Bijouteries Paris",            niche: "Bijouterie",   city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Galeries d'art Paris",         niche: "Galerie d'art", city: "Paris", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Boutiques mode Paris",         niche: "Boutique mode", city: "Paris", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Concept stores Paris",         niche: "Concept store", city: "Paris", country: "FR", minRating: 4.4, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Fitness / wellness ──
-  { name: "Salles de sport premium Paris", niche: "Salle de sport",   city: "Paris", country: "FR", minRating: 4.4, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Studios de Pilates Paris",      niche: "Studio Pilates",   city: "Paris", country: "FR", minRating: 4.6, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Studios de Yoga Paris",         niche: "Studio Yoga",      city: "Paris", country: "FR", minRating: 4.6, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Créatif / media ──
-  { name: "Photographes mariage Paris",   niche: "Photographe",       city: "Paris", country: "FR", minRating: 4.7, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Agences de communication Paris", niche: "Agence de communication", city: "Paris", country: "FR", minRating: 4.4, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Éducation / formation ──
-  { name: "Écoles privées Paris",         niche: "École privée",      city: "Paris", country: "FR", minRating: 4.2, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Coachings premium Paris",      niche: "Coaching",          city: "Paris", country: "FR", minRating: 4.6, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Auto premium ──
-  { name: "Concessionnaires haut de gamme Paris", niche: "Concessionnaire automobile", city: "Paris", country: "FR", minRating: 4.2, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Lyon — top niches ──
-  { name: "Hôtels 4-5★ Lyon",                  niche: "Hotel",                  city: "Lyon", country: "FR", minRating: 4.3, minReviews: 80, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes Lyon",                  niche: "Architecte",             city: "Lyon", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes d'intérieur Lyon",      niche: "Architecte d'intérieur", city: "Lyon", country: "FR", minRating: 4.5, minReviews: 12, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Immobilier prestige Lyon",          niche: "Agence immobilière",     city: "Lyon", country: "FR", minRating: 4.2, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Spas premium Lyon",                 niche: "Spa",                    city: "Lyon", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cliniques esthétiques Lyon",        niche: "Clinique esthétique",    city: "Lyon", country: "FR", minRating: 4.4, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Bijouteries Lyon",                  niche: "Bijouterie",             city: "Lyon", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cabinets dentaires Lyon",           niche: "Cabinet dentaire",       city: "Lyon", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Marseille — top niches ──
-  { name: "Hôtels 4-5★ Marseille",             niche: "Hotel",                  city: "Marseille", country: "FR", minRating: 4.2, minReviews: 60, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Restaurants gastro Marseille",      niche: "Restaurant",             city: "Marseille", country: "FR", minRating: 4.5, minReviews: 60, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes Marseille",             niche: "Architecte",             city: "Marseille", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Immobilier prestige Marseille",     niche: "Agence immobilière",     city: "Marseille", country: "FR", minRating: 4.2, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cabinets dentaires Marseille",      niche: "Cabinet dentaire",       city: "Marseille", country: "FR", minRating: 4.5, minReviews: 20, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Nice & Côte d'Azur (extension) ──
-  { name: "Restaurants gastro Nice",           niche: "Restaurant",             city: "Nice",   country: "FR", minRating: 4.5, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes Côte d'Azur",           niche: "Architecte",             city: "Nice",   country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Spas premium Côte d'Azur",          niche: "Spa",                    city: "Nice",   country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Bijouteries Cannes",                niche: "Bijouterie",             city: "Cannes", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Galeries d'art Saint-Paul-de-Vence", niche: "Galerie d'art",         city: "Saint-Paul-de-Vence", country: "FR", minRating: 4.5, minReviews: 8, maxPerRun: 2, qualityThreshold: 5 },
-
-  // ── Bordeaux (extension) ──
-  { name: "Restaurants gastro Bordeaux",       niche: "Restaurant",             city: "Bordeaux", country: "FR", minRating: 4.5, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes Bordeaux",              niche: "Architecte",             city: "Bordeaux", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Châteaux viticoles Bordeaux",       niche: "Château viticole",       city: "Bordeaux", country: "FR", minRating: 4.4, minReviews: 30, maxPerRun: 2, qualityThreshold: 5 },
-  { name: "Immobilier prestige Bordeaux",      niche: "Agence immobilière",     city: "Bordeaux", country: "FR", minRating: 4.2, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── Toulouse ──
-  { name: "Hôtels 4-5★ Toulouse",              niche: "Hotel",                  city: "Toulouse", country: "FR", minRating: 4.3, minReviews: 50, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Architectes Toulouse",              niche: "Architecte",             city: "Toulouse", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Cabinets dentaires Toulouse",       niche: "Cabinet dentaire",       city: "Toulouse", country: "FR", minRating: 4.5, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-
-  // ── High-AOV niches (any major city) ──
-  { name: "Wedding planners premium Paris",    niche: "Wedding planner",        city: "Paris", country: "FR", minRating: 4.7, minReviews: 20, maxPerRun: 2, qualityThreshold: 7 },
-  { name: "Traiteurs événementiels Paris",     niche: "Traiteur",               city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Fleuristes haut de gamme Paris",    niche: "Fleuriste",              city: "Paris", country: "FR", minRating: 4.6, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Tailors / mesure Paris",            niche: "Tailleur",               city: "Paris", country: "FR", minRating: 4.6, minReviews: 15, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Chocolatiers premium Paris",        niche: "Chocolatier",            city: "Paris", country: "FR", minRating: 4.5, minReviews: 30, maxPerRun: 2, qualityThreshold: 6 },
-  { name: "Galeristes design Paris",           niche: "Galerie design",         city: "Paris", country: "FR", minRating: 4.5, minReviews: 10, maxPerRun: 2, qualityThreshold: 5 },
+  // ───── Group B — French tech startups / SaaS (Sirene gov API) ─────
+  // niche field = NAF codes (parsed by Sirene adapter); name describes intent.
+  { name: "[B] Tech startups Paris",             niche: NAF_TECH,             city: "Paris",     country: "FR", source: "sirene_api", maxPerRun: 3, qualityThreshold: 5 },
+  { name: "[B] IT consultancies Paris",          niche: NAF_IT_CONSULT,       city: "Paris",     country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Digital agencies Paris",          niche: NAF_DIGITAL_AGENCY,   city: "Paris",     country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Lyon",              niche: NAF_TECH,             city: "Lyon",      country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] IT consultancies Lyon",           niche: NAF_IT_CONSULT,       city: "Lyon",      country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Marseille",         niche: NAF_TECH,             city: "Marseille", country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Toulouse",          niche: NAF_TECH,             city: "Toulouse",  country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Bordeaux",          niche: NAF_TECH,             city: "Bordeaux",  country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Nantes",            niche: NAF_TECH,             city: "Nantes",    country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
+  { name: "[B] Tech startups Lille",             niche: NAF_TECH,             city: "Lille",     country: "FR", source: "sirene_api", maxPerRun: 2, qualityThreshold: 5 },
 ];
 
 export async function POST(_req: NextRequest) {
@@ -140,8 +100,9 @@ export async function POST(_req: NextRequest) {
         niche: p.niche,
         city: p.city,
         country: p.country,
-        minRating: p.minRating,
-        minReviews: p.minReviews,
+        source: p.source,
+        minRating: p.minRating ?? null,
+        minReviews: p.minReviews ?? null,
         maxPerRun: p.maxPerRun,
         qualityThreshold: p.qualityThreshold,
         autoGenerate: true,

@@ -18,7 +18,7 @@ import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMak
 import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
 import type { AuditResult } from "@/lib/auditFindings";
 
-const EMAIL_SYSTEM_BASE = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui conçoit et développe des sites web premium pour des marques exigeantes — hôtels, restaurants, architectes, agences immobilières, marques de luxe, professionnels indépendants, e-commerce haut de gamme. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
+const EMAIL_SYSTEM_BASE = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui livre trois choses : identité de marque, sites web premium, et logiciel sur mesure (SaaS, automatisations, outils internes). Tes clients types : cabinets de conseil B2B, cabinets d'avocats, experts-comptables, agences marketing, agences d'architecture, startups tech / éditeurs SaaS, agences digitales — des entreprises prêtes à structurer leur image ou à automatiser leurs opérations. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
 
 Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle juste — jamais une fausse précision.
 
@@ -42,21 +42,35 @@ export async function getEmailSystemPrompt(): Promise<string> {
 export const EMAIL_SYSTEM_PROMPT = EMAIL_SYSTEM_BASE;
 
 const NICHE_FR_HINTS: Record<string, string> = {
-  hotel: "hôtellerie",
-  hôtel: "hôtellerie",
-  hotellerie: "hôtellerie",
-  hôtellerie: "hôtellerie",
-  restaurant: "restauration",
-  restauration: "restauration",
+  // Group A — B2B professional services
+  "cabinet de conseil": "conseil B2B",
+  "consulting": "conseil B2B",
+  "cabinet d'avocats": "cabinet d'avocats",
+  "law firm": "cabinet d'avocats",
+  "expert-comptable": "expertise comptable",
+  "accountant": "expertise comptable",
+  "agence de communication": "agence de communication",
+  "marketing agency": "agence marketing",
+  "agence de relations presse": "relations presse",
+  "pr agency": "relations presse",
+  "cabinet de recrutement": "recrutement",
+  "recruiter": "recrutement",
+  "cabinet rh": "ressources humaines",
+  "agence d'architecture": "architecture",
   architecture: "architecture",
   architecte: "architecture",
-  property: "immobilier",
-  immobilier: "immobilier",
-  "real estate": "immobilier",
-  spa: "spa et bien-être",
-  boutique: "boutique de luxe",
-  ecommerce: "e-commerce premium",
-  "e-commerce": "e-commerce premium",
+  "agence de traduction": "traduction professionnelle",
+  "organisme de formation b2b": "formation B2B",
+  // Group B — Tech / SaaS (Sirene NAF codes also accepted as fuzzy keys)
+  "tech startup": "startup tech",
+  "saas": "éditeur SaaS",
+  "software": "édition logicielle",
+  "it consulting": "conseil IT",
+  "digital agency": "agence digitale",
+  "63.12z": "plateforme web / SaaS",
+  "62.01z": "édition logicielle",
+  "62.02a": "conseil IT",
+  "73.11z": "agence digitale",
 };
 
 function niceNicheLabel(raw: string): string {

@@ -85,10 +85,12 @@ Trois paliers à proposer (le palier recommandé doit être marqué recommended:
 Le palier recommandé par défaut est "${p.recommendedTier ?? "Pro"}".
 
 Value projection (section ROI) : adapte au secteur ${p.nisa} avec des chiffres CRÉDIBLES (pas inventés) :
-- Hôtel : nuits annuelles × % conversion supplémentaire × ADR moyen → €/an récupérés sur OTA
-- Restaurant : couverts annuels × ticket moyen × % de gain direct
-- Immobilier : transactions/an × commission moyenne × % de leads supplémentaires
-- Architecture / studio : projets/an × honoraires moyens × % de leads premium
+- Cabinet conseil / avocats / experts-comptables : dossiers entrants/mois × ticket moyen × % de leads premium supplémentaires (un site qui inspire confiance fait passer un cabinet de "demande de devis" à "rendez-vous direct")
+- Agence marketing / com / RP / recrutement : nouveaux clients/an × LTV moyen × taux de signature en hausse (un site qui place le cabinet au niveau des grands cabinets parisiens)
+- Architecture / studio créatif : projets/an × honoraires moyens × % de leads premium
+- SaaS / éditeur logiciel : MRR cible × % conversion landing → essai × LTV (un site qui convertit 2× mieux raccourcit le payback)
+- Agence digitale : nombre de projets/an × ticket moyen × % de bonds en aval (taux de conversion home → brief)
+- Automatisation / outils internes : heures/mois économisées par l'équipe × coût horaire chargé → €/an récupérés
 - Autre : adapter intelligemment
 
 Le break-even doit être réaliste : "L'investissement se rentabilise en ~X mois."

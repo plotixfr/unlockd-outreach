@@ -45,27 +45,38 @@ interface ProspectForMockup {
 function buildMockupPrompt(p: ProspectForMockup): string {
   const niche = p.nisa.toLowerCase();
   let context = "modern editorial premium website hero section";
-  if (niche.includes("hotel") || niche.includes("hôtel")) {
+  // Group A — B2B professional services
+  if (niche.includes("avocat") || niche.includes("law") || niche.includes("notaire")) {
     context =
-      "luxury boutique hotel website hero, large refined serif typography, moody architectural photography, polished interior detail";
-  } else if (niche.includes("restaurant") || niche.includes("gastro") || niche.includes("patisserie")) {
+      "premium law firm website hero, restrained editorial composition, dark wood library detail, refined serif typography, navy + cream palette";
+  } else if (niche.includes("conseil") || niche.includes("consulting") || niche.includes("expert-comptable")) {
     context =
-      "Michelin-style gastronomic restaurant website hero, dark editorial mood, refined food photography, large serif typography, ample whitespace";
-  } else if (niche.includes("immobil") || niche.includes("property") || niche.includes("agence")) {
+      "premium B2B consulting firm website hero, sharp grid layout, abstract data visualisation accent, refined sans-serif typography, deep blue + warm grey palette";
+  } else if (niche.includes("agence") || niche.includes("communication") || niche.includes("marketing") || niche.includes("digital") || niche.includes("73.11") || niche.includes("74.10")) {
     context =
-      "luxury real estate agency website hero, architectural villa photography, sophisticated typography, refined editorial composition";
+      "premium creative agency website hero, bold editorial typography, dramatic full-bleed image, dark accent palette, magazine-grade composition";
   } else if (niche.includes("architect")) {
     context =
       "premium architecture studio website hero, minimal black and white composition, dramatic architectural photography, refined sans-serif typography";
-  } else if (niche.includes("spa") || niche.includes("wellness") || niche.includes("beauté")) {
+  } else if (niche.includes("recrutement") || niche.includes("rh") || niche.includes("hr")) {
     context =
-      "premium wellness spa website hero, soft natural light, refined editorial photography, calming muted palette, large serif typography";
-  } else if (niche.includes("bijou") || niche.includes("jewel") || niche.includes("boutique") || niche.includes("galerie")) {
+      "premium executive search website hero, restrained editorial photography, portrait composition, refined typography, off-white + charcoal palette";
+  }
+  // Group B — Tech / SaaS
+  else if (niche.includes("tech") || niche.includes("saas") || niche.includes("software") || niche.includes("logiciel") || niche.includes("62.0") || niche.includes("63.1")) {
     context =
-      "luxury boutique brand website hero, editorial fashion magazine aesthetic, dramatic product photography, refined serif typography";
+      "premium B2B SaaS landing page hero, polished product UI screenshot mockup floating over gradient, large kinetic typography, dark mode aesthetic with one bright accent color";
+  }
+  // Legacy fallbacks (existing prospects)
+  else if (niche.includes("hotel") || niche.includes("hôtel")) {
+    context =
+      "luxury boutique hotel website hero, large refined serif typography, moody architectural photography";
+  } else if (niche.includes("restaurant") || niche.includes("gastro") || niche.includes("patisserie")) {
+    context =
+      "Michelin-style gastronomic restaurant website hero, dark editorial mood, refined food photography";
   }
 
-  return `${context} for "${p.firmaNaziv}" in ${p.grad}. Award-winning web design, contemporary luxury, refined editorial layout, ample negative space, sophisticated dark theme accents, premium magazine aesthetic. No text overlays in the image. Cinematic, high-end, magazine-quality. 16:9 aspect ratio.`;
+  return `${context} for "${p.firmaNaziv}" in ${p.grad}. Award-winning web design, contemporary, refined editorial layout, ample negative space, premium magazine aesthetic. No text overlays in the image. Cinematic, high-end, magazine-quality. 16:9 aspect ratio.`;
 }
 
 /**
