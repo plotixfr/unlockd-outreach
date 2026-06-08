@@ -79,10 +79,10 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
             <h2 className="text-white font-semibold text-base">Quick Setup — Unlockd target market</h2>
           </div>
           <p className="text-zinc-400 text-sm leading-relaxed">
-            Jedan klik kreira 30 brief-ova pokrivajući cijeli francuski premium B2B market — hospitality, immobilier, architecture, wellness, beauté, professions libérales, retail luxe, fitness, créatif, éducation, auto premium.
+            One click seeds 48 briefs across three markets: <strong className="text-zinc-200">France</strong> (Group A B2B services via Google Places + Group B FR tech via Sirene gov registry), <strong className="text-zinc-200">Switzerland Romandie</strong> (Geneva, Lausanne, Neuchâtel — French-speaking), and <strong className="text-zinc-200">Netherlands</strong> (Amsterdam, Rotterdam, Den Haag, Utrecht, Eindhoven — Dutch templates).
           </p>
           <p className="text-zinc-600 text-xs mt-2">
-            Konzervativno: ~50 prospekata/dan otkriveno, ~25 prolazi quality gate, send cron drena u 30/dan kapu.
+            Targets: consultancies, law firms, accountants, marketing agencies, architecture studios, tech startups, SaaS, digital agencies. Hobby plan can pull 15–25 qualified prospects/day across all three countries.
           </p>
         </div>
         <button
@@ -91,7 +91,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
           className="shrink-0 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 flex items-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap strokeWidth={2} className="w-4 h-4" />}
-          {loading ? "Kreiram…" : "Run Quick Setup"}
+          {loading ? "Creating…" : "Run Quick Setup"}
         </button>
       </div>
       {error && <p className="text-red-400 text-xs mt-3">{error}</p>}
