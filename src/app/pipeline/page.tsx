@@ -83,8 +83,7 @@ export default async function PipelinePage() {
         <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
           <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">Open pipeline</p>
           <p
-            className="text-3xl text-white tabular-nums tracking-tight"
-            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+            className="text-3xl text-white tabular-nums tracking-tight display-number"
           >
             {fmtCurrency(openPipeline)}
           </p>
@@ -95,8 +94,7 @@ export default async function PipelinePage() {
         <div className="rounded-xl bg-gradient-to-br from-emerald-500/[0.06] to-[#0d0d12] border border-emerald-500/20 p-5 card-elevation">
           <p className="text-emerald-400 text-[10px] uppercase tracking-widest font-medium mb-2">Forecast (probability × value)</p>
           <p
-            className="text-3xl text-emerald-300 tabular-nums tracking-tight"
-            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+            className="text-3xl text-emerald-300 tabular-nums tracking-tight display-number"
           >
             {fmtCurrency(forecast)}
           </p>
@@ -107,8 +105,7 @@ export default async function PipelinePage() {
         <div className="rounded-xl bg-gradient-to-br from-amber-500/[0.05] to-[#0d0d12] border border-amber-500/20 p-5 card-elevation">
           <p className="text-amber-400 text-[10px] uppercase tracking-widest font-medium mb-2">Won this period</p>
           <p
-            className="text-3xl text-amber-300 tabular-nums tracking-tight"
-            style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+            className="text-3xl text-amber-300 tabular-nums tracking-tight display-number"
           >
             {fmtCurrency(won)}
           </p>

@@ -43,8 +43,7 @@ export default async function PublicPreviewPage({
             Direction créative · Unlockd Studio
           </p>
           <h1
-            className="text-2xl font-semibold text-white tracking-tight"
-            style={{ fontFamily: "var(--font-display-serif)" }}
+            className="text-2xl font-semibold text-white tracking-tight display-number"
           >
             Aperçu — {prospect.firmaNaziv}
           </h1>

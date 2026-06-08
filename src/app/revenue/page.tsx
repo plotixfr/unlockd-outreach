@@ -7,8 +7,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-5 card-elevation">
       <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">{label}</p>
       <p
-        className="text-white text-2xl tabular-nums tracking-tight"
-        style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}
+        className="text-white text-2xl tabular-nums tracking-tight display-number"
       >
         {value}
       </p>

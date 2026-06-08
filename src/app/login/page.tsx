@@ -62,8 +62,7 @@ export default function LoginPage() {
 
         <div className="space-y-6 max-w-md">
           <h1
-            className="text-white text-5xl tracking-tight leading-[1.05]"
-            style={{ fontFamily: "var(--font-display-serif)" }}
+            className="text-white text-5xl tracking-tight leading-[1.05] display-number"
           >
             Outbound, on{" "}
             <span className="text-gradient-accent italic">autopilot.</span>

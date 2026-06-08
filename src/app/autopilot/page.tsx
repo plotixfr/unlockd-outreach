@@ -81,7 +81,6 @@ export default async function AutopilotPage() {
       include: { brief: { select: { name: true } } },
     }),
     prisma.prospect.count(),
-    // AI Pipeline funnel — counts of prospects at each stage in the last 30d
     prisma.prospect.count({ where: { createdAt: { gte: thirtyAgo } } }),
     prisma.prospect.count({ where: { siteSnapshotAt: { not: null, gte: thirtyAgo } } }),
     prisma.prospect.count({ where: { qualityScore: { not: null }, createdAt: { gte: thirtyAgo } } }),
@@ -96,7 +95,6 @@ export default async function AutopilotPage() {
       where: { startedAt: { gte: thirtyAgo } },
       _sum: { found: true, created: true, qualified: true, scheduled: true },
     }),
-    // Live activity feed — latest sent emails + replies + discovery runs
     prisma.email.findMany({
       where: { poslat: true },
       orderBy: { poslatAt: "desc" },
@@ -109,7 +107,6 @@ export default async function AutopilotPage() {
   const openRate7 = emailsLast7 > 0 ? Math.round((openedLast7 / emailsLast7) * 100) : 0;
   const queue = sendingTodayInitial + sendingTomorrow;
 
-  // System health score (0-100)
   const healthSignals: Array<{ name: string; ok: boolean }> = [
     { name: "Discovery configured", ok: discoveryConfigured },
     { name: "Active briefs", ok: activeBriefs > 0 },
@@ -121,118 +118,107 @@ export default async function AutopilotPage() {
   ];
   const healthScore = Math.round((healthSignals.filter((s) => s.ok).length / healthSignals.length) * 100);
 
-  // Group briefs by country for quick-launch tiles
   const briefsByCountry = await prisma.searchBrief.groupBy({
     by: ["country"],
     _count: true,
   });
   const byCountry = Object.fromEntries(briefsByCountry.map((g) => [g.country, g._count]));
 
+  const funnelMax = Math.max(discoverQueue, 1);
+
   return (
-    <div className="max-w-7xl space-y-6">
-      {/* ─── Hero ─── */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="max-w-[1400px] space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-2">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-semibold px-2.5 py-1 rounded-full ${autopilotLive ? "bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30" : "bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30"}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${autopilotLive ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-              {autopilotLive ? "Live · running 6×/day" : "Paused"}
+          <div className="flex items-center gap-3 mb-3">
+            <span className={`pill ${autopilotLive ? "pill-accent" : "pill-warning"}`}>
+              <span className={`dot ${autopilotLive ? "dot-live" : ""}`} />
+              {autopilotLive ? "Live · 6 fires per business day" : "Paused"}
             </span>
-            <p className="text-zinc-600 text-[11px] uppercase tracking-[0.18em] font-medium">Autopilot</p>
+            <span className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-[var(--text-dim)]">Autopilot</span>
           </div>
-          <h1 className="text-white text-3xl sm:text-4xl font-semibold tracking-tight">
+          <h1 className="text-white text-4xl sm:text-5xl tracking-tight">
             The system that finds your clients
           </h1>
-          <p className="text-zinc-500 text-sm mt-2 max-w-2xl">
-            Discovers prospects, enriches them, scores them, drafts emails, schedules. You only open your inbox when a warm lead lands.
+          <p className="text-[var(--text-muted)] text-sm mt-3 max-w-2xl">
+            Discovers, enriches, scores, drafts, schedules. You only open your inbox when a warm lead lands.
           </p>
         </div>
         <RunAutopilotNowButton />
       </div>
 
-      {/* ─── Top stats row ─── */}
-      <div className="rounded-2xl bg-gradient-to-br from-emerald-500/[0.05] via-[#0d0d12] to-[#0a0a12] border border-emerald-500/20 p-6 card-elevation">
-        <div className="flex flex-wrap items-center justify-between gap-6">
+      <div className="card card-accent corner-accent p-7">
+        <div className="flex flex-wrap items-end justify-between gap-8">
           <div>
-            <p className="text-emerald-300/80 text-[10px] uppercase tracking-[0.18em] font-semibold">In queue</p>
-            <p className="text-white text-5xl font-semibold tracking-tight leading-none mt-2" style={{ fontFamily: "var(--font-display-serif)" }}>{queue}</p>
-            <p className="text-zinc-400 text-sm mt-2">prospects across {activeBriefs} active briefs</p>
+            <p className="section-label text-emerald-400/80"><Bot className="w-3 h-3" /> In queue</p>
+            <p className="display-number text-white text-[80px] mt-3 leading-none">{queue}</p>
+            <p className="text-[var(--text-muted)] text-sm mt-3 font-medium">prospects across {activeBriefs} active briefs</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-right sm:text-left">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-5 flex-1 max-w-2xl">
             <Block label="Next discovery" big={relativeFromNow(nextAutopilot, now)} sub={formatParisDateTime(nextAutopilot)} />
             <Block label="Next send" big={relativeFromNow(nextSend, now)} sub={formatParisDateTime(nextSend)} />
             <Block label="Emails / 7d" big={emailsLast7.toString()} sub={`${repliesLast7} replies · ${openRate7}% open`} />
-            <Block label="Failures / 7d" big={failedRuns7.toString()} sub={failedRuns7 === 0 ? "all clean" : "check recent runs"} tone={failedRuns7 === 0 ? "good" : "warn"} />
+            <Block label="Failures / 7d" big={failedRuns7.toString()} sub={failedRuns7 === 0 ? "all clean" : "check runs"} tone={failedRuns7 === 0 ? "good" : "warn"} />
           </div>
         </div>
       </div>
 
-      {/* ─── AI Pipeline funnel + Live activity + Health ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* AI Pipeline */}
-        <div className="rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-semibold mb-1 flex items-center gap-1.5">
-            <Bot className="w-3 h-3" /> AI Pipeline (30d)
-          </p>
-          <p className="text-zinc-600 text-xs mb-5">Funnel from discovery to scheduled outreach</p>
-          <FunnelRow icon={Search} label="Discover" value={discoverQueue} max={Math.max(discoverQueue, 1)} tone="emerald" />
-          <FunnelRow icon={Database} label="Enrich" value={enrichedCount} max={Math.max(discoverQueue, 1)} tone="emerald" />
-          <FunnelRow icon={Star} label="Score" value={scoredCount} max={Math.max(discoverQueue, 1)} tone="amber" />
-          <FunnelRow icon={PenLine} label="Draft" value={draftedCount} max={Math.max(discoverQueue, 1)} tone="sky" />
-          <FunnelRow icon={CalendarClock} label="Schedule" value={scheduledCount} max={Math.max(discoverQueue, 1)} tone="emerald" last />
+        <div className="card p-6">
+          <p className="section-label mb-1"><Bot className="w-3 h-3" /> AI Pipeline (30d)</p>
+          <p className="text-[var(--text-dim)] text-xs mb-5">Funnel from discovery to scheduled outreach</p>
+          <FunnelRow icon={Search} label="Discover" value={discoverQueue} max={funnelMax} />
+          <FunnelRow icon={Database} label="Enrich" value={enrichedCount} max={funnelMax} />
+          <FunnelRow icon={Star} label="Score" value={scoredCount} max={funnelMax} />
+          <FunnelRow icon={PenLine} label="Draft" value={draftedCount} max={funnelMax} />
+          <FunnelRow icon={CalendarClock} label="Schedule" value={scheduledCount} max={funnelMax} last />
           {runsLast30Stats._sum.found !== null && (
-            <p className="text-zinc-700 text-[10px] uppercase tracking-widest mt-4 pt-3 border-t border-[#1c1c28]">
-              30d totals: {runsLast30Stats._sum.found ?? 0} found · {runsLast30Stats._sum.created ?? 0} created · {runsLast30Stats._sum.qualified ?? 0} qualified
+            <p className="text-[var(--text-faint)] text-[10px] uppercase tracking-widest mt-4 pt-3 etch-top font-semibold">
+              {runsLast30Stats._sum.found ?? 0} found · {runsLast30Stats._sum.created ?? 0} created · {runsLast30Stats._sum.qualified ?? 0} qualified
             </p>
           )}
         </div>
 
-        {/* Live activity */}
-        <div className="rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-semibold mb-1 flex items-center gap-1.5">
-            <Activity className="w-3 h-3" /> Live Activity
-          </p>
-          <p className="text-zinc-600 text-xs mb-4">Latest outbound touches</p>
+        <div className="card p-6">
+          <p className="section-label mb-1"><Activity className="w-3 h-3" /> Live Activity</p>
+          <p className="text-[var(--text-dim)] text-xs mb-4">Latest outbound touches</p>
           {activeFeed.length === 0 ? (
-            <p className="text-zinc-600 text-sm py-6 text-center">No sends yet. First fire 07:00 Paris.</p>
+            <p className="text-[var(--text-dim)] text-sm py-8 text-center">No sends yet. First fire 07:00 Paris.</p>
           ) : (
             <ul className="space-y-3">
               {activeFeed.map((e) => (
                 <li key={e.id} className="flex items-start gap-3 text-xs">
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-emerald-500/15 text-emerald-300">
-                    <Sparkles className="w-3 h-3" />
+                  <div className="w-7 h-7 rounded-sm flex items-center justify-center shrink-0 bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <Link href={`/prospects/${e.prospect.id}`} className="text-zinc-200 hover:text-emerald-300 font-medium block truncate">
+                    <Link href={`/prospects/${e.prospect.id}`} className="text-[var(--text)] hover:text-emerald-300 font-semibold block truncate transition-colors">
                       {e.tip} · {e.prospect.firmaNaziv}
                     </Link>
-                    <p className="text-zinc-600 mt-0.5 truncate">
-                      {e.prospect.language === "nl" ? "🇳🇱 Nederlands" : "🇫🇷 Français"}
+                    <p className="text-[var(--text-dim)] mt-0.5">
+                      {e.prospect.language === "nl" ? "🇳🇱 NL · Dutch" : "🇫🇷 FR · French"}
                     </p>
                   </div>
-                  <span className="text-zinc-700 text-[10px] tabular-nums shrink-0">{e.poslatAt ? relativeFromNow(e.poslatAt, now) : ""}</span>
+                  <span className="text-[var(--text-faint)] text-[10px] tabular shrink-0 pt-0.5">{e.poslatAt ? relativeFromNow(e.poslatAt, now) : ""}</span>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        {/* System health */}
-        <div className="rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-semibold mb-1 flex items-center gap-1.5">
-            <Heart className="w-3 h-3" /> System Health
-          </p>
-          <div className="flex items-end justify-between mt-2 mb-4">
-            <p className={`text-5xl font-semibold tracking-tight tabular-nums leading-none ${healthScore >= 80 ? "text-emerald-300" : healthScore >= 60 ? "text-amber-300" : "text-rose-300"}`} style={{ fontFamily: "var(--font-display-serif)", fontWeight: 500 }}>
+        <div className="card p-6">
+          <p className="section-label mb-1"><Heart className="w-3 h-3" /> System Health</p>
+          <div className="flex items-end justify-between mt-3 mb-5">
+            <p className={`display-number text-[56px] leading-none ${healthScore >= 80 ? "text-emerald-300" : healthScore >= 60 ? "text-amber-300" : "text-rose-300"}`}>
               {healthScore}
             </p>
-            <p className="text-zinc-600 text-xs">/ 100</p>
+            <p className="text-[var(--text-dim)] text-xs font-semibold pb-2">/ 100</p>
           </div>
           <ul className="space-y-2.5">
             {healthSignals.map((s) => (
               <li key={s.name} className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">{s.name}</span>
-                <span className={`text-[10px] uppercase tracking-wider font-semibold ${s.ok ? "text-emerald-300" : "text-amber-300"}`}>
+                <span className="text-[var(--text-muted)]">{s.name}</span>
+                <span className={`text-[10px] uppercase tracking-wider font-bold ${s.ok ? "text-emerald-300" : "text-amber-300"}`}>
                   {s.ok ? "ok" : "missing"}
                 </span>
               </li>
@@ -241,65 +227,50 @@ export default async function AutopilotPage() {
         </div>
       </div>
 
-      {/* ─── Quick Setup country tiles ─── */}
       {discoveryConfigured && (
-        <div className="rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-semibold mb-1 flex items-center gap-1.5">
-            <Zap className="w-3 h-3 text-emerald-400" /> Quick Setup — launch a market
-          </p>
-          <p className="text-zinc-300 text-sm mt-1 mb-5">One click seeds 48 curated briefs across France, Switzerland Romandie, and the Netherlands.</p>
+        <div className="card p-6">
+          <p className="section-label mb-1"><Zap className="w-3 h-3 text-emerald-400" /> Quick Setup — launch a market</p>
+          <p className="text-white text-sm mt-1 mb-5 font-semibold">One click seeds 48 curated briefs across three markets.</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-            <CountryTile flag="🇫🇷" country="France" active={byCountry.FR ?? 0} highlight="20 briefs · FR + tech (Sirene gov)" />
-            <CountryTile flag="🇨🇭" country="Switzerland (Romandie)" active={byCountry.CH ?? 0} highlight="12 briefs · Geneva + Lausanne" />
+            <CountryTile flag="🇫🇷" country="France" active={byCountry.FR ?? 0} highlight="20 briefs · Places + Sirene gov" />
+            <CountryTile flag="🇨🇭" country="Switzerland (Romandie)" active={byCountry.CH ?? 0} highlight="12 briefs · Geneva, Lausanne" />
             <CountryTile flag="🇳🇱" country="Netherlands" active={byCountry.NL ?? 0} highlight="16 briefs · Dutch templates" />
           </div>
           <QuickSetupButton hasAnyBrief={activeBriefs + inactiveBriefs > 0} />
         </div>
       )}
 
-      {/* ─── Custom market ─── */}
       {discoveryConfigured && <BulkBriefAdd />}
 
-      {/* ─── Briefs editor (the workhorse) ─── */}
       <BriefsEditor discoveryConfigured={discoveryConfigured} />
 
-      {/* ─── Recent runs table ─── */}
       {recentRuns.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-zinc-200 font-medium text-sm flex items-center gap-2">
-              <Sparkles strokeWidth={2} className="w-4 h-4 text-emerald-400" />
-              Recent runs
-            </h2>
-            <p className="text-zinc-600 text-xs">{recentRuns.length} shown · {totalProspects} prospects total</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="section-label"><Sparkles className="w-3 h-3 text-emerald-400" /> Recent runs</p>
+            <p className="text-[var(--text-dim)] text-xs">{recentRuns.length} shown · {totalProspects} prospects total</p>
           </div>
-          <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] overflow-hidden card-elevation">
+          <div className="card overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1c1c28] bg-[#0a0a12]">
+                <tr className="border-b border-[var(--border-2)] bg-[var(--bg-elev-1)]">
                   {["Brief", "Status", "Found", "Created", "Qualified", "Scheduled", "When"].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-zinc-600 text-[10px] uppercase tracking-widest font-medium">{h}</th>
+                    <th key={h} className="text-left px-4 py-3 text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#14141c]">
+              <tbody className="divide-y divide-[var(--border-1)]">
                 {recentRuns.map((r) => (
                   <tr key={r.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3 text-zinc-200 font-medium">{r.brief.name}</td>
+                    <td className="px-4 py-3 text-white font-semibold">{r.brief.name}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-medium uppercase tracking-wider ${
-                        r.status === "done"
-                          ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
-                          : r.status === "running"
-                            ? "bg-sky-500/10 text-sky-300 border border-sky-500/20"
-                            : "bg-rose-500/10 text-rose-300 border border-rose-500/20"
-                      }`}>{r.status}</span>
+                      <span className={`pill ${r.status === "done" ? "pill-accent" : r.status === "running" ? "pill-muted" : "pill-danger"}`}>{r.status}</span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-400 tabular-nums">{r.found}</td>
-                    <td className="px-4 py-3 text-zinc-400 tabular-nums">{r.created}</td>
-                    <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.qualified}</td>
-                    <td className="px-4 py-3 text-emerald-400 tabular-nums font-medium">{r.scheduled}</td>
-                    <td className="px-4 py-3 text-zinc-600 text-xs tabular-nums">{relativeFromNow(r.startedAt, now)}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)] tabular">{r.found}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)] tabular">{r.created}</td>
+                    <td className="px-4 py-3 text-emerald-300 tabular font-bold">{r.qualified}</td>
+                    <td className="px-4 py-3 text-emerald-300 tabular font-bold">{r.scheduled}</td>
+                    <td className="px-4 py-3 text-[var(--text-dim)] text-xs tabular">{relativeFromNow(r.startedAt, now)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -308,46 +279,42 @@ export default async function AutopilotPage() {
         </div>
       )}
 
-      {/* ─── Setup checklist ─── */}
-      <div className="rounded-xl bg-[#0a0a12] border border-[#1c1c28] p-6">
-        <h2 className="text-zinc-300 font-medium text-sm mb-4">Setup checklist</h2>
+      <div className="card p-6">
+        <p className="section-label mb-4">Setup checklist</p>
         <ul className="space-y-2.5 text-sm">
-          <CheckItem ok={discoveryConfigured} title="GOOGLE_PLACES_API_KEY in Vercel Env" okHint="Configured — Google Places discovery live" missingHint="Add the key to enable Group A and CH/NL discovery (Sirene group B works without it)" />
-          <CheckItem ok={!!process.env.IMAP_USER && !!process.env.IMAP_PASSWORD} title="IMAP_USER / IMAP_PASSWORD" okHint="Reply detection runs 3×/day" missingHint="Without these, replies don&apos;t flow back into the dashboard" />
-          <CheckItem ok={bccFailures === 0} title="BCC delivery to operator inbox" okHint="All sends logged on Email.bccSentAt" missingHint={`${bccFailures} send(s) failed BCC — check Email.bccError`} />
+          <CheckItem ok={discoveryConfigured} title="GOOGLE_PLACES_API_KEY" okHint="Google Places live · powers Group A + CH/NL discovery" missingHint="Add to Vercel env (Sirene group still works without it)" />
+          <CheckItem ok={!!process.env.IMAP_USER && !!process.env.IMAP_PASSWORD} title="IMAP_USER / IMAP_PASSWORD" okHint="Reply detection 3×/day" missingHint="Without these, replies don't flow back" />
+          <CheckItem ok={bccFailures === 0} title="BCC delivery to operator inbox" okHint="All sends logged on Email.bccSentAt" missingHint={`${bccFailures} send(s) failed BCC — see Email.bccError`} />
         </ul>
       </div>
     </div>
   );
 }
 
-/* ─────────── Components ─────────── */
-
 function Block({ label, big, sub, tone }: { label: string; big: string; sub: string; tone?: "good" | "warn" }) {
-  const bigClass = tone === "warn" ? "text-amber-300" : tone === "good" ? "text-emerald-300" : "text-zinc-200";
+  const bigClass = tone === "warn" ? "text-amber-300" : tone === "good" ? "text-emerald-300" : "text-white";
   return (
     <div>
-      <p className="text-zinc-600 text-[10px] uppercase tracking-widest font-semibold">{label}</p>
-      <p className={`text-sm font-medium mt-1 tabular-nums ${bigClass}`}>{big}</p>
-      <p className="text-zinc-600 text-[11px] mt-0.5 tabular-nums truncate">{sub}</p>
+      <p className="text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">{label}</p>
+      <p className={`text-sm font-bold mt-1.5 tabular ${bigClass}`}>{big}</p>
+      <p className="text-[var(--text-faint)] text-[10.5px] mt-0.5 tabular truncate">{sub}</p>
     </div>
   );
 }
 
-function FunnelRow({ icon: Icon, label, value, max, tone, last }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; value: number; max: number; tone: "emerald" | "amber" | "sky"; last?: boolean }) {
+function FunnelRow({ icon: Icon, label, value, max, last }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; value: number; max: number; last?: boolean }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 2;
-  const barClass = { emerald: "bg-emerald-500/60", amber: "bg-amber-500/60", sky: "bg-sky-500/60" }[tone];
   return (
-    <div className={`py-2 ${last ? "" : "border-b border-[#14141c]"}`}>
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-2">
-          <Icon strokeWidth={1.75} className="w-3.5 h-3.5 text-zinc-500" />
-          <span className="text-zinc-300 text-sm">{label}</span>
+    <div className={`py-2.5 ${last ? "" : "border-b border-[var(--border-1)]"}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2.5">
+          <Icon strokeWidth={1.75} className="w-3.5 h-3.5 text-[var(--text-dim)]" />
+          <span className="text-[var(--text)] text-sm font-medium">{label}</span>
         </div>
-        <span className="text-zinc-200 text-sm font-medium tabular-nums">{value}</span>
+        <span className="text-white text-sm font-bold tabular">{value}</span>
       </div>
-      <div className="w-full h-1 bg-[#14141c] rounded-full overflow-hidden">
-        <div className={`h-full ${barClass}`} style={{ width: `${pct}%` }} />
+      <div className="w-full h-1 bg-[var(--bg-elev-3)] rounded-full overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-emerald-600/70 to-emerald-400/70" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -356,15 +323,15 @@ function FunnelRow({ icon: Icon, label, value, max, tone, last }: { icon: React.
 function CountryTile({ flag, country, active, highlight }: { flag: string; country: string; active: number; highlight: string }) {
   const hasAny = active > 0;
   return (
-    <div className={`rounded-xl border p-4 ${hasAny ? "bg-emerald-500/[0.04] border-emerald-500/20" : "bg-[#07070b] border-[#1c1c28]"}`}>
+    <div className={`rounded-md border p-4 transition-all ${hasAny ? "bg-emerald-500/[0.05] border-emerald-500/25 hover:border-emerald-500/40" : "bg-[var(--bg-elev-1)] border-[var(--border-2)] hover:border-[var(--border-3)]"}`}>
       <div className="flex items-start justify-between">
         <span className="text-2xl">{flag}</span>
-        <span className={`text-[10px] uppercase tracking-wider font-semibold ${hasAny ? "text-emerald-300" : "text-zinc-600"}`}>
-          {hasAny ? `${active} active` : "not yet"}
+        <span className={`text-[10px] uppercase tracking-wider font-bold ${hasAny ? "text-emerald-300" : "text-[var(--text-dim)]"}`}>
+          {hasAny ? `${active} active` : "Not yet"}
         </span>
       </div>
-      <p className="text-zinc-200 text-sm font-medium mt-3">{country}</p>
-      <p className="text-zinc-500 text-xs mt-1">{highlight}</p>
+      <p className="text-white text-sm font-bold mt-3">{country}</p>
+      <p className="text-[var(--text-dim)] text-xs mt-1">{highlight}</p>
     </div>
   );
 }
@@ -376,8 +343,8 @@ function CheckItem({ ok, title, okHint, missingHint }: { ok: boolean; title: str
         {ok ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-zinc-300"><strong className="text-zinc-100">{title}</strong></p>
-        <p className="text-zinc-600 text-xs mt-0.5">{ok ? okHint : missingHint}</p>
+        <p className="text-[var(--text)] font-semibold">{title}</p>
+        <p className="text-[var(--text-dim)] text-xs mt-0.5">{ok ? okHint : missingHint}</p>
       </div>
     </li>
   );
