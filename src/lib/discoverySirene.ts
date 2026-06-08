@@ -23,19 +23,31 @@ import type { DiscoveredPlace, DiscoveryQuery } from "./discovery";
 
 const SIRENE_ENDPOINT = "https://recherche-entreprises.api.gouv.fr/search";
 
-// Default NAF codes mapped to "tech/digital" sectors. Operator can override
-// per-brief by setting brief.query to a comma-separated NAF list, or pass
-// a free-form text query that matches company name keywords.
+// Default NAF codes for INDUSTRIAL B2B SMEs — companies with budget but
+// typically no in-house IT/digital team. These convert because outreach
+// to them is one of the few digital touchpoints they get.
+//
+// Operator can override per-brief by setting brief.niche to a comma-separated
+// NAF list.
 const DEFAULT_TECH_NAF = [
-  "62.01Z", // Programmation informatique (software dev)
-  "62.02A", // Conseil en systèmes et logiciels (IT consulting)
-  "62.02B", // Tierce maintenance de systèmes
-  "62.03Z", // Gestion d'installations informatiques
-  "62.09Z", // Autres activités informatiques
-  "63.11Z", // Traitement de données, hébergement
-  "63.12Z", // Portails internet (web platforms / SaaS)
-  "73.11Z", // Activités des agences de publicité (digital agencies)
-  "74.10Z", // Activités spécialisées de design
+  // Construction & civil engineering
+  "41.20A", // Construction de maisons individuelles
+  "41.20B", // Construction d'autres bâtiments
+  "42.99Z", // Génie civil
+  // Installation trades — heavy revenue, no IT
+  "43.21A", // Travaux d'installation électrique
+  "43.22A", // Chauffage / climatisation / CVC
+  "43.22B", // Plomberie / installation eau-gaz
+  "43.91A", // Travaux de couverture (roofing)
+  "43.99A", // Étanchéité / isolation
+  // Industrial services
+  "80.20Z", // Sécurité, surveillance, vidéosurveillance
+  "81.22Z", // Nettoyage industriel
+  "38.11Z", // Collecte de déchets non dangereux
+  "33.20A", // Installation industrielle
+  // Logistics / transport
+  "49.41A", // Transports routiers de fret interurbain
+  "52.10A", // Entreposage et logistique
 ].join(",");
 
 // Map of city name → department code(s). Sirene filters by department, not

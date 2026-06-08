@@ -4,7 +4,7 @@ import { STATUSI } from "@/lib/constants";
 import { ProspectsTable } from "@/components/ProspectsTable";
 import { FilterActions } from "@/components/FilterActions";
 import { ScoreUnscoredButton } from "@/components/ScoreUnscoredButton";
-import { Plus, Search, Sparkles, Flame, MessageCircleReply } from "lucide-react";
+import { Plus, Search, Sparkles, Flame, MessageCircleReply, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -98,18 +98,20 @@ export default async function ProspectsPage({
   const hasFilter = Boolean(search || nisa || status || view);
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+    <div className="max-w-[1400px] space-y-3">
+      <div className="flex items-end justify-between gap-4 flex-wrap pb-2">
         <div>
-          <p className="text-zinc-500 text-xs uppercase tracking-[0.18em] font-medium mb-2">Prospects</p>
-          <h1 className="text-3xl font-semibold text-white tracking-tight">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="pill pill-accent">
+              <Users className="w-3 h-3" />
+              Prospects
+            </span>
+          </div>
+          <h1 className="text-white text-4xl sm:text-5xl tracking-tight">
             {prospects.length} {prospects.length === 1 ? "lead" : "leads"}{hasFilter && " (filtered)"}
           </h1>
         </div>
-        <Link
-          href="/upload"
-          className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors shadow-[0_6px_18px_-8px_rgba(16,185,129,0.45)]"
-        >
+        <Link href="/upload" className="btn-accent">
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           Import list
         </Link>
@@ -119,32 +121,32 @@ export default async function ProspectsPage({
       <div className="flex gap-2 flex-wrap">
         <Link
           href={makeHref("view", "", { ...currentFilters, view: undefined })}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${!view ? "bg-zinc-500/15 text-zinc-200 ring-1 ring-zinc-400/30" : "text-zinc-500 hover:text-white bg-[#0d0d12] border border-[#1c1c28]"}`}
+          className={`pill ${!view ? "pill-accent" : "pill-muted"}`}
         >
-          All ({prospects.length}{!view ? "" : ""})
+          All ({prospects.length})
         </Link>
         <Link
           href={makeHref("view", "hot", { ...currentFilters, view: undefined, status: undefined })}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${view === "hot" ? "bg-amber-500/20 text-amber-200 ring-1 ring-amber-400/40" : "text-amber-400/80 hover:text-amber-300 bg-[#0d0d12] border border-amber-500/20"}`}
+          className={`pill ${view === "hot" ? "pill-warning" : "pill-muted"}`}
         >
-          <Flame className="w-3.5 h-3.5" strokeWidth={2} />
+          <Flame className="w-3 h-3" strokeWidth={2} />
           Hot ({hotCount})
         </Link>
         <Link
           href={makeHref("view", "replies", { ...currentFilters, view: undefined, status: undefined })}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${view === "replies" ? "bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/40" : "text-emerald-400/80 hover:text-emerald-300 bg-[#0d0d12] border border-emerald-500/20"}`}
+          className={`pill ${view === "replies" ? "pill-accent" : "pill-muted"}`}
         >
-          <MessageCircleReply className="w-3.5 h-3.5" strokeWidth={2} />
+          <MessageCircleReply className="w-3 h-3" strokeWidth={2} />
           Replies ({repliesCount})
         </Link>
       </div>
 
       {/* Filters — niche */}
       <div className="flex gap-3 flex-wrap">
-        <div className="flex gap-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg p-1 flex-wrap">
+        <div className="flex gap-1 card p-1 flex-wrap">
           <Link
             href={makeHref("nisa", "", { ...currentFilters, nisa: undefined })}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!nisa ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
+            className={`px-3 py-1.5 text-xs rounded-sm font-semibold transition-colors ${!nisa ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.04]"}`}
           >
             All niches
           </Link>
@@ -152,7 +154,7 @@ export default async function ProspectsPage({
             <Link
               key={n}
               href={makeHref("nisa", n, currentFilters)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${nisa === n ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
+              className={`px-3 py-1.5 text-xs rounded-sm font-semibold transition-colors ${nisa === n ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.04]"}`}
             >
               {n}
             </Link>
@@ -160,10 +162,10 @@ export default async function ProspectsPage({
         </div>
 
         {/* Filters — status */}
-        <div className="flex gap-1 bg-[#0d0d12] border border-[#1c1c28] rounded-lg p-1 flex-wrap">
+        <div className="flex gap-1 card p-1 flex-wrap">
           <Link
             href={makeHref("status", "", { ...currentFilters, status: undefined })}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${!status ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
+            className={`px-3 py-1.5 text-xs rounded-sm font-semibold transition-colors ${!status ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.04]"}`}
           >
             All statuses
           </Link>
@@ -171,7 +173,7 @@ export default async function ProspectsPage({
             <Link
               key={s}
               href={makeHref("status", s, currentFilters)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${status === s ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-zinc-400 hover:text-white hover:bg-white/[0.04]"}`}
+              className={`px-3 py-1.5 text-xs rounded-sm font-semibold transition-colors ${status === s ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30" : "text-[var(--text-muted)] hover:text-white hover:bg-white/[0.04]"}`}
             >
               {s}
             </Link>
@@ -183,13 +185,13 @@ export default async function ProspectsPage({
       <form method="GET" action="/prospects" className="relative">
         {nisa && <input type="hidden" name="nisa" value={nisa} />}
         {status && <input type="hidden" name="status" value={status} />}
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" strokeWidth={1.75} />
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-dim)]" strokeWidth={1.75} />
         <input
           type="text"
           name="search"
           defaultValue={search}
           placeholder="Search by company, email, or city…"
-          className="w-full bg-[#0d0d12] border border-[#1c1c28] rounded-lg pl-10 pr-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:bg-[#10101a] transition-colors"
+          className="w-full bg-[var(--bg-elev-1)] border border-[var(--border-2)] rounded-sm pl-10 pr-4 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-faint)] focus:outline-none focus:border-emerald-500/50 focus:bg-[var(--bg-elev-2)] transition-colors"
         />
       </form>
 
@@ -198,12 +200,12 @@ export default async function ProspectsPage({
 
       {/* Quality scoring nudge */}
       {unscoredCount > 0 && (
-        <div className="flex items-center justify-between rounded-xl bg-[#0d0d12] border border-[#1c1c28] px-4 py-3 gap-4 flex-wrap">
+        <div className="card flex items-center justify-between px-4 py-3 gap-4 flex-wrap">
           <div className="flex items-start gap-3 min-w-0">
             <Sparkles className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-            <p className="text-zinc-400 text-sm">
-              <span className="text-emerald-400 font-medium">{unscoredCount}</span> {unscoredCount === 1 ? "prospect" : "prospects"} without a quality score.
-              <span className="text-zinc-600 ml-2 text-xs">Sort by score before sending so the daily cap doesn&apos;t burn on weak fits.</span>
+            <p className="text-[var(--text-muted)] text-sm">
+              <span className="text-emerald-300 font-bold">{unscoredCount}</span> {unscoredCount === 1 ? "prospect" : "prospects"} without a quality score.
+              <span className="text-[var(--text-dim)] ml-2 text-xs">Sort by score before sending so the daily cap doesn&apos;t burn on weak fits.</span>
             </p>
           </div>
           <ScoreUnscoredButton unscoredCount={unscoredCount} />
@@ -211,20 +213,14 @@ export default async function ProspectsPage({
       )}
 
       {prospects.length === 0 && !hasFilter ? (
-        <div className="rounded-2xl border border-dashed border-[#1c1c28] p-12 text-center bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
-          <p className="text-zinc-400 text-sm">No prospects yet. Upload a CSV or run Autopilot to get started.</p>
+        <div className="card p-12 text-center" style={{ borderStyle: "dashed" }}>
+          <p className="text-[var(--text-muted)] text-sm">No prospects yet. Upload a CSV or run Autopilot to get started.</p>
           <div className="mt-4 flex items-center justify-center gap-3">
-            <Link
-              href="/upload"
-              className="text-emerald-400 text-sm font-medium hover:text-emerald-300 transition-colors"
-            >
+            <Link href="/upload" className="text-emerald-300 text-sm font-semibold hover:text-emerald-200 transition-colors">
               Upload CSV →
             </Link>
-            <span className="text-zinc-700">·</span>
-            <Link
-              href="/autopilot"
-              className="text-emerald-400 text-sm font-medium hover:text-emerald-300 transition-colors"
-            >
+            <span className="text-[var(--text-faint)]">·</span>
+            <Link href="/autopilot" className="text-emerald-300 text-sm font-semibold hover:text-emerald-200 transition-colors">
               Open Autopilot →
             </Link>
           </div>

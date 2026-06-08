@@ -35,7 +35,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07070a] flex relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--bg)] flex relative overflow-hidden">
       {/* Ambient glow */}
       <div
         aria-hidden
@@ -47,27 +47,25 @@ export default function LoginPage() {
       />
 
       {/* Left — brand panel (hidden on mobile) */}
-      <div className="hidden lg:flex relative flex-1 flex-col justify-between p-12 border-r border-[#15151c]">
+      <div className="hidden lg:flex relative flex-1 flex-col justify-between p-12 border-r border-[var(--border-1)]">
         <div className="flex items-center gap-3">
           <LogoMark size={32} />
           <div>
-            <p className="text-gradient-brand text-xl font-semibold tracking-tight leading-none">
+            <p className="text-gradient-brand text-xl font-extrabold tracking-tight leading-none">
               {BRAND.name}
             </p>
-            <p className="text-zinc-600 text-[10.5px] mt-1.5 tracking-[0.22em] uppercase font-medium">
+            <p className="text-[var(--text-faint)] text-[10.5px] mt-1.5 tracking-[0.22em] uppercase font-bold">
               {BRAND.shortTagline}
             </p>
           </div>
         </div>
 
         <div className="space-y-6 max-w-md">
-          <h1
-            className="text-white text-5xl tracking-tight leading-[1.05] display-number"
-          >
+          <h1 className="display-number text-white text-5xl tracking-tight leading-[1.05]">
             Outbound, on{" "}
             <span className="text-gradient-accent italic">autopilot.</span>
           </h1>
-          <p className="text-zinc-500 text-sm leading-relaxed max-w-sm">
+          <p className="text-[var(--text-muted)] text-sm leading-relaxed max-w-sm">
             Discover, qualify, and convert cold prospects without lifting a finger. Salvo runs
             your pipeline end-to-end while you focus on closing.
           </p>
@@ -91,7 +89,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-zinc-700 text-[11px]">
+        <p className="text-[var(--text-faint)] text-[11px] font-semibold">
           © {BRAND.copyrightHolder} {new Date().getFullYear()}
         </p>
       </div>
@@ -101,17 +99,17 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           <div className="lg:hidden mb-10 flex items-center gap-2.5">
             <LogoMark size={28} />
-            <p className="text-gradient-brand text-lg font-semibold tracking-tight">{BRAND.name}</p>
+            <p className="text-gradient-brand text-lg font-extrabold tracking-tight">{BRAND.name}</p>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-white text-2xl font-semibold tracking-tight">Welcome back</h2>
-            <p className="text-zinc-500 text-sm mt-1.5">Sign in to your workspace.</p>
+            <h2 className="text-white text-2xl font-bold tracking-tight">Welcome back</h2>
+            <p className="text-[var(--text-muted)] text-sm mt-1.5">Sign in to your workspace.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-zinc-400 text-[11px] uppercase tracking-[0.12em] font-medium mb-2">
+              <label className="block text-[var(--text-muted)] text-[10.5px] uppercase tracking-[0.16em] font-bold mb-2">
                 Username
               </label>
               <input
@@ -121,12 +119,12 @@ export default function LoginPage() {
                 required
                 autoComplete="username"
                 autoFocus
-                className="w-full bg-[#0c0c11] border border-[#20202c] rounded-lg px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 focus:bg-[#10101a] transition-colors"
+                className="w-full bg-[var(--bg-elev-1)] border border-[var(--border-2)] rounded-sm px-3.5 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-faint)] focus:outline-none focus:border-emerald-500/50 focus:bg-[var(--bg-elev-2)] transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-zinc-400 text-[11px] uppercase tracking-[0.12em] font-medium mb-2">
+              <label className="block text-[var(--text-muted)] text-[10.5px] uppercase tracking-[0.16em] font-bold mb-2">
                 Password
               </label>
               <input
@@ -135,12 +133,12 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full bg-[#0c0c11] border border-[#20202c] rounded-lg px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 focus:bg-[#10101a] transition-colors"
+                className="w-full bg-[var(--bg-elev-1)] border border-[var(--border-2)] rounded-sm px-3.5 py-2.5 text-sm text-[var(--text)] placeholder-[var(--text-faint)] focus:outline-none focus:border-emerald-500/50 focus:bg-[var(--bg-elev-2)] transition-colors"
               />
             </div>
 
             {error && (
-              <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2">
+              <div className="rounded-sm bg-rose-500/10 border border-rose-500/20 px-3 py-2">
                 <p className="text-rose-300 text-xs">{error}</p>
               </div>
             )}
@@ -148,7 +146,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-emerald-950 text-sm font-semibold py-2.5 rounded-lg transition-all shadow-[0_8px_24px_-10px_rgba(16,185,129,0.45)] flex items-center justify-center gap-2 mt-2"
+              className="btn-accent w-full mt-2 disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -160,7 +158,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="lg:hidden text-center text-zinc-700 text-[11px] mt-10">
+          <p className="lg:hidden text-center text-[var(--text-faint)] text-[11px] mt-10 font-semibold">
             © {BRAND.copyrightHolder} {new Date().getFullYear()}
           </p>
         </div>
@@ -180,12 +178,12 @@ function FeatureRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <div className="mt-0.5 w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+      <div className="mt-0.5 w-8 h-8 rounded-md bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center flex-shrink-0">
         <Icon strokeWidth={1.75} className="w-4 h-4 text-emerald-400" />
       </div>
       <div>
-        <p className="text-zinc-200 text-[13px] font-medium">{title}</p>
-        <p className="text-zinc-500 text-[12.5px] leading-relaxed mt-0.5">{body}</p>
+        <p className="text-[var(--text)] text-[13px] font-bold">{title}</p>
+        <p className="text-[var(--text-muted)] text-[12.5px] leading-relaxed mt-0.5">{body}</p>
       </div>
     </div>
   );

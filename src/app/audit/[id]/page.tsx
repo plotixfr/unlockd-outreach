@@ -138,7 +138,7 @@ export default async function PerProspectAuditPage({
         ];
 
   return (
-    <div className="min-h-screen bg-[#07070b] relative">
+    <div className="min-h-screen bg-[var(--bg)] relative">
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
@@ -152,37 +152,38 @@ export default async function PerProspectAuditPage({
         <div className="flex items-center justify-between mb-10">
           <a href="https://unlockd.art" className="inline-flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-md bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <span className="text-white font-bold text-sm tracking-tighter">U</span>
+              <span className="text-white font-extrabold text-sm tracking-tighter">U</span>
             </div>
             <div className="text-left">
-              <p className="text-emerald-300 text-base font-semibold tracking-tight leading-none">Unlockd</p>
-              <p className="text-zinc-600 text-[10px] mt-1 tracking-widest uppercase font-medium">
+              <p className="text-gradient-brand text-base font-extrabold tracking-tight leading-none">Unlockd</p>
+              <p className="text-[var(--text-faint)] text-[10px] mt-1 tracking-widest uppercase font-bold">
                 {t.eyebrowSmall}
               </p>
             </div>
           </a>
-          <p className="text-zinc-600 text-xs">
-            {t.preparedFor} <span className="text-zinc-400">{prospect.firmaNaziv}</span>
+          <p className="text-[var(--text-faint)] text-xs">
+            {t.preparedFor} <span className="text-[var(--text-muted)]">{prospect.firmaNaziv}</span>
           </p>
         </div>
 
         {/* Hero */}
         <div className="mb-10">
-          <p className="text-emerald-400 text-xs uppercase tracking-[0.18em] font-medium mb-3">
+          <p className="section-label text-emerald-400/80 mb-3">
+            <Sparkles className="w-3 h-3" />
             {t.eyebrow}
           </p>
-          <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight leading-[1.1]">
+          <h1 className="display-number text-3xl sm:text-5xl text-white tracking-tight leading-[1.05]">
             {t.hero1}<br />
             {t.hero2}
           </h1>
-          <p className="text-zinc-500 text-base mt-5 leading-relaxed">
+          <p className="text-[var(--text-muted)] text-base mt-5 leading-relaxed">
             {t.lookedAt}{" "}
             {prospect.website ? (
               <a
                 href={prospect.website}
                 target="_blank"
                 rel="noreferrer"
-                className="text-zinc-300 hover:text-emerald-400 transition-colors underline-offset-2"
+                className="text-[var(--text)] hover:text-emerald-300 transition-colors underline-offset-2"
               >
                 {prospect.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
               </a>
@@ -195,15 +196,15 @@ export default async function PerProspectAuditPage({
 
         {/* Mockup hero — only if we generated one */}
         {prospect.mockupUrl && (
-          <div className="mb-10 rounded-2xl overflow-hidden border border-[#1c1c28] bg-[#0d0d12] card-elevation">
-            <div className="px-6 py-4 border-b border-[#1c1c28] flex items-center gap-3">
+          <div className="card mb-10 overflow-hidden rounded-md">
+            <div className="px-6 py-4 border-b border-[var(--border-2)] flex items-center gap-3 bg-[var(--bg-elev-1)]">
               <Sparkles className="w-4 h-4 text-emerald-400" />
-              <p className="text-zinc-300 text-sm font-medium">
+              <p className="text-white text-sm font-bold">
                 {t.mockupTitle}
               </p>
-              <span className="text-zinc-600 text-xs">{t.mockupSub}</span>
+              <span className="text-[var(--text-dim)] text-xs">{t.mockupSub}</span>
             </div>
-            <div className="relative aspect-video bg-[#07070b]">
+            <div className="relative aspect-video bg-[var(--bg)]">
               <Image
                 src={prospect.mockupUrl}
                 alt={`Mockup ${prospect.firmaNaziv}`}
@@ -213,7 +214,7 @@ export default async function PerProspectAuditPage({
                 unoptimized
               />
             </div>
-            <div className="px-6 py-3 border-t border-[#1c1c28] text-xs text-zinc-600">
+            <div className="px-6 py-3 etch-top text-xs text-[var(--text-dim)]">
               {t.mockupCaption}
             </div>
           </div>
@@ -222,14 +223,11 @@ export default async function PerProspectAuditPage({
         {/* Findings */}
         <div className="space-y-4 mb-10">
           {findings.map((f, i) => (
-            <div
-              key={i}
-              className="rounded-2xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation"
-            >
+            <div key={i} className="card p-6 rounded-md">
               <div className="flex items-start gap-4">
                 <div className="flex flex-col items-center pt-1">
                   <span
-                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold text-white ${
+                    className={`inline-flex items-center justify-center w-7 h-7 rounded-sm text-xs font-bold text-white ${
                       SEVERITY_DOT[pickSeverity(i)]
                     }`}
                   >
@@ -237,17 +235,17 @@ export default async function PerProspectAuditPage({
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-base leading-snug">
+                  <p className="text-white font-bold text-base leading-snug">
                     {f.observation}
                   </p>
-                  <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
-                    <span className="text-zinc-500 text-xs uppercase tracking-wider mr-2">
+                  <p className="text-[var(--text-muted)] text-sm mt-3 leading-relaxed">
+                    <span className="text-[var(--text-dim)] text-[10.5px] uppercase tracking-wider mr-2 font-bold">
                       {t.labelImpact}
                     </span>
                     {f.impact}
                   </p>
                   <p className="text-emerald-300/90 text-sm mt-3 leading-relaxed">
-                    <span className="text-emerald-500/80 text-xs uppercase tracking-wider mr-2">
+                    <span className="text-emerald-500/80 text-[10.5px] uppercase tracking-wider mr-2 font-bold">
                       {t.labelFix}
                     </span>
                     {f.fix}
@@ -259,11 +257,11 @@ export default async function PerProspectAuditPage({
         </div>
 
         {/* CTA */}
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/[0.10] to-[#0d0d12] border border-emerald-500/30 p-8 card-elevation">
-          <h2 className="text-white text-xl font-semibold tracking-tight">
+        <div className="card card-accent corner-accent p-8 rounded-md">
+          <h2 className="text-white text-xl font-bold tracking-tight">
             {t.ctaTitle}
           </h2>
-          <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
+          <p className="text-[var(--text-muted)] text-sm mt-2 leading-relaxed">
             {t.ctaSub}
           </p>
           <div className="flex flex-wrap items-center gap-4 mt-6">
@@ -271,27 +269,27 @@ export default async function PerProspectAuditPage({
               href={SENDER_CALENDLY}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-sm font-semibold px-5 py-3 rounded-lg transition-colors shadow-lg shadow-emerald-500/20"
+              className="btn-accent"
             >
               {t.ctaButton}
               <ArrowRight className="w-4 h-4" />
             </a>
             <Link
               href="/audit"
-              className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors inline-flex items-center gap-1.5"
+              className="text-[var(--text-dim)] hover:text-[var(--text)] text-sm transition-colors inline-flex items-center gap-1.5 font-semibold"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               {t.otherSiteLink}
             </Link>
           </div>
-          <p className="text-zinc-600 text-[11px] mt-6">
+          <p className="text-[var(--text-dim)] text-[11px] mt-6">
             — {SENDER_NAME}, Unlockd · Paris
           </p>
         </div>
 
-        <p className="text-center text-zinc-700 text-[11px] mt-12">
+        <p className="text-center text-[var(--text-faint)] text-[11px] mt-12">
           © Unlockd.art {new Date().getFullYear()} ·{" "}
-          <a href="https://unlockd.art" className="hover:text-zinc-500">
+          <a href="https://unlockd.art" className="hover:text-[var(--text-dim)]">
             unlockd.art
           </a>
         </p>
