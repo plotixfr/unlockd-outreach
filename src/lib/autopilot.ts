@@ -34,9 +34,9 @@ const EMAIL_MODEL = "claude-sonnet-4-6";
 //   AUTOPILOT_MAX_PER_BRIEF=5
 //   AUTOPILOT_CONCURRENCY=5
 //   AUTOPILOT_TIME_BUDGET_MS=240000
-const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 1);
-const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 45_000);
-const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 2);
+const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 2);
+const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 50_000);
+const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 3);
 // After 3 consecutive zero-created runs, deactivate the brief to stop burning
 // Places quota + Claude tokens on something that's not delivering.
 const AUTO_PAUSE_AFTER_EMPTY_RUNS = 3;
@@ -140,6 +140,7 @@ interface BriefInput {
   country: string;
   query: string | null;
   source: string;
+  language: string;
   minRating: number | null;
   minReviews: number | null;
   maxPerRun: number;
@@ -196,7 +197,7 @@ async function generateEmailsInline(
     anthropic.messages.create({
       model: EMAIL_MODEL,
       max_tokens: 4096,
-      system: await getEmailSystemPrompt(),
+      system: await getEmailSystemPrompt(prospect.language),
       messages: [
         {
           role: "user",
@@ -209,6 +210,7 @@ async function generateEmailsInline(
             audit,
             mockupUrl: prospect.mockupUrl,
             auditUrl: `${siteUrl}/audit/${prospect.id}`,
+            lang: prospect.language,
           }),
         },
       ],
@@ -458,6 +460,7 @@ async function processPlace(
       sourceQuery: brief.query || brief.niche,
       externalId: place.placeId,
       briefId: brief.id,
+      language: brief.language,
       status: "New",
       verifiedEmail: verifyOutcome?.result === "valid",
       verifiedAt: verifyOutcome ? new Date() : null,

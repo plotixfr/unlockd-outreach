@@ -3,8 +3,8 @@
  * forget it, drop it, or "improve" it. Kept as table-based HTML for Gmail /
  * Outlook compatibility. Phone and Calendly link are clickable.
  *
- * When a prospectId is provided, the Calendly link routes through our own
- * tracking endpoint so we can detect "clicked but didn't book" warm leads.
+ * Localized per prospect language (fr, nl). The CTA link wording differs but
+ * the underlying URL is the same Calendly slot.
  */
 
 const SITE_URL =
@@ -18,13 +18,25 @@ export const SENDER_PHONE_TEL = "+33689967151";
 export const SENDER_CALENDLY = "https://calendly.com/temim-unlockd/30min";
 export const SENDER_SITE = "https://unlockd.art";
 
+export type Lang = "fr" | "nl";
+
+const BOOK_LABEL: Record<Lang, string> = {
+  fr: "Réserver un échange (30 min)",
+  nl: "Plan een gesprek (30 min)",
+};
+
 function calendlyLink(prospectId: string | null): string {
   if (!prospectId) return SENDER_CALENDLY;
   return `${SITE_URL}/api/track/calendly/${prospectId}`;
 }
 
-export function signatureHtml(prospectId: string | null = null): string {
+function normalizeLang(lang: string | null | undefined): Lang {
+  return lang === "nl" ? "nl" : "fr";
+}
+
+export function signatureHtml(prospectId: string | null = null, lang: string | null = null): string {
   const calendly = calendlyLink(prospectId);
+  const bookLabel = BOOK_LABEL[normalizeLang(lang)];
   return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px;border-collapse:collapse;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <tr>
     <td style="padding-top:14px;border-top:1px solid #e5e5e5;font-size:14px;color:#222;line-height:1.5;">
@@ -33,19 +45,20 @@ export function signatureHtml(prospectId: string | null = null): string {
       <div style="margin-top:10px;font-size:13px;color:#444;">
         <a href="tel:${SENDER_PHONE_TEL}" style="color:#444;text-decoration:none;">${SENDER_PHONE_HUMAN}</a>
         &nbsp;·&nbsp;
-        <a href="${calendly}" style="color:#1a73e8;text-decoration:none;">Réserver un échange (30 min)</a>
+        <a href="${calendly}" style="color:#1a73e8;text-decoration:none;">${bookLabel}</a>
       </div>
     </td>
   </tr>
 </table>`;
 }
 
-export function signatureText(prospectId: string | null = null): string {
+export function signatureText(prospectId: string | null = null, lang: string | null = null): string {
+  const bookLabel = BOOK_LABEL[normalizeLang(lang)];
   return [
     "—",
     SENDER_NAME,
     `${SENDER_TITLE} · ${SENDER_COMPANY}`,
     SENDER_PHONE_HUMAN,
-    `Réserver un échange : ${calendlyLink(prospectId)}`,
+    `${bookLabel}: ${calendlyLink(prospectId)}`,
   ].join("\n");
 }

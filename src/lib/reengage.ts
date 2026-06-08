@@ -142,6 +142,7 @@ async function generateOne(
     pagespeed: (prospect.pagespeed as unknown as PageSpeedSnapshot | null) ?? null,
     decisionMakers: (prospect.decisionMakers as unknown as DecisionMakerResult | null) ?? null,
     caseStudy,
+    lang: prospect.language,
   });
 
   const reengagePrompt = `${basePrompt}
@@ -166,7 +167,7 @@ Return ONLY this JSON shape:
     const message = await anthropic.messages.create({
       model: EMAIL_MODEL,
       max_tokens: 1500,
-      system: await getEmailSystemPrompt(),
+      system: await getEmailSystemPrompt(prospect.language),
       messages: [{ role: "user", content: reengagePrompt }],
     });
     const block = message.content[0];

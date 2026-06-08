@@ -67,6 +67,7 @@ export interface UpsellCandidate {
   firmaNaziv: string;
   email: string;
   kontaktIme: string | null;
+  language: string;
   upsellCount: number;
   lastUpsellAt: Date | null;
   datumKonverzije: Date;
@@ -113,6 +114,7 @@ export async function findUpsellCandidates(): Promise<{ tier: UpsellTier; prospe
         firmaNaziv: p.firmaNaziv,
         email: p.email,
         kontaktIme: p.kontaktIme,
+        language: p.language,
         upsellCount: p.upsellCount,
         lastUpsellAt: p.lastUpsellAt,
         datumKonverzije: conv.datumKonverzije,
@@ -170,7 +172,7 @@ Réponds UNIQUEMENT JSON :
     const message = await anthropic.messages.create({
       model: EMAIL_MODEL,
       max_tokens: 1200,
-      system: await getEmailSystemPrompt(),
+      system: await getEmailSystemPrompt(prospect.language),
       messages: [{ role: "user", content: prompt }],
     });
     const block = message.content[0];

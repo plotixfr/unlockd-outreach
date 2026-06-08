@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
       message = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 4096,
-        system: await getEmailSystemPrompt(),
+        system: await getEmailSystemPrompt(prospect.language),
         messages: [
           {
             role: "user",
@@ -176,6 +176,7 @@ export async function POST(req: NextRequest) {
               pagespeed,
               decisionMakers,
               caseStudy,
+              lang: prospect.language,
             }),
           },
         ],

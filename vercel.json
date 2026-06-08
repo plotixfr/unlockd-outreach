@@ -1,56 +1,19 @@
 {
   "crons": [
-    {
-      "path": "/api/autopilot/run",
-      "schedule": "0 6 * * 1-5"
-    },
-    {
-      "path": "/api/autopilot/run",
-      "schedule": "0 9 * * 1-5"
-    },
-    {
-      "path": "/api/autopilot/run",
-      "schedule": "0 12 * * 1-5"
-    },
-    {
-      "path": "/api/autopilot/run",
-      "schedule": "0 15 * * 1-5"
-    },
-    {
-      "path": "/api/cron/send-followups",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/calendly-nudges",
-      "schedule": "30 6 * * *"
-    },
-    {
-      "path": "/api/cron/inbound-nurture",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/check-replies",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/check-replies",
-      "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/cron/check-replies",
-      "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/daily-summary",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/reengage",
-      "schedule": "0 7 * * 1"
-    },
-    {
-      "path": "/api/cron/upsell",
-      "schedule": "0 7 * * 3"
-    }
+    { "path": "/api/autopilot/run", "schedule": "0 5 * * 1-5" },
+    { "path": "/api/autopilot/run", "schedule": "0 7 * * 1-5" },
+    { "path": "/api/autopilot/run", "schedule": "0 9 * * 1-5" },
+    { "path": "/api/autopilot/run", "schedule": "0 11 * * 1-5" },
+    { "path": "/api/autopilot/run", "schedule": "0 13 * * 1-5" },
+    { "path": "/api/autopilot/run", "schedule": "0 15 * * 1-5" },
+    { "path": "/api/cron/send-followups", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/calendly-nudges", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/inbound-nurture", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/check-replies", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/check-replies", "schedule": "0 13 * * *" },
+    { "path": "/api/cron/check-replies", "schedule": "0 19 * * *" },
+    { "path": "/api/cron/daily-summary", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/reengage", "schedule": "0 7 * * 1" },
+    { "path": "/api/cron/upsell", "schedule": "0 7 * * 3" }
   ]
 }

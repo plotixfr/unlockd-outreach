@@ -54,6 +54,7 @@ export default async function PerProspectAuditPage({
       auditFindings: true,
       siteSnapshot: true,
       pagespeed: true,
+      language: true,
     },
   });
 
@@ -63,42 +64,77 @@ export default async function PerProspectAuditPage({
   const site = prospect.siteSnapshot as unknown as SiteSnapshot | null;
   const psi = prospect.pagespeed as unknown as PageSpeedSnapshot | null;
   const greetingName = prospect.kontaktIme?.split(/\s+/)[0] ?? null;
+  const L: "fr" | "nl" = prospect.language === "nl" ? "nl" : "fr";
+
+  // Locale strings — keep visible copy consistent with email tone.
+  const t = {
+    fr: {
+      eyebrowSmall: "Web Studio · Paris",
+      preparedFor: "Audit préparé pour",
+      eyebrow: "Audit personnalisé",
+      hero1: greetingName ? `Bonjour ${greetingName},` : "Bonjour,",
+      hero2: "voici les 3 points qui méritent votre attention.",
+      lookedAt: "J'ai regardé",
+      lookedAtFallback: "votre site",
+      lookedAtSuffix: "avec les outils qu'on utilise sur tous nos projets premium. Voici ce que ça donne, sans filtre.",
+      mockupTitle: "À quoi votre site pourrait ressembler",
+      mockupSub: "— direction visuelle premier jet",
+      mockupCaption: "Composition générée par IA — point de départ pour la conversation. Le vrai design suit votre marque et vos contraintes.",
+      labelImpact: "Impact",
+      labelFix: "Ce qu'on ferait",
+      ctaTitle: "Si vous voulez creuser, on en parle 20 min.",
+      ctaSub: "Pas de pitch. Je vous montre ce qu'on a fait pour des marques de votre secteur, et je réponds à vos questions concrètes — scope, délai, prix.",
+      ctaButton: "Réserver 20 minutes",
+      otherSiteLink: "Auditer un autre site",
+      // Fallback findings
+      fb1Obs: psi?.performanceScore != null ? `Score Lighthouse mobile : ${psi.performanceScore}/100` : "Performance mobile non mesurée",
+      fb1Imp: psi?.performanceScore != null && psi.performanceScore < 50 ? "Sous 50, Google déprionise votre site sur mobile — vous perdez du trafic SEO." : "Premier point à vérifier — la vitesse mobile pilote le classement Google.",
+      fb1Fix: "Re-bâtir la home en framework moderne (Next.js/Astro) — temps de chargement divisé par 3.",
+      fb2Obs: site?.signals.techHints?.length ? `Plateforme détectée : ${site.signals.techHints.join(", ")}` : "Plateforme non identifiée",
+      fb2Imp: "Les outils génériques plafonnent les marques premium — l'expérience est limitée par le builder.",
+      fb2Fix: "Build sur-mesure aligné avec votre image — pas de templates partagés avec vos concurrents.",
+      fb3Obs: site?.signals.hasContactForm ? "Formulaire de contact présent" : "Pas de formulaire de contact visible",
+      fb3Imp: "Sans CTA structuré, vos visiteurs partent sans laisser de trace — vous perdez les leads tièdes.",
+      fb3Fix: "Parcours de conversion explicite : un seul appel à l'action, formulaire en 3 champs max.",
+    },
+    nl: {
+      eyebrowSmall: "Web Studio · Parijs",
+      preparedFor: "Audit voorbereid voor",
+      eyebrow: "Persoonlijke audit",
+      hero1: greetingName ? `Beste ${greetingName},` : "Goedendag,",
+      hero2: "hier zijn de 3 punten die aandacht verdienen.",
+      lookedAt: "Ik heb gekeken naar",
+      lookedAtFallback: "uw site",
+      lookedAtSuffix: "met de tools die we op al onze premium projecten gebruiken. Dit is wat eruit komt, zonder filter.",
+      mockupTitle: "Hoe uw site eruit zou kunnen zien",
+      mockupSub: "— eerste visuele richting",
+      mockupCaption: "Door AI gegenereerde compositie — vertrekpunt voor het gesprek. Het echte ontwerp volgt uw merk en uw beperkingen.",
+      labelImpact: "Impact",
+      labelFix: "Wat wij zouden doen",
+      ctaTitle: "Wilt u dieper graven? 20 minuten samen.",
+      ctaSub: "Geen pitch. Ik laat zien wat we voor merken in uw sector deden, en beantwoord uw concrete vragen — scope, timing, prijs.",
+      ctaButton: "Plan 20 minuten",
+      otherSiteLink: "Een andere site auditen",
+      // Fallback findings
+      fb1Obs: psi?.performanceScore != null ? `Lighthouse mobile score: ${psi.performanceScore}/100` : "Mobile performance niet gemeten",
+      fb1Imp: psi?.performanceScore != null && psi.performanceScore < 50 ? "Onder 50 zet Google uw site lager in mobiele resultaten — u verliest SEO-verkeer." : "Eerste punt om te checken — mobile snelheid stuurt Google ranking aan.",
+      fb1Fix: "Home opnieuw bouwen op een modern framework (Next.js/Astro) — laadtijd door 3 gedeeld.",
+      fb2Obs: site?.signals.techHints?.length ? `Gedetecteerd platform: ${site.signals.techHints.join(", ")}` : "Platform niet geïdentificeerd",
+      fb2Imp: "Generieke tools beperken premium merken — uw ervaring loopt vast in de builder.",
+      fb2Fix: "Maatwerk build afgestemd op uw imago — geen templates die u deelt met concurrenten.",
+      fb3Obs: site?.signals.hasContactForm ? "Contactformulier aanwezig" : "Geen zichtbaar contactformulier",
+      fb3Imp: "Zonder gestructureerde CTA verlaten bezoekers de site spoorloos — u verliest de lauwwarme leads.",
+      fb3Fix: "Heldere conversiepath: één duidelijke call-to-action, formulier in max 3 velden.",
+    },
+  }[L];
 
   const findings: AuditFinding[] =
     audit?.findings && audit.findings.length > 0
       ? audit.findings
       : [
-          // Graceful fallback if Claude audit generation failed: we still
-          // give the prospect something concrete based on raw signals.
-          {
-            observation:
-              psi?.performanceScore != null
-                ? `Score Lighthouse mobile : ${psi.performanceScore}/100`
-                : "Performance mobile non mesurée",
-            impact:
-              psi?.performanceScore != null && psi.performanceScore < 50
-                ? "Sous 50, Google déprionise votre site sur mobile — vous perdez du trafic SEO."
-                : "Premier point à vérifier — la vitesse mobile pilote le classement Google.",
-            fix: "Re-bâtir la home en framework moderne (Next.js/Astro) — temps de chargement divisé par 3.",
-          },
-          {
-            observation:
-              site?.signals.techHints?.length
-                ? `Plateforme détectée : ${site.signals.techHints.join(", ")}`
-                : "Plateforme non identifiée",
-            impact:
-              "Les outils génériques plafonnent les marques premium — l'expérience est limitée par le builder.",
-            fix: "Build sur-mesure aligné avec votre image — pas de templates partagés avec vos concurrents.",
-          },
-          {
-            observation:
-              site?.signals.hasReservation
-                ? "Système de réservation en ligne présent"
-                : "Pas de système de réservation visible",
-            impact:
-              "Chaque friction sur le parcours de réservation coûte 15-30 % de conversions.",
-            fix: "Réservation native intégrée — un seul écran, sans rediriger vers un autre outil.",
-          },
+          { observation: t.fb1Obs, impact: t.fb1Imp, fix: t.fb1Fix },
+          { observation: t.fb2Obs, impact: t.fb2Imp, fix: t.fb2Fix },
+          { observation: t.fb3Obs, impact: t.fb3Imp, fix: t.fb3Fix },
         ];
 
   return (
@@ -121,26 +157,26 @@ export default async function PerProspectAuditPage({
             <div className="text-left">
               <p className="text-emerald-300 text-base font-semibold tracking-tight leading-none">Unlockd</p>
               <p className="text-zinc-600 text-[10px] mt-1 tracking-widest uppercase font-medium">
-                Web Studio · Paris
+                {t.eyebrowSmall}
               </p>
             </div>
           </a>
           <p className="text-zinc-600 text-xs">
-            Audit préparé pour <span className="text-zinc-400">{prospect.firmaNaziv}</span>
+            {t.preparedFor} <span className="text-zinc-400">{prospect.firmaNaziv}</span>
           </p>
         </div>
 
         {/* Hero */}
         <div className="mb-10">
           <p className="text-emerald-400 text-xs uppercase tracking-[0.18em] font-medium mb-3">
-            Audit personnalisé
+            {t.eyebrow}
           </p>
           <h1 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight leading-[1.1]">
-            {greetingName ? `Bonjour ${greetingName},` : "Bonjour,"}<br />
-            voici les 3 points qui méritent votre attention.
+            {t.hero1}<br />
+            {t.hero2}
           </h1>
           <p className="text-zinc-500 text-base mt-5 leading-relaxed">
-            J&apos;ai regardé{" "}
+            {t.lookedAt}{" "}
             {prospect.website ? (
               <a
                 href={prospect.website}
@@ -151,10 +187,9 @@ export default async function PerProspectAuditPage({
                 {prospect.website.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
               </a>
             ) : (
-              "votre site"
+              t.lookedAtFallback
             )}{" "}
-            avec les outils qu&apos;on utilise sur tous nos projets premium. Voici ce que ça
-            donne, sans filtre.
+            {t.lookedAtSuffix}
           </p>
         </div>
 
@@ -164,14 +199,14 @@ export default async function PerProspectAuditPage({
             <div className="px-6 py-4 border-b border-[#1c1c28] flex items-center gap-3">
               <Sparkles className="w-4 h-4 text-emerald-400" />
               <p className="text-zinc-300 text-sm font-medium">
-                À quoi votre site pourrait ressembler
+                {t.mockupTitle}
               </p>
-              <span className="text-zinc-600 text-xs">— direction visuelle premier jet</span>
+              <span className="text-zinc-600 text-xs">{t.mockupSub}</span>
             </div>
             <div className="relative aspect-video bg-[#07070b]">
               <Image
                 src={prospect.mockupUrl}
-                alt={`Mockup pour ${prospect.firmaNaziv}`}
+                alt={`Mockup ${prospect.firmaNaziv}`}
                 fill
                 sizes="(max-width: 768px) 100vw, 768px"
                 className="object-cover"
@@ -179,8 +214,7 @@ export default async function PerProspectAuditPage({
               />
             </div>
             <div className="px-6 py-3 border-t border-[#1c1c28] text-xs text-zinc-600">
-              Composition générée par IA — point de départ pour la conversation. Le vrai
-              design suit votre marque et vos contraintes.
+              {t.mockupCaption}
             </div>
           </div>
         )}
@@ -208,13 +242,13 @@ export default async function PerProspectAuditPage({
                   </p>
                   <p className="text-zinc-400 text-sm mt-3 leading-relaxed">
                     <span className="text-zinc-500 text-xs uppercase tracking-wider mr-2">
-                      Impact
+                      {t.labelImpact}
                     </span>
                     {f.impact}
                   </p>
                   <p className="text-emerald-300/90 text-sm mt-3 leading-relaxed">
                     <span className="text-emerald-500/80 text-xs uppercase tracking-wider mr-2">
-                      Ce qu&apos;on ferait
+                      {t.labelFix}
                     </span>
                     {f.fix}
                   </p>
@@ -227,11 +261,10 @@ export default async function PerProspectAuditPage({
         {/* CTA */}
         <div className="rounded-2xl bg-gradient-to-br from-emerald-500/[0.10] to-[#0d0d12] border border-emerald-500/30 p-8 card-elevation">
           <h2 className="text-white text-xl font-semibold tracking-tight">
-            Si vous voulez creuser, on en parle 20 min.
+            {t.ctaTitle}
           </h2>
           <p className="text-zinc-400 text-sm mt-2 leading-relaxed">
-            Pas de pitch. Je vous montre ce qu&apos;on a fait pour des marques de votre
-            secteur, et je réponds à vos questions concrètes — scope, délai, prix.
+            {t.ctaSub}
           </p>
           <div className="flex flex-wrap items-center gap-4 mt-6">
             <a
@@ -240,7 +273,7 @@ export default async function PerProspectAuditPage({
               rel="noreferrer"
               className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 text-sm font-semibold px-5 py-3 rounded-lg transition-colors shadow-lg shadow-emerald-500/20"
             >
-              Réserver 20 minutes
+              {t.ctaButton}
               <ArrowRight className="w-4 h-4" />
             </a>
             <Link
@@ -248,7 +281,7 @@ export default async function PerProspectAuditPage({
               className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors inline-flex items-center gap-1.5"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Auditer un autre site
+              {t.otherSiteLink}
             </Link>
           </div>
           <p className="text-zinc-600 text-[11px] mt-6">

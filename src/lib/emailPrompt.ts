@@ -18,7 +18,9 @@ import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMak
 import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
 import type { AuditResult } from "@/lib/auditFindings";
 
-const EMAIL_SYSTEM_BASE = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui livre trois choses : identité de marque, sites web premium, et logiciel sur mesure (SaaS, automatisations, outils internes). Tes clients types : cabinets de conseil B2B, cabinets d'avocats, experts-comptables, agences marketing, agences d'architecture, startups tech / éditeurs SaaS, agences digitales — des entreprises prêtes à structurer leur image ou à automatiser leurs opérations. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
+export type Lang = "fr" | "nl";
+
+const EMAIL_SYSTEM_FR = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui livre trois choses : identité de marque, sites web premium, et logiciel sur mesure (SaaS, automatisations, outils internes). Tes clients types : cabinets de conseil B2B, cabinets d'avocats, experts-comptables, agences marketing, agences d'architecture, startups tech / éditeurs SaaS, agences digitales — des entreprises prêtes à structurer leur image ou à automatiser leurs opérations. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
 
 Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle juste — jamais une fausse précision.
 
@@ -26,20 +28,43 @@ Quand un score Lighthouse mobile bas (<50) est fourni, mentionne-le explicitemen
 
 IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
 
+const EMAIL_SYSTEM_NL = `Je bent Temim Turkusic, oprichter van Unlockd.art, een Parijse studio die drie dingen levert: merkidentiteit, premium websites, en custom software (SaaS, automatiseringen, interne tools). Je typische klanten: B2B adviesbureaus, advocatenkantoren, accountantskantoren, marketingbureaus, architectenbureaus, tech startups / SaaS-uitgevers, digital agencies — bedrijven die klaar zijn hun imago te professionaliseren of hun operatie te automatiseren. Je schrijft in JOUW stem (nooit AI-stijl). Je e-mails zijn zeer persoonlijk, kort, elegant. Nooit agressief. Nooit generiek. In foutloos maar levendig Nederlands.
+
+Absolute regel: je verzint NOOIT een specifiek detail over de site, het team, de geschiedenis, het product of de cijfers van de prospect. Als je "Geverifieerde feiten" hebt, gebruik ze letterlijk (sitetitel, H1, Lighthouse score, voornaam van de beslisser, gedetecteerde signalen). Als je geen relevant feit hebt, blijf bij een correcte sectorobservatie — nooit een valse precisie.
+
+Bij een lage mobiele Lighthouse score (<50) noem je hem expliciet in de eerste e-mail met het exacte cijfer — dat is je sterkste opening.
+
+IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
+
+const SYSTEM_BY_LANG: Record<Lang, string> = {
+  fr: EMAIL_SYSTEM_FR,
+  nl: EMAIL_SYSTEM_NL,
+};
+
+const VOICE_HEADER_BY_LANG: Record<Lang, string> = {
+  fr: "VOIX ET STYLE :",
+  nl: "STEM EN STIJL:",
+};
+
+function normalizeLang(l: string | null | undefined): Lang {
+  return l === "nl" ? "nl" : "fr";
+}
+
 /**
  * Composes the full system prompt for any email generation call: combines the
  * base studio brief with the operator's voice fingerprint and the anti-AI
  * guardrails. Resolved at call time so voice-profile updates take effect
- * immediately without redeploys.
+ * immediately without redeploys. Branches by prospect language.
  */
-export async function getEmailSystemPrompt(): Promise<string> {
+export async function getEmailSystemPrompt(lang: string | null = "fr"): Promise<string> {
+  const L = normalizeLang(lang);
   const voiceGuide = await buildVoiceGuideForPrompt();
-  return `${EMAIL_SYSTEM_BASE}\n\nVOIX ET STYLE :\n${voiceGuide}`;
+  return `${SYSTEM_BY_LANG[L]}\n\n${VOICE_HEADER_BY_LANG[L]}\n${voiceGuide}`;
 }
 
 // Backwards-compat export — some legacy call-sites still import the constant.
-// New code should use getEmailSystemPrompt() so voice updates apply live.
-export const EMAIL_SYSTEM_PROMPT = EMAIL_SYSTEM_BASE;
+// New code should use getEmailSystemPrompt(lang) so voice updates apply live.
+export const EMAIL_SYSTEM_PROMPT = EMAIL_SYSTEM_FR;
 
 const NICHE_FR_HINTS: Record<string, string> = {
   // Group A — B2B professional services
@@ -108,6 +133,7 @@ export interface BuildPromptOpts {
   audit?: AuditResult | null;
   mockupUrl?: string | null;
   auditUrl?: string | null;
+  lang?: Lang | string | null;
 }
 
 function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
@@ -155,22 +181,34 @@ function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
 }
 
 export function buildEmailPrompt(p: PromptProspect, opts: BuildPromptOpts = {}): string {
+  const L = normalizeLang(opts.lang ?? "fr");
   const nicheLabel = niceNicheLabel(p.nisa);
-  const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ") || "Non renseigné";
   const greetingFirstName = pickGreetingName(opts.decisionMakers ?? null, p.kontaktIme);
+  const factsSection = buildFactsBlock(p, opts);
+  return L === "nl"
+    ? buildPromptNL(p, opts, nicheLabel, greetingFirstName, factsSection)
+    : buildPromptFR(p, opts, nicheLabel, greetingFirstName, factsSection);
+}
+
+function buildPromptFR(
+  p: PromptProspect,
+  opts: BuildPromptOpts,
+  nicheLabel: string,
+  greetingFirstName: string | null,
+  factsSection: string,
+): string {
+  const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ") || "Non renseigné";
   const hintBlock = opts.nicheHint?.trim()
     ? `\n\nInstructions spécifiques pour le secteur "${nicheLabel}" (à respecter scrupuleusement):\n${opts.nicheHint.trim()}`
     : "";
-  const factsSection = buildFactsBlock(p, opts);
-
   const greetingHint = greetingFirstName
     ? `Commence par "Bonjour ${greetingFirstName}," (prénom uniquement, validé par les faits vérifiés).`
     : `Commence par "Bonjour," sans nom inventé.`;
 
   if (opts.compact) {
-    return `Génère 5 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Pas de site"}. Instagram: ${p.instagram || "N/A"}. Description: ${p.opisFirme || "N/A"}. Qualité site: ${p.kvalitetSajta ?? "N/A"}/5. Notes: ${p.napomena || "Aucune"}.${factsSection}
+    return `Génère 5 cold emails pour: ${p.firmaNaziv}, secteur ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Pas de site"}. Description: ${p.opisFirme || "N/A"}. Notes: ${p.napomena || "Aucune"}.${factsSection}
 
-Types: "initial","follow1","follow2","follow3","breakup". Adapte ton, références et arguments au secteur "${nicheLabel}". ${greetingHint} Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email (breakup max 40 mots), pas de prix, pas de signature ni nom de société à la fin (la signature est ajoutée automatiquement après ton message). Pour chaque email, deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing.${hintBlock}
+Types: "initial","follow1","follow2","follow3","breakup". ${greetingHint} Règles: français impeccable, ton premium, balises HTML p/br/strong uniquement, max 120 mots par email (breakup max 40 mots), pas de prix, pas de signature à la fin.${hintBlock}
 
 Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
   }
@@ -183,30 +221,83 @@ Prospect:
 - Secteur: ${nicheLabel}
 - Ville: ${p.grad}
 - Site web: ${p.website || "Pas de site"}
-- Instagram: ${p.instagram || "Non renseigné"}
 - Description: ${p.opisFirme || "Non renseigné"}
-- Qualité du site (1=mauvais, 5=excellent): ${p.kvalitetSajta ?? "Non évalué"}
 - Notes opérateur: ${p.napomena || "Aucune"}${factsSection}
 
-Types à générer (adapte ton, références et arguments au secteur "${nicheLabel}"):
-1. "initial" — Introduction courte. Si un score Lighthouse mobile < 50 est fourni, OUVRE l'email avec ce chiffre exact (pas de paraphrase) — c'est l'accroche la plus forte. Sinon appuie-toi sur UN fait vérifié concret (titre, H1, signal détecté). Si rien de précis n'est disponible, observation sectorielle juste. Proposition de valeur Unlockd.art adaptée au secteur.
-2. "follow1" — Ce qu'ils perdent sans site premium dans leur secteur. Si un signal négatif a été détecté (LCP > 4s, pas de viewport mobile, plateforme générique type Wix, peu d'images, pas de réservation), évoque-le concrètement.
-3. "follow2" — Preuve sociale concrète. Si une case study a été fournie ci-dessus, utilise-la (titre + résultat chiffré). Sinon, reste qualitatif — n'invente AUCUN chiffre.
+Types à générer (adapte ton et arguments au secteur "${nicheLabel}"):
+1. "initial" — Introduction courte. Si un score Lighthouse mobile < 50 est fourni, OUVRE l'email avec ce chiffre exact. Sinon appuie-toi sur UN fait vérifié concret. Proposition de valeur Unlockd.art adaptée.
+2. "follow1" — Ce qu'ils perdent sans site premium. Si un signal négatif a été détecté, évoque-le concrètement.
+3. "follow2" — Preuve sociale concrète. Si une case study a été fournie, utilise-la.
 4. "follow3" — Email final très court, simple oui/non, un seul appel à l'action.
-5. "breakup" — Email de rupture, format UNIQUEMENT: "Bonjour ${greetingFirstName ?? "[Prénom]"}, dois-je clôturer cette piste ou c'est juste un mauvais timing ?" — 1 phrase, 25-40 mots max, ton humain et désarmé, sans pitch. Sujet: 3-5 mots minuscules (ex: "dernière relance", "clôture du dossier", "encore ouvert ?").
+5. "breakup" — Format UNIQUEMENT: "Bonjour ${greetingFirstName ?? "[Prénom]"}, dois-je clôturer cette piste ou c'est juste un mauvais timing ?" — 1 phrase, 25-40 mots max, sans pitch. Sujet: 3-5 mots minuscules.
 
 Règles:
 - Français impeccable, ton premium
 - ${greetingHint}
 - Corps HTML: balises p, br, strong uniquement
 - Maximum 120 mots par email (breakup max 40 mots)
-- Ne jamais mentionner de prix
-- Ne pas ajouter de signature, de nom ni de nom de société à la fin. La signature est ajoutée automatiquement par le système après ton message. L'email se termine par la dernière phrase utile.
-- Générer deux lignes d'objet pour chaque email : "subject" (version A, sobre et direct) et "subjectB" (version B, plus orienté bénéfice ou question) — tons légèrement différents pour A/B testing
-- N'invente AUCUN fait spécifique sur le prospect qui ne figure pas dans les données ci-dessus${hintBlock}
+- Pas de prix
+- Pas de signature ni nom de société à la fin (la signature est ajoutée automatiquement après ton message)
+- Deux lignes d'objet "subject" (A) et "subjectB" (B) pour A/B testing
+- N'invente AUCUN fait spécifique${hintBlock}
 
-Return ONLY the JSON array, nothing else:
-[{"tip":"initial","subject":"Ligne objet A...","subjectB":"Ligne objet B...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
+Return ONLY the JSON array:
+[{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
+}
+
+function buildPromptNL(
+  p: PromptProspect,
+  opts: BuildPromptOpts,
+  nicheLabel: string,
+  greetingFirstName: string | null,
+  factsSection: string,
+): string {
+  const contact = [p.kontaktIme, p.kontaktPozicija].filter(Boolean).join(", ") || "Niet ingevuld";
+  const hintBlock = opts.nicheHint?.trim()
+    ? `\n\nSpecifieke instructies voor de sector "${nicheLabel}" (strikt te volgen):\n${opts.nicheHint.trim()}`
+    : "";
+  const greetingHint = greetingFirstName
+    ? `Begin met "Beste ${greetingFirstName}," (alleen voornaam, gevalideerd door geverifieerde feiten).`
+    : `Begin met "Goedendag," zonder verzonnen naam.`;
+
+  if (opts.compact) {
+    return `Genereer 5 cold emails voor: ${p.firmaNaziv}, sector ${nicheLabel}, ${p.grad}. Contact: ${contact}. Site: ${p.website || "Geen site"}. Beschrijving: ${p.opisFirme || "N/A"}. Notities: ${p.napomena || "Geen"}.${factsSection}
+
+Types: "initial","follow1","follow2","follow3","breakup". ${greetingHint} Regels: foutloos Nederlands, premium toon, alleen p/br/strong HTML tags, max 120 woorden per e-mail (breakup max 40), geen prijzen, geen handtekening aan het einde.${hintBlock}
+
+Return ONLY: [{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
+  }
+
+  return `Genereer 5 cold emails voor deze prospect.
+
+Prospect:
+- Naam: ${p.firmaNaziv}
+- Contact CSV: ${contact}
+- Sector: ${nicheLabel}
+- Stad: ${p.grad}
+- Website: ${p.website || "Geen website"}
+- Beschrijving: ${p.opisFirme || "Niet ingevuld"}
+- Operator notities: ${p.napomena || "Geen"}${factsSection}
+
+Types te genereren (pas toon en argumenten aan op de sector "${nicheLabel}"):
+1. "initial" — Korte introductie. Als een mobiele Lighthouse score < 50 wordt gegeven, OPEN de e-mail met dat exacte cijfer. Anders steun je op ÉÉN concreet geverifieerd feit. Waardevoorstel van Unlockd.art afgestemd op de sector.
+2. "follow1" — Wat ze verliezen zonder een premium site. Als een negatief signaal werd gedetecteerd, noem het concreet.
+3. "follow2" — Concreet sociaal bewijs. Als hierboven een case study werd gegeven, gebruik het.
+4. "follow3" — Hele korte laatste e-mail, simpele ja/nee, één call-to-action.
+5. "breakup" — Formaat ALLEEN: "Beste ${greetingFirstName ?? "[Voornaam]"}, moet ik dit dossier sluiten of is dit gewoon verkeerde timing?" — 1 zin, 25-40 woorden max, geen pitch. Onderwerp: 3-5 kleine letters.
+
+Regels:
+- Foutloos Nederlands, premium toon
+- ${greetingHint}
+- HTML body: alleen p, br, strong tags
+- Maximum 120 woorden per e-mail (breakup max 40)
+- Nooit prijzen noemen
+- Voeg geen handtekening of bedrijfsnaam toe aan het einde (de handtekening wordt automatisch toegevoegd)
+- Twee onderwerpregels "subject" (A) en "subjectB" (B) voor A/B testing
+- Verzin GEEN specifieke feiten${hintBlock}
+
+Return ONLY the JSON array:
+[{"tip":"initial","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow1","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow2","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"follow3","subject":"...","subjectB":"...","body":"<p>...</p>"},{"tip":"breakup","subject":"...","subjectB":"...","body":"<p>...</p>"}]`;
 }
 
 export function extractJsonArray(text: string): string {

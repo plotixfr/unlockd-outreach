@@ -84,12 +84,16 @@ function buildHtml(
   body: string,
   emailId: string,
   prospectId: string,
-  opts: { includePixel: boolean; siteUrl?: string | null; includeScreenshot: boolean }
+  opts: { includePixel: boolean; siteUrl?: string | null; includeScreenshot: boolean; lang?: string | null }
 ): string {
+  const lang = opts.lang === "nl" ? "nl" : "fr";
   const pixel = opts.includePixel
     ? `<img src="${SITE_URL}/api/track/open/${emailId}" width="1" height="1" style="display:none;border:0;outline:none;" alt="" />`
     : "";
-  const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.</p>`;
+  const unsubscribeCopy = lang === "nl"
+    ? `Wilt u geen e-mails meer ontvangen? <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">klik hier om uit te schrijven</a>.`
+    : `Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.`;
+  const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">${unsubscribeCopy}</p>`;
 
   // Inline site screenshot — only on the initial email. A visual reminder of
   // their current site, sitting just below the message, dramatically lifts
@@ -102,13 +106,13 @@ function buildHtml(
       <a href="${opts.siteUrl}" style="text-decoration:none;">
         <img src="${screenshotUrl}" alt="${opts.siteUrl}" width="560" style="display:block;max-width:100%;height:auto;border-radius:4px;border:1px solid #e5e5e5;" />
       </a>
-      <p style="margin:8px 0 0;font-size:11px;color:#888;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">Aperçu actuel : <a href="${opts.siteUrl}" style="color:#888;text-decoration:underline;">${opts.siteUrl}</a></p>
+      <p style="margin:8px 0 0;font-size:11px;color:#888;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${lang === "nl" ? "Huidige weergave" : "Aperçu actuel"} : <a href="${opts.siteUrl}" style="color:#888;text-decoration:underline;">${opts.siteUrl}</a></p>
     </td>
   </tr>
 </table>`
     : "";
 
-  return body + screenshotBlock + signatureHtml(prospectId) + pixel + unsubscribe;
+  return body + screenshotBlock + signatureHtml(prospectId, lang) + pixel + unsubscribe;
 }
 
 /**
@@ -116,14 +120,15 @@ function buildHtml(
  * message — having a real text/plain part materially improves Gmail Inbox
  * placement vs. HTML-only.
  */
-function buildText(body: string, prospectId: string): string {
+function buildText(body: string, prospectId: string, lang: string | null = null): string {
   const text = htmlToText(body);
+  const unsubLabel = lang === "nl" ? "Uitschrijven" : "Désabonnement";
   return [
     text,
     "",
-    signatureText(prospectId),
+    signatureText(prospectId, lang),
     "",
-    `Désabonnement : ${SITE_URL}/api/unsubscribe/${prospectId}`,
+    `${unsubLabel} : ${SITE_URL}/api/unsubscribe/${prospectId}`,
   ].join("\n");
 }
 
@@ -289,8 +294,9 @@ export async function sendOneEmail(
     includePixel: standaloneTouch,
     siteUrl: email.prospect.website,
     includeScreenshot: standaloneTouch && !!email.prospect.website,
+    lang: email.prospect.language,
   });
-  const text = buildText(bodyToSend, email.prospect.id);
+  const text = buildText(bodyToSend, email.prospect.id, email.prospect.language);
 
   // Threading: follow-ups attach to the initial's Message-ID and reuse "Re:".
   // Re-engagement deliberately doesn't thread.
@@ -562,8 +568,8 @@ export async function sendTestEmail(
     email.activeSubject === "B" && email.subjectB ? email.subjectB : email.subject;
   // Test sends include the signature but omit the tracking pixel + unsubscribe
   // (we don't want test opens to skew metrics, and the recipient is the user).
-  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml(email.prospect.id)}`;
-  const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText(email.prospect.id)}`;
+  const html = `<div style="background:#fff3cd;border:1px solid #ffeaa7;padding:8px 12px;margin-bottom:16px;font-family:sans-serif;font-size:12px;color:#856404;border-radius:4px;">TEST PREVIEW — destination originale : ${email.prospect.email}</div>${email.body}${signatureHtml(email.prospect.id, email.prospect.language)}`;
+  const text = `[TEST PREVIEW]\n\n${htmlToText(email.body)}\n\n${signatureText(email.prospect.id, email.prospect.language)}`;
 
   await resendGate();
   const { data, error } = await resend.emails.send({

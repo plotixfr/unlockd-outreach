@@ -9,7 +9,7 @@
  * (e.g. after a Vercel Pro upgrade) is a one-line edit.
  */
 
-export const AUTOPILOT_CRON_HOURS_UTC = [6];
+export const AUTOPILOT_CRON_HOURS_UTC = [5, 7, 9, 11, 13, 15];
 export const AUTOPILOT_RUN_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri (UTC, getUTCDay)
 export const SEND_CRON_HOURS_UTC = [8];
 export const SUMMARY_CRON_HOUR_UTC = 17;
