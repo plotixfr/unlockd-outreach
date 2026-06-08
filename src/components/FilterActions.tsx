@@ -89,7 +89,7 @@ export function FilterActions({ filter, total }: Props) {
             Generate za {filterLabel} ({total})
           </button>
           <button
-            onClick={() => bulkByFilter("delete", `Obrisati svih ${total} prospekata u filteru "${filterLabel}"?`)}
+            onClick={() => bulkByFilter("delete", `Delete all ${total} prospects in filter "${filterLabel}"?`)}
             disabled={!!loading}
             className="text-xs px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >

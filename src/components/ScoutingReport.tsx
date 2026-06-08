@@ -95,7 +95,7 @@ export function ScoutingReport({ prospectId, hasWebsite, snapshot, snapshotAt }:
           <div>
             <p className="text-amber-300 font-medium text-sm">Sajt nedostupan</p>
             <p className="text-amber-200/70 text-xs mt-1">
-              {current.error ?? "Nepoznata greška"} {current.status ? `(HTTP ${current.status})` : ""}
+              {current.error ?? "Unknown error"} {current.status ? `(HTTP ${current.status})` : ""}
             </p>
             <p className="text-zinc-500 text-xs mt-1">Posljednji pokušaj: {fmtDate(currentAt)}</p>
           </div>

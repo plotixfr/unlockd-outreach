@@ -23,14 +23,17 @@ export async function POST(req: NextRequest) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const niche = typeof body.niche === "string" ? body.niche.trim() : "";
     if (!name || !niche) {
-      return NextResponse.json({ error: "name i niche su obavezni" }, { status: 400 });
+      return NextResponse.json({ error: "name and niche are required" }, { status: 400 });
     }
+    const source =
+      body.source === "sirene_api" ? "sirene_api" : "google_places";
     const brief = await prisma.searchBrief.create({
       data: {
         name,
         niche,
         city: typeof body.city === "string" && body.city.trim() ? body.city.trim() : null,
         country: typeof body.country === "string" && body.country.trim() ? body.country.trim() : "FR",
+        source,
         query: typeof body.query === "string" && body.query.trim() ? body.query.trim() : null,
         minRating: typeof body.minRating === "number" ? body.minRating : null,
         minReviews: typeof body.minReviews === "number" ? Math.round(body.minReviews) : null,

@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         });
         scored++;
       } catch (e) {
-        errors.push(`${p.firmaNaziv}: ${e instanceof Error ? e.message : "greška"}`);
+        errors.push(`${p.firmaNaziv}: ${e instanceof Error ? e.message : "error"}`);
       }
     }
 

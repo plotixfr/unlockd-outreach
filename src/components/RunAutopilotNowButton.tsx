@@ -51,7 +51,7 @@ export function RunAutopilotNowButton() {
       setResult(data);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Greška pri pokretanju");
+      setError(e instanceof Error ? e.message : "Run failed");
     } finally {
       setRunning(false);
     }

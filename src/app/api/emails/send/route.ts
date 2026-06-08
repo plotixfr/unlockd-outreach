@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       return NextResponse.json(
-        { error: `Resend greška: ${error.message}` },
+        { error: `Resend error: ${error.message}` },
         { status: 502 }
       );
     }

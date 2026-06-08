@@ -39,7 +39,7 @@ export function CaseStudiesEditor() {
       const data: { items: CaseStudy[] } = await res.json();
       setItems(data.items);
     } catch {
-      setError("Greška učitavanja");
+      setError("Load failed");
     } finally {
       setLoading(false);
     }
@@ -82,17 +82,17 @@ export function CaseStudiesEditor() {
       });
       setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, active: !x.active } : x)));
     } catch {
-      setError("Greška ažuriranja");
+      setError("Update failed");
     }
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Obrisati ovaj case study?")) return;
+    if (!confirm("Delete this case study?")) return;
     try {
       await fetch(`/api/case-studies/${id}`, { method: "DELETE" });
       setItems((prev) => prev.filter((x) => x.id !== id));
     } catch {
-      setError("Greška brisanja");
+      setError("Delete failed");
     }
   };
 
@@ -163,7 +163,7 @@ export function CaseStudiesEditor() {
 
       {/* List */}
       {loading ? (
-        <p className="text-zinc-500 text-sm">Učitavam…</p>
+        <p className="text-zinc-500 text-sm">Loading…</p>
       ) : items.length === 0 ? (
         <p className="text-zinc-600 text-sm pt-3 border-t border-[#1f1f2e]">
           Još nema case studies. Dodaj barem jedan po niši — drastično podiže follow-up #2.

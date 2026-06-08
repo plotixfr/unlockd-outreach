@@ -70,7 +70,7 @@ export function VoiceProfileEditor() {
   };
 
   const remove = async () => {
-    if (!confirm("Obrisati voice profile? Generisani mailovi će se vratiti na default ton.")) return;
+    if (!confirm("Delete the voice profile? Generated emails will revert to the default tone.")) return;
     setSaving(true);
     try {
       await fetch("/api/voice", { method: "DELETE" });

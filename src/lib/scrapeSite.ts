@@ -257,7 +257,7 @@ async function fetchWithLimits(
     // ignore
   }
 
-  let lastErr: { error: string; status: number | null } = { error: "Nepoznata greška", status: null };
+  let lastErr: { error: string; status: number | null } = { error: "Unknown error", status: null };
   for (const t of tries) {
     const out = await fetchOnce(t.url, t.ua);
     if ("html" in out) {

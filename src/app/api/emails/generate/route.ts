@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[generate] Anthropic API error:", msg);
       return NextResponse.json(
-        { error: `Greška Claude API: ${msg}` },
+        { error: `Claude API error: ${msg}` },
         { status: 502 }
       );
     }

@@ -35,7 +35,7 @@ export function ScoreUnscoredButton({ unscoredCount }: Props) {
         });
         const data: { scored?: number; remaining?: number; done?: boolean; error?: string } =
           await res.json();
-        if (!res.ok) throw new Error(data.error || "Greška u scoring-u");
+        if (!res.ok) throw new Error(data.error || "Scoring error");
         totalScored += data.scored ?? 0;
         setScored(totalScored);
         setRemaining(data.remaining ?? 0);

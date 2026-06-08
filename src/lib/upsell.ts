@@ -270,7 +270,7 @@ export async function runUpsellBatch(limit = 20): Promise<UpsellRunSummary> {
       });
       summary.scheduled++;
     } catch (e) {
-      summary.errors.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "greška"}`);
+      summary.errors.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "error"}`);
     }
   }
 

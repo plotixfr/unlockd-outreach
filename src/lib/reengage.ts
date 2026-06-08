@@ -286,7 +286,7 @@ export async function runReengageBatch(limit = 30): Promise<ReengageRunSummary> 
       });
       summary.scheduled++;
     } catch (e) {
-      summary.errors.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "greška"}`);
+      summary.errors.push(`${prospect.firmaNaziv}: ${e instanceof Error ? e.message : "error"}`);
     }
   }
 

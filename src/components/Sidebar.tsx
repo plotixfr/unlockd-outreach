@@ -10,7 +10,6 @@ import {
   Upload,
   BarChart3,
   DollarSign,
-  Flame,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -31,7 +30,6 @@ const ANALYSIS_NAV: typeof PRIMARY_NAV = [
 
 const TOOLS_NAV: typeof PRIMARY_NAV = [
   { href: "/upload",    label: "Import",    Icon: Upload },
-  { href: "/warmup",    label: "Warm-up",   Icon: Flame },
   { href: "/settings",  label: "Settings",  Icon: Settings },
 ];
 

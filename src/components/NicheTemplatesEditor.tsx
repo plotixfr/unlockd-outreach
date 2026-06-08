@@ -86,7 +86,7 @@ export function NicheTemplatesEditor() {
   };
 
   const remove = async (n: string) => {
-    if (!confirm(`Obrisati hint za "${n}"?`)) return;
+    if (!confirm(`Delete hint for "${n}"?`)) return;
     try {
       const res = await fetch(`/api/niches?nisa=${encodeURIComponent(n)}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Error");

@@ -62,7 +62,7 @@ export default async function AutopilotPage() {
       take: 10,
       include: { brief: { select: { name: true } } },
     }),
-    prisma.prospect.count({ where: { source: "google_places" } }),
+    prisma.prospect.count({ where: { source: { in: ["google_places", "sirene_api"] } } }),
     prisma.email.count({ where: { calendlyClicked: true } }),
   ]);
 
@@ -77,7 +77,7 @@ export default async function AutopilotPage() {
           The system that finds your clients
         </h1>
         <p className="text-zinc-500 text-sm mt-2 max-w-xl">
-          Discovers prospects, enriches them, scores them, drafts emails, sends. You only open your inbox when a warm lead lands.
+          Targets B2B professional services (via Google Places) and French tech startups (via the Sirene gov registry — free). Discovers, enriches, scores, drafts, sends. You only open your inbox when a warm lead lands.
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default async function AutopilotPage() {
               </p>
               <p className="text-zinc-500 text-xs mt-1">
                 {autopilotLive
-                  ? "Next batch fires at 8:00 AM Paris on the next business day"
+                  ? "Discovery fires 4× per business day (Paris). Sends drain daily at 10:00 Paris."
                   : !discoveryConfigured
                     ? "Add the key to Vercel Env to enable discovery"
                     : "Click Quick Setup or Bulk Add below"}
@@ -148,7 +148,7 @@ export default async function AutopilotPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={Send} label="Sending today" value={sendingTodayInitial + sendingTodayFollowups} sub={`${sendingTodayInitial} new + ${sendingTodayFollowups} follow-ups`} tone="emerald" />
         <StatCard icon={Clock} label="Queued tomorrow" value={sendingTomorrow} sub="new campaigns" tone="sky" />
-        <StatCard icon={Database} label="Auto-discovered" value={totalAutoProspects} sub="from Google Places" tone="neutral" />
+        <StatCard icon={Database} label="Auto-discovered" value={totalAutoProspects} sub="Places + Sirene" tone="neutral" />
         <StatCard icon={Flame} label="Calendly clicks" value={calendlyClicks} sub="warm leads" tone="amber" />
       </div>
 
@@ -247,7 +247,7 @@ export default async function AutopilotPage() {
             <span className="mt-0.5 text-zinc-600"><Sparkles className="w-4 h-4" /></span>
             <div className="flex-1">
               <p className="text-zinc-300"><strong className="text-zinc-100">Cron schedule</strong> (already live)</p>
-              <p className="text-zinc-600 text-xs mt-0.5">Mon–Fri 8:00 AM discovery · Daily 10:00 AM send · Daily 8:30 AM Calendly nudge · Daily 7:00 PM summary (Paris time)</p>
+              <p className="text-zinc-600 text-xs mt-0.5">Mon–Fri 8/11/14/17h discovery · Daily 10h send · Daily 8:30h Calendly nudge · Daily 11h inbound nurture · Every 5min reply detection · Daily 8h summary · Mon 9h reengage · Wed 9h upsell (Paris time)</p>
             </div>
           </li>
         </ul>

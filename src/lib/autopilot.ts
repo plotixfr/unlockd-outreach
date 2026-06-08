@@ -626,7 +626,7 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
         if (result.status === "scheduled") summary.scheduled++;
         if (place.website) summary.emailsFound++;
       } catch (e) {
-        summary.errors.push(`${place.name}: ${e instanceof Error ? e.message : "greška"}`);
+        summary.errors.push(`${place.name}: ${e instanceof Error ? e.message : "error"}`);
       }
     }
   } catch (e) {
