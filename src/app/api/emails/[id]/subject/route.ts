@@ -27,6 +27,6 @@ export async function PATCH(
     return NextResponse.json({ success: true, activeSubject: email.activeSubject });
   } catch (err) {
     console.error("[subject]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

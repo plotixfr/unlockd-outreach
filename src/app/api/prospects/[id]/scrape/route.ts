@@ -36,6 +36,6 @@ export async function POST(
     return NextResponse.json({ ok: true, snapshot });
   } catch (err) {
     console.error("[scrape]", err);
-    return NextResponse.json({ error: "Serverska greška pri scrape-u" }, { status: 500 });
+    return NextResponse.json({ error: "server error while scraping" }, { status: 500 });
   }
 }

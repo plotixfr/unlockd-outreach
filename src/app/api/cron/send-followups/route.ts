@@ -26,7 +26,7 @@ async function run(req: NextRequest) {
     return NextResponse.json({ ok: true, totalSent, totalSkipped, capRemaining, results });
   } catch (err) {
     console.error("[cron] Unhandled error:", err);
-    return NextResponse.json({ error: "Serverska greška u cron job-u" }, { status: 500 });
+    return NextResponse.json({ error: "server error in cron job" }, { status: 500 });
   }
 }
 

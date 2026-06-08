@@ -104,6 +104,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[score]", err);
-    return NextResponse.json({ error: "Serverska greška pri ocjenjivanju" }, { status: 500 });
+    return NextResponse.json({ error: "server error while scoring" }, { status: 500 });
   }
 }

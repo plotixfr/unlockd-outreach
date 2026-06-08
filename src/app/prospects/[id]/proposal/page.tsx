@@ -57,8 +57,8 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
         <div className="no-print mb-8 flex items-center justify-between rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-3">
           <p className="text-zinc-600 text-xs">
             {prospect?.proposalAt
-              ? `Generisano ${new Date(prospect.proposalAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
-              : "Tek generisano"}
+              ? `Generated ${new Date(prospect.proposalAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`
+              : "Just generated"}
           </p>
           <ProposalActions prospectId={id} />
         </div>

@@ -20,13 +20,13 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
   if (currentStatus === "Converted") return null;
 
   const inputCls =
-    "w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors";
+    "w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-600 transition-colors";
 
   const handleSave = async () => {
     setError("");
     const val = parseFloat(vrijednost);
     if (!val || val <= 0) {
-      setError("Unesite vrijednost projekta");
+      setError("Enter a project value");
       return;
     }
     setLoading(true);
@@ -51,23 +51,23 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 text-sm bg-green-950/40 hover:bg-green-900/50 text-green-400 hover:text-green-300 border border-green-800/40 rounded-lg transition-colors"
+        className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 hover:text-emerald-300 border border-emerald-800/40 rounded-lg transition-colors"
       >
-        Označi kao konvertovanog
+        Mark as converted
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-5">
             <div>
-              <h3 className="text-white font-semibold">Konverzija</h3>
-              <p className="text-zinc-500 text-sm mt-1">Unesi detalje o projektu</p>
+              <h3 className="text-white font-semibold">Conversion</h3>
+              <p className="text-zinc-500 text-sm mt-1">Enter project details</p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-                  Vrijednost projekta (EUR) *
+                  Project value (EUR) *
                 </label>
                 <input
                   type="number"
@@ -75,13 +75,13 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
                   step={100}
                   value={vrijednost}
                   onChange={(e) => setVrijednost(e.target.value)}
-                  placeholder="npr. 4500"
+                  placeholder="e.g. 4500"
                   className={inputCls}
                 />
               </div>
               <div>
                 <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-                  Datum konverzije
+                  Conversion date
                 </label>
                 <input
                   type="date"
@@ -92,13 +92,13 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
               </div>
               <div>
                 <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-                  Napomena (opciono)
+                  Note (optional)
                 </label>
                 <textarea
                   rows={2}
                   value={napomena}
                   onChange={(e) => setNapomena(e.target.value)}
-                  placeholder="Tip projekta, kontekst..."
+                  placeholder="Project type, context..."
                   className={inputCls + " resize-none"}
                 />
               </div>
@@ -117,12 +117,12 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="px-4 py-2 text-sm bg-green-700 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 {loading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 )}
-                {loading ? "Čuvanje..." : "Save"}
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

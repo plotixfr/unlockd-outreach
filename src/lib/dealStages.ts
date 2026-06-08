@@ -36,9 +36,6 @@ export const DEAL_STAGE_LABEL: Record<DealStage, string> = {
   Lost: "Lost",
 };
 
-// Backwards-compatible alias for older imports.
-export const DEAL_STAGE_BS = DEAL_STAGE_LABEL;
-
 export const DEAL_STAGE_COLOR: Record<DealStage, string> = {
   Discovery: "bg-sky-950/60 text-sky-300 border-sky-900/40",
   Proposal: "bg-blue-950/60 text-blue-300 border-blue-900/40",

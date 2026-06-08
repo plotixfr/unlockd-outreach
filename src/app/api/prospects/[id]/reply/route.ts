@@ -28,6 +28,6 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[reply]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

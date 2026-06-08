@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[generate] Unhandled error:", err);
     return NextResponse.json(
-      { error: "Serverska greška pri generisanju emailova" },
+      { error: "server error while generating emails" },
       { status: 500 }
     );
   }

@@ -91,7 +91,7 @@ Réponds UNIQUEMENT JSON :
     return NextResponse.json({ ok: true, message: parsed.message, note: parsed.note ?? "" });
   } catch (err) {
     console.error("[linkedin]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 

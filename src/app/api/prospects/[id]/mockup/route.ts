@@ -56,6 +56,6 @@ export async function POST(
     return NextResponse.json({ ok: true, url: result.url, prompt: result.prompt });
   } catch (err) {
     console.error("[mockup]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

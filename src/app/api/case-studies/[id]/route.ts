@@ -29,7 +29,7 @@ export async function PUT(
     return NextResponse.json({ item });
   } catch (err) {
     console.error("[case-studies PUT]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 
@@ -43,6 +43,6 @@ export async function DELETE(
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[case-studies DELETE]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

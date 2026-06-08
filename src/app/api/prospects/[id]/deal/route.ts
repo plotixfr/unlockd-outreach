@@ -44,13 +44,13 @@ export async function PATCH(
     }
 
     if (Object.keys(data).length === 0) {
-      return NextResponse.json({ error: "Nema podataka" }, { status: 400 });
+      return NextResponse.json({ error: "no data" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.update({ where: { id }, data });
     return NextResponse.json({ prospect });
   } catch (err) {
     console.error("[deal PATCH]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

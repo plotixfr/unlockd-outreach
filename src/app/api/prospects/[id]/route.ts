@@ -23,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ prospect });
   } catch (err) {
     console.error("[PATCH prospect]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 
@@ -73,7 +73,7 @@ export async function PUT(
     return NextResponse.json({ prospect });
   } catch (err) {
     console.error("[PUT prospect]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 
@@ -88,6 +88,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[DELETE prospect]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

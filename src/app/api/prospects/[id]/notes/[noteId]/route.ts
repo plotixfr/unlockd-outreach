@@ -10,6 +10,6 @@ export async function DELETE(
     await prisma.note.delete({ where: { id: noteId } });
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ error: "Bilješka nije pronađena" }, { status: 404 });
+    return NextResponse.json({ error: "note not found" }, { status: 404 });
   }
 }

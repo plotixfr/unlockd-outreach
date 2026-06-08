@@ -25,6 +25,6 @@ export async function POST(
     return NextResponse.json({ success: true, to, messageId: res.messageId });
   } catch (err) {
     console.error("[email test]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

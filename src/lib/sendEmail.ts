@@ -112,53 +112,6 @@ function buildHtml(
 }
 
 /**
- * Operator-copy body. The version that lands in temim.fr@gmail.com (the
- * BCC inbox) — deliberately stripped of:
- *   - The tracking pixel (so the operator opening their own copy doesn't
- *     register as a "prospect open" — that was double-counting the open
- *     rate every day).
- *   - The unsubscribe footer (the operator isn't a recipient, and the
- *     footer would let them accidentally unsubscribe the prospect by
- *     clicking the link in their own copy).
- *   - The screenshot block (not relevant — the operator already knows what
- *     the prospect's site looks like).
- *
- * A short banner at the top labels the copy and shows the real destination,
- * so the operator's inbox stays useful as a sent-mail archive.
- */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-function buildOperatorCopyHtml(
-  body: string,
-  prospectName: string,
-  prospectEmail: string,
-  subject: string
-): string {
-  const banner = `<div style="background:#f4f4f5;padding:12px 16px;border-left:3px solid #3b82f6;margin-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <p style="margin:0;font-size:10px;color:#71717a;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">SENT — Operator copy</p>
-  <p style="margin:4px 0 0;font-size:13px;color:#27272a;">To: <strong>${escapeHtml(prospectName)}</strong> &lt;${escapeHtml(prospectEmail)}&gt;</p>
-  <p style="margin:2px 0 0;font-size:12px;color:#52525b;">Subject: ${escapeHtml(subject)}</p>
-</div>`;
-  return banner + body;
-}
-
-function buildOperatorCopyText(
-  body: string,
-  prospectName: string,
-  prospectEmail: string,
-  subject: string
-): string {
-  const headerText = `[SENT — Operator copy]\nTo: ${prospectName} <${prospectEmail}>\nSubject: ${subject}\n\n---\n\n`;
-  return headerText + htmlToText(body);
-}
-
-/**
  * Plain-text body, paired with the HTML one. Resend sends both as a multipart
  * message — having a real text/plain part materially improves Gmail Inbox
  * placement vs. HTML-only.
@@ -352,10 +305,15 @@ export async function sendOneEmail(
     }
   }
 
+  // Real Bcc to operator inbox. Previously this was a separate Resend send
+  // wrapped in try/catch — when that secondary send failed (rate limit,
+  // transient), the operator never saw the email and we never logged the
+  // failure. Real Bcc = one request, atomic with the prospect send.
   await resendGate();
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [email.prospect.email],
+    bcc: BCC_EMAIL ? [BCC_EMAIL] : undefined,
     replyTo: REPLY_TO,
     subject: subjectToSend,
     html,
@@ -387,22 +345,6 @@ export async function sendOneEmail(
       where: { id: email.prospectId },
       data: { status: mapping.status, [mapping.field]: now },
     });
-  }
-
-  // Operator copy — formerly a BCC on the main send, now a separate message
-  // so we can strip the tracking pixel + unsubscribe footer. Best-effort:
-  // if this fails we don't fail the outreach, we just log and move on.
-  try {
-    await resendGate();
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [BCC_EMAIL],
-      subject: `[Sent] ${subjectToSend}`,
-      html: buildOperatorCopyHtml(email.body, email.prospect.firmaNaziv, email.prospect.email, subjectToSend),
-      text: buildOperatorCopyText(email.body, email.prospect.firmaNaziv, email.prospect.email, subjectToSend),
-    });
-  } catch (e) {
-    console.warn("[sendEmail] operator copy failed:", e);
   }
 
   return { ok: true, resendId: data?.id ?? null };

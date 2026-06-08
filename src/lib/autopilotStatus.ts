@@ -55,9 +55,9 @@ export function formatParisDateTime(d: Date): string {
 export function relativeFromNow(d: Date, from: Date = new Date()): string {
   const diffMs = d.getTime() - from.getTime();
   const min = Math.round(diffMs / 60000);
-  if (Math.abs(min) < 60) return min >= 0 ? `za ${min} min` : `prije ${-min} min`;
+  if (Math.abs(min) < 60) return min >= 0 ? `in ${min} min` : `${-min} min ago`;
   const h = Math.round(min / 60);
-  if (Math.abs(h) < 24) return h >= 0 ? `za ${h}h` : `prije ${-h}h`;
+  if (Math.abs(h) < 24) return h >= 0 ? `in ${h}h` : `${-h}h ago`;
   const day = Math.round(h / 24);
-  return day >= 0 ? `za ${day} dan${day === 1 ? "" : "a"}` : `prije ${-day} dana`;
+  return day >= 0 ? `in ${day} day${day === 1 ? "" : "s"}` : `${-day} day${day === 1 ? "" : "s"} ago`;
 }

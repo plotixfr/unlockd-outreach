@@ -55,13 +55,15 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     kind: "prospect_created",
     at: prospect.createdAt,
     title: prospect.source === "google_places"
-      ? "Otkriven kroz Google Places"
-      : prospect.source === "public_audit"
-        ? "Stigao kroz javni audit"
-        : prospect.source === "url_import"
-          ? "Dodat preko URL importa"
-          : "Dodat ručno",
-    detail: prospect.briefId ? "Iz aktivnog brief-a" : undefined,
+      ? "Discovered via Google Places"
+      : prospect.source === "sirene_api"
+        ? "Discovered via Sirene registry"
+        : prospect.source === "public_audit"
+          ? "Arrived via public audit"
+          : prospect.source === "url_import"
+            ? "Added via URL import"
+            : "Added manually",
+    detail: prospect.briefId ? "From active brief" : undefined,
     tone: "info",
   });
 
@@ -69,7 +71,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "prospect_scraped",
       at: prospect.siteSnapshotAt,
-      title: "Sajt skeniran",
+      title: "Site scanned",
       detail: prospect.website || undefined,
       tone: "muted",
     });
@@ -79,7 +81,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "prospect_scraped",
       at: prospect.pagespeedAt,
-      title: "Lighthouse mjeren",
+      title: "Lighthouse measured",
       detail: undefined,
       tone: "muted",
     });
@@ -104,8 +106,8 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "campaign_scheduled",
       at: prospect.scheduledInitial,
-      title: prospect.scheduledInitial > new Date() ? "Kampanja zakazana" : "Initial bio zakazan",
-      detail: prospect.autoScheduled ? "Auto-zakaž od autopilot-a" : "Ručno zakazano",
+      title: prospect.scheduledInitial > new Date() ? "Campaign scheduled" : "Initial scheduled",
+      detail: prospect.autoScheduled ? "Auto-scheduled by autopilot" : "Manually scheduled",
       tone: "info",
     });
   }
@@ -114,7 +116,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "email_generated",
       at: e.createdAt,
-      title: `Email "${e.tip}" generisan`,
+      title: `Email "${e.tip}" generated`,
       detail: e.subject,
       tone: "muted",
     });
@@ -122,7 +124,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       ev.push({
         kind: "email_sent",
         at: e.poslatAt,
-        title: `Poslan "${e.tip}"`,
+        title: `Sent "${e.tip}"`,
         detail: e.activeSubject === "B" && e.subjectB ? e.subjectB : e.subject,
         tone: "info",
       });
@@ -131,7 +133,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       ev.push({
         kind: "email_opened",
         at: e.otvorenAt,
-        title: `Otvoren "${e.tip}"`,
+        title: `Opened "${e.tip}"`,
         tone: "success",
       });
     }
@@ -139,8 +141,8 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       ev.push({
         kind: "calendly_clicked",
         at: e.calendlyClickedAt,
-        title: "Kliknuo Calendly link",
-        detail: "Topao lead — provjeri da li je book-ovao",
+        title: "Clicked Calendly link",
+        detail: "Warm lead — check if they booked",
         tone: "warning",
       });
     }
@@ -150,7 +152,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "reply_received",
       at: r.receivedAt,
-      title: "Odgovor stigao",
+      title: "Reply received",
       detail: r.subject || undefined,
       tone: "success",
     });
@@ -158,8 +160,8 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       ev.push({
         kind: "reply_classified",
         at: r.receivedAt,
-        title: `Klasifikovan: ${r.classification}`,
-        detail: r.draft ? "AI draft odgovora spreman" : undefined,
+        title: `Classified: ${r.classification}`,
+        detail: r.draft ? "AI reply draft ready" : undefined,
         tone:
           r.classification === "Interested" || r.classification === "Question"
             ? "success"
@@ -175,7 +177,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       kind: "deal_stage_changed",
       at: prospect.dealStageAt,
       title: `Deal stage → ${prospect.dealStage}`,
-      detail: prospect.dealValue ? `${prospect.dealValue.toLocaleString("fr-FR")} €` : undefined,
+      detail: prospect.dealValue ? `${prospect.dealValue.toLocaleString("en-US")} €` : undefined,
       tone: prospect.dealStage === "Won" ? "success" : prospect.dealStage === "Lost" ? "danger" : "info",
     });
   }
@@ -184,7 +186,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "note_added",
       at: n.createdAt,
-      title: "Nota dodana",
+      title: "Note added",
       detail: n.tekst.slice(0, 160),
       tone: "muted",
     });
@@ -194,7 +196,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "conversion",
       at: c.datumKonverzije,
-      title: `Konverzija — ${c.vrijednostProjekta.toLocaleString("fr-FR")} €`,
+      title: `Conversion — ${c.vrijednostProjekta.toLocaleString("en-US")} €`,
       detail: c.napomena || undefined,
       tone: "success",
     });
@@ -204,7 +206,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "mockup_generated",
       at: prospect.mockupAt,
-      title: "AI mockup generisan",
+      title: "AI mockup generated",
       tone: "muted",
     });
   }
@@ -213,7 +215,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "proposal_generated",
       at: prospect.proposalAt,
-      title: "Ponuda generisana",
+      title: "Proposal generated",
       tone: "info",
     });
   }
@@ -223,7 +225,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
       kind: "reengage_scheduled",
       at: prospect.lastReengageAt,
       title: `Re-engagement #${prospect.reengageCount}`,
-      detail: "90/180/365-dnevni touch",
+      detail: "90/180/365-day touch",
       tone: "muted",
     });
   }
@@ -232,7 +234,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "linkedin_sent",
       at: prospect.linkedinTouchedAt,
-      title: "LinkedIn DM poslat",
+      title: "LinkedIn DM sent",
       detail: "Multi-channel touch (manual)",
       tone: "info",
     });
@@ -258,7 +260,7 @@ export async function getProspectActivity(prospectId: string): Promise<ActivityE
     ev.push({
       kind: "reminder_set",
       at: prospect.podsjetnikDatum,
-      title: prospect.podsjetnikDatum > new Date() ? "Podsjetnik zakazan" : "Podsjetnik prošao",
+      title: prospect.podsjetnikDatum > new Date() ? "Reminder scheduled" : "Reminder passed",
       detail: prospect.podsjetnikNapomena || undefined,
       tone: "info",
     });

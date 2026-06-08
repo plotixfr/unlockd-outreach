@@ -18,7 +18,7 @@ export async function POST(
     const { vrijednostProjekta, datumKonverzije, napomena } = body;
 
     if (!vrijednostProjekta || vrijednostProjekta <= 0) {
-      return NextResponse.json({ error: "Vrijednost projekta je obavezna" }, { status: 400 });
+      return NextResponse.json({ error: "project value is required" }, { status: 400 });
     }
 
     const prospect = await prisma.prospect.findUnique({ where: { id } });
@@ -49,6 +49,6 @@ export async function POST(
     return NextResponse.json({ success: true, conversion });
   } catch (err) {
     console.error("[conversion]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

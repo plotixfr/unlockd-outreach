@@ -243,6 +243,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Nepoznata akcija" }, { status: 400 });
   } catch (err) {
     console.error("[bulk]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

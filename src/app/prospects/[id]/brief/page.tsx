@@ -178,14 +178,14 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
 
         {/* Site signals */}
         {signals && (
-          <Section title="Tehnički signali">
+          <Section title="Technical signals">
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-              <Signal label="Responsive mobile" value={signals.responsiveViewport ? "Da" : "NE"} bad={!signals.responsiveViewport} />
-              <Signal label="Sistem rezervacija" value={signals.hasReservation ? "Da" : "Ne"} bad={!signals.hasReservation && (prospect.nisa.toLowerCase().includes("hotel") || prospect.nisa.toLowerCase().includes("restaurant"))} />
-              <Signal label="Kontakt forma" value={signals.hasContactForm ? "Da" : "Ne"} bad={!signals.hasContactForm} />
-              <Signal label="Instagram link" value={signals.hasInstagramLink ? "Da" : "Ne"} />
-              <Signal label="Platforma" value={signals.techHints.join(", ") || "—"} />
-              <Signal label="Broj slika" value={String(signals.approxImageCount)} />
+              <Signal label="Mobile responsive" value={signals.responsiveViewport ? "Yes" : "No"} bad={!signals.responsiveViewport} />
+              <Signal label="Booking system" value={signals.hasReservation ? "Yes" : "No"} bad={!signals.hasReservation && (prospect.nisa.toLowerCase().includes("hotel") || prospect.nisa.toLowerCase().includes("restaurant"))} />
+              <Signal label="Contact form" value={signals.hasContactForm ? "Yes" : "No"} bad={!signals.hasContactForm} />
+              <Signal label="Instagram link" value={signals.hasInstagramLink ? "Yes" : "No"} />
+              <Signal label="Platform" value={signals.techHints.join(", ") || "—"} />
+              <Signal label="Image count" value={String(signals.approxImageCount)} />
             </div>
           </Section>
         )}

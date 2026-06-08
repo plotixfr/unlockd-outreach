@@ -43,6 +43,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ item });
   } catch (err) {
     console.error("[case-studies POST]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

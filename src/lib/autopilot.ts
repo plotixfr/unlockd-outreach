@@ -93,49 +93,23 @@ export interface BriefRunSummary {
 }
 
 /**
- * Picks the next ~3 business-day slot in Europe/Paris for an initial send.
- * Spreads sends through 09:00–17:00 to avoid burst-y patterns that look
- * automated. Skips weekends.
+ * Picks a slot N business days ahead in Paris time at 06:00–08:59.
+ *
+ * Why 06–09 and not 09–17: the send cron fires once daily at 10:00 Paris.
+ * Anything scheduled after 09:00 misses that day's fire — the prospect waits
+ * a full extra day. By bucketing follow-ups into the same 06–09 window as
+ * initials (see slotInDay), every scheduled day's cron picks them up.
  */
 function nextWorkingSlot(daysAhead = 1): Date {
-  const now = new Date();
-  const d = new Date(now);
+  const d = new Date();
   d.setUTCDate(d.getUTCDate() + daysAhead);
-  // Find a weekday in Paris
   for (let i = 0; i < 7; i++) {
-    const probe = new Date(d);
-    const dow = parseInt(
-      new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", weekday: "short" })
-        .format(probe)
-        .replace(/\D/g, ""),
-      10
-    );
     const weekdayName = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", weekday: "short" })
-      .format(probe);
-    if (weekdayName !== "Sat" && weekdayName !== "Sun") {
-      d.setTime(probe.getTime());
-      break;
-    }
+      .format(d);
+    if (weekdayName !== "Sat" && weekdayName !== "Sun") break;
     d.setUTCDate(d.getUTCDate() + 1);
-    void dow; // silence unused warning if any
   }
-  // Random hour 09:00–16:59 Paris time, then back-derive UTC.
-  const hourLocal = 9 + Math.floor(Math.random() * 8);
-  const minute = Math.floor(Math.random() * 60);
-  // Approximation: Paris is UTC+1 (winter) or UTC+2 (summer). Use a sentinel
-  // that subtracts the locale-derived offset.
-  const localStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}T${String(hourLocal).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`;
-  // Construct a Date that the JS engine treats as that exact wall-clock time in Paris:
-  // We compute the offset by formatting and parsing.
-  const guessUtc = new Date(`${localStr}Z`);
-  const partsHere = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Paris",
-    hour: "2-digit",
-    hour12: false,
-  }).formatToParts(guessUtc);
-  const guessedParisHour = parseInt(partsHere.find((p) => p.type === "hour")?.value ?? "0", 10);
-  const offsetMs = (hourLocal - guessedParisHour) * 3600_000;
-  return new Date(guessUtc.getTime() + offsetMs);
+  return slotInDay(d);
 }
 
 function inferNicheFromPlaceType(primaryType: string | null, briefNiche: string): string {
@@ -415,9 +389,9 @@ async function processPlace(
   const existing = await prisma.prospect.findFirst({
     where: { OR: [{ externalId: place.placeId }, place.website ? { website: place.website } : {}].filter(Boolean) as never },
   });
-  if (existing) return { status: "skipped", reason: "već u bazi" };
+  if (existing) return { status: "skipped", reason: "already in database" };
 
-  if (!place.website) return { status: "skipped", reason: "nema website" };
+  if (!place.website) return { status: "skipped", reason: "no website" };
 
   // Find an email on the prospect's site. Timeout protects against CMSes that
   // hang on contact-page fetches — within a 60s function budget, one slow
@@ -431,7 +405,7 @@ async function processPlace(
     return {
       status: "skipped",
       reason: emailResult
-        ? `nema pronađenog emaila (probano ${emailResult.tried.length} stranica)`
+        ? `no email found (tried ${emailResult.tried.length} pages)`
         : "email-finder timeout",
     };
   }
@@ -439,13 +413,13 @@ async function processPlace(
 
   // Race-safe dedupe on email
   const dupByEmail = await prisma.prospect.findUnique({ where: { email } });
-  if (dupByEmail) return { status: "skipped", reason: "email već postoji" };
+  if (dupByEmail) return { status: "skipped", reason: "email already exists" };
 
   // Domain-level suppression: a colleague at the same company already
   // replied / unsubscribed / bounced — don't waste a slot on a new contact
   // we're not allowed to mail. Public providers are skipped inside helper.
   if (await isDomainSuppressed(email)) {
-    return { status: "skipped", reason: "domena je u suppression listi" };
+    return { status: "skipped", reason: "domain on suppression list" };
   }
 
   // Email verification: MX + SMTP RCPT. Skips on "unknown" so a port-25-
@@ -456,7 +430,7 @@ async function processPlace(
   if (EMAIL_VERIFY_ENABLED) {
     verifyOutcome = await withTimeout(verifyEmail(email), VERIFY_TIMEOUT_MS, `verifyEmail(${email})`);
     if (verifyOutcome?.result === "invalid") {
-      return { status: "skipped", reason: `email nevažeći: ${verifyOutcome.reason}` };
+      return { status: "skipped", reason: `invalid email: ${verifyOutcome.reason}` };
     }
   }
 
@@ -537,7 +511,7 @@ async function processPlace(
   }
 
   if (!brief.autoGenerate) {
-    return { status: "qualified", reason: "autoGenerate=false, čeka ručnu generaciju" };
+    return { status: "qualified", reason: "autoGenerate=false, awaiting manual generation" };
   }
 
   // Run audit + mockup in parallel — both are independent of each other and
@@ -592,11 +566,11 @@ async function processPlace(
   // Generate emails.
   const generated = await generateEmailsInline(prospect.id, { site, psi, dm });
   if (generated === 0) {
-    return { status: "qualified", reason: "generisanje neuspješno" };
+    return { status: "qualified", reason: "email generation failed" };
   }
 
   if (!brief.autoSchedule) {
-    return { status: "qualified", reason: "autoSchedule=false, čeka ručno pokretanje" };
+    return { status: "qualified", reason: "autoSchedule=false, awaiting manual trigger" };
   }
 
   await scheduleInline(prospect.id);
@@ -605,7 +579,7 @@ async function processPlace(
 
 export async function runBrief(briefId: string): Promise<BriefRunSummary> {
   const brief = await prisma.searchBrief.findUnique({ where: { id: briefId } });
-  if (!brief) throw new Error(`Brief ${briefId} nije pronađen`);
+  if (!brief) throw new Error(`Brief ${briefId} not found`);
 
   const run = await prisma.discoveryRun.create({
     data: { briefId, status: "running" },
@@ -766,7 +740,7 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
         ) {
           await prisma.searchBrief.update({ where: { id: b.id }, data: { active: false } });
           console.log(`[autopilot] auto-paused brief "${b.name}" after ${AUTO_PAUSE_AFTER_EMPTY_RUNS} empty runs`);
-          s.errors.push(`auto-pausiran (${AUTO_PAUSE_AFTER_EMPTY_RUNS} prazna runa za redom)`);
+          s.errors.push(`auto-paused (${AUTO_PAUSE_AFTER_EMPTY_RUNS} empty runs in a row)`);
         }
       }
       return s;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEAL_STAGES, DEAL_STAGE_BS, DEAL_STAGE_COLOR, type DealStage } from "@/lib/dealStages";
+import { DEAL_STAGES, DEAL_STAGE_LABEL, DEAL_STAGE_COLOR, type DealStage } from "@/lib/dealStages";
 
 interface Props {
   prospectId: string;
@@ -78,13 +78,13 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
                     : "bg-transparent text-zinc-500 border-[#1f1f2e] hover:text-zinc-300"
                 }`}
               >
-                {DEAL_STAGE_BS[s]}
+                {DEAL_STAGE_LABEL[s]}
               </button>
             ))}
           </div>
         </div>
         <div>
-          <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">Vrijednost (€)</label>
+          <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">Value (€)</label>
           <input
             type="number"
             min={0}
@@ -93,7 +93,7 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
             onChange={(e) => setValue(e.target.value)}
             onBlur={onValueBlur}
             placeholder="0"
-            className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+            className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-600 transition-colors"
           />
         </div>
       </div>

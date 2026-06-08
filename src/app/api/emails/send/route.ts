@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[send] Unhandled error:", err);
     return NextResponse.json(
-      { error: "Serverska greška pri slanju emaila" },
+      { error: "server error while sending email" },
       { status: 500 }
     );
   }

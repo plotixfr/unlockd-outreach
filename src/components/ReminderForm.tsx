@@ -41,30 +41,30 @@ export function ReminderForm({ prospectId, initialDatum, initialNapomena }: Prop
 
   return (
     <div className="space-y-3">
-      <h2 className="text-white font-medium">Podsjetnik</h2>
+      <h2 className="text-white font-medium">Reminder</h2>
       <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">
-              Datum
+              Date
             </label>
             <input
               type="date"
               value={datum}
               onChange={(e) => setDatum(e.target.value)}
-              className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+              className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-600 transition-colors"
             />
           </div>
           <div>
             <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">
-              Napomena
+              Note
             </label>
             <input
               type="text"
               value={napomena}
               onChange={(e) => setNapomena(e.target.value)}
-              placeholder="Kratka napomena…"
-              className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
+              placeholder="Short note…"
+              className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-emerald-600 transition-colors"
             />
           </div>
         </div>
@@ -72,9 +72,9 @@ export function ReminderForm({ prospectId, initialDatum, initialNapomena }: Prop
           <button
             onClick={handleSave}
             disabled={saving || !datum}
-            className="text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
+            className="text-sm px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
           >
-            {saving ? "Čuvam..." : "Save podsjetnik"}
+            {saving ? "Saving..." : "Save reminder"}
           </button>
           {initialDatum && (
             <button
@@ -88,7 +88,7 @@ export function ReminderForm({ prospectId, initialDatum, initialNapomena }: Prop
         </div>
         {initialDatum && (
           <p className="text-zinc-500 text-xs">
-            Aktivan: {new Date(initialDatum).toLocaleDateString("fr-FR")}
+            Active: {new Date(initialDatum).toLocaleDateString("en-GB")}
             {initialNapomena ? ` — ${initialNapomena}` : ""}
           </p>
         )}

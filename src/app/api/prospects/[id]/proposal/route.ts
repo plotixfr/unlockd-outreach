@@ -55,6 +55,6 @@ export async function POST(
     return NextResponse.json({ ok: true, content });
   } catch (err) {
     console.error("[proposal]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

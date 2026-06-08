@@ -13,7 +13,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[niches GET]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, template });
   } catch (err) {
     console.error("[niches POST]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }
 
@@ -51,6 +51,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[niches DELETE]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

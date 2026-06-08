@@ -81,6 +81,6 @@ export async function POST(
     });
   } catch (err) {
     console.error("[schedule]", err);
-    return NextResponse.json({ error: "Serverska greška" }, { status: 500 });
+    return NextResponse.json({ error: "server error" }, { status: 500 });
   }
 }

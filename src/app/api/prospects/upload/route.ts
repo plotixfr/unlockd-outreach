@@ -31,22 +31,22 @@ const NICHE_ALIAS: Record<string, string> = {
 };
 
 const ProspectRowSchema = z.object({
-  firmaNaziv: z.string().min(1, "firmaNaziv je obavezno"),
+  firmaNaziv: z.string().min(1, "company name is required"),
   kontaktIme: optStr,
   kontaktPozicija: optStr,
-  email: z.string().email("Neispravan email"),
+  email: z.string().email("invalid email"),
   website: optStr,
   instagram: optStr,
   // Niche is free-form: any non-empty string is accepted. Known aliases are
   // normalised so the dashboard filters stay consistent.
   nisa: z
     .string()
-    .min(1, "nisa je obavezno")
+    .min(1, "niche is required")
     .transform((v) => {
       const trimmed = v.trim();
       return NICHE_ALIAS[trimmed.toLowerCase()] ?? trimmed;
     }),
-  grad: z.string().min(1, "grad je obavezno"),
+  grad: z.string().min(1, "city is required"),
   opisFirme: optStr,
   // Clamp kvalitetSajta to 1–5, skip invalid/missing silently
   kvalitetSajta: z
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       formData = await req.formData();
     } catch {
       return NextResponse.json(
-        { error: "Neispravan multipart request" },
+        { error: "invalid multipart request" },
         { status: 400 }
       );
     }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file");
     if (!(file instanceof File)) {
       return NextResponse.json(
-        { error: "Fajl nije pronađen u request-u" },
+        { error: "file not found in request" },
         { status: 400 }
       );
     }
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       text = await file.text();
     } catch {
       return NextResponse.json(
-        { error: "Error čitanju fajla" },
+        { error: "error reading file" },
         { status: 400 }
       );
     }
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     // Strip BOM if present
     const cleanText = text.replace(/^﻿/, "").trim();
     if (!cleanText) {
-      return NextResponse.json({ error: "Fajl je prazan" }, { status: 400 });
+      return NextResponse.json({ error: "file is empty" }, { status: 400 });
     }
 
     const { data, errors } = Papa.parse<Record<string, string>>(cleanText, {
@@ -112,9 +112,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (data.length === 0) {
-      const csvError = errors[0]?.message ?? "Nema podataka";
+      const csvError = errors[0]?.message ?? "no data";
       return NextResponse.json(
-        { error: `CSV greška: ${csvError}` },
+        { error: `CSV error: ${csvError}` },
         { status: 400 }
       );
     }
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     if (valid.length === 0) {
       return NextResponse.json(
         {
-          error: `Nema validnih redova od ${data.length} ukupno`,
+          error: `no valid rows out of ${data.length} total`,
           invalid: invalid.slice(0, 10),
         },
         { status: 400 }
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[upload] Unhandled error:", err);
     return NextResponse.json(
-      { error: "Serverska greška pri uvozu" },
+      { error: "server error during import" },
       { status: 500 }
     );
   }

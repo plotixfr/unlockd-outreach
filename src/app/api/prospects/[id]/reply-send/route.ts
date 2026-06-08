@@ -92,6 +92,6 @@ export async function POST(
     return NextResponse.json({ ok: true, messageId: data?.id ?? null });
   } catch (err) {
     console.error("[reply-send]", err);
-    return NextResponse.json({ error: "Serverska greška pri slanju" }, { status: 500 });
+    return NextResponse.json({ error: "server error while sending" }, { status: 500 });
   }
 }
