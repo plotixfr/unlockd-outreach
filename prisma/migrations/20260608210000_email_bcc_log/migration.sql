@@ -1,0 +1,3 @@
+ALTER TABLE "Email" ADD COLUMN IF NOT EXISTS "bccSentAt" TIMESTAMP(3);
+ALTER TABLE "Email" ADD COLUMN IF NOT EXISTS "bccError" TEXT;
+CREATE INDEX IF NOT EXISTS "Email_bccError_idx" ON "Email"("bccError");

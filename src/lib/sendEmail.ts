@@ -311,15 +311,11 @@ export async function sendOneEmail(
     }
   }
 
-  // Real Bcc to operator inbox. Previously this was a separate Resend send
-  // wrapped in try/catch — when that secondary send failed (rate limit,
-  // transient), the operator never saw the email and we never logged the
-  // failure. Real Bcc = one request, atomic with the prospect send.
+  // Prospect send — includes the tracking pixel and unsubscribe footer.
   await resendGate();
   const { data, error } = await resend.emails.send({
     from: FROM_EMAIL,
     to: [email.prospect.email],
-    bcc: BCC_EMAIL ? [BCC_EMAIL] : undefined,
     replyTo: REPLY_TO,
     subject: subjectToSend,
     html,
@@ -353,7 +349,93 @@ export async function sendOneEmail(
     });
   }
 
+  // Operator copy — separate Resend call with a STRIPPED body: no pixel
+  // (so opening this copy doesn't count as a prospect open), no unsubscribe
+  // footer (so an accidental click here doesn't unsubscribe the prospect),
+  // no screenshot block. Adds a banner showing the real destination so the
+  // operator's inbox stays useful as a sent-mail archive.
+  //
+  // Failures are logged into Email.bccError + bccSentAt=null so dashboard
+  // can surface them. One retry on transient errors before giving up.
+  if (BCC_EMAIL) {
+    const opCopyHtml = buildOperatorCopyHtml(
+      bodyToSend,
+      email.prospect.firmaNaziv,
+      email.prospect.email,
+      subjectToSend
+    );
+    const opCopyText = buildOperatorCopyText(
+      bodyToSend,
+      email.prospect.firmaNaziv,
+      email.prospect.email,
+      subjectToSend
+    );
+    let bccError: string | null = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        await resendGate();
+        const { error: bccErr } = await resend.emails.send({
+          from: FROM_EMAIL,
+          to: [BCC_EMAIL],
+          subject: `[Sent] ${subjectToSend}`,
+          html: opCopyHtml,
+          text: opCopyText,
+        });
+        if (!bccErr) { bccError = null; break; }
+        bccError = bccErr.message;
+        if (attempt === 1) await new Promise((r) => setTimeout(r, 800));
+      } catch (e) {
+        bccError = e instanceof Error ? e.message : "bcc send threw";
+        if (attempt === 1) await new Promise((r) => setTimeout(r, 800));
+      }
+    }
+    await prisma.email.update({
+      where: { id: emailId },
+      data: bccError
+        ? { bccError: bccError.slice(0, 500), bccSentAt: null }
+        : { bccError: null, bccSentAt: new Date() },
+    });
+    if (bccError) console.error(`[sendEmail] BCC failed for ${emailId}: ${bccError}`);
+  }
+
   return { ok: true, resendId: data?.id ?? null };
+}
+
+/**
+ * Operator BCC copy: stripped of pixel, unsubscribe footer, and screenshot.
+ * A small banner identifies the real destination so the operator can use
+ * their inbox as a sent-mail archive without confusing it with their own
+ * prospect-facing replies.
+ */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildOperatorCopyHtml(
+  body: string,
+  prospectName: string,
+  prospectEmail: string,
+  subject: string
+): string {
+  const banner = `<div style="background:#f4f4f5;padding:12px 16px;border-left:3px solid #10b981;margin-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <p style="margin:0;font-size:10px;color:#71717a;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">SENT — Operator copy</p>
+  <p style="margin:4px 0 0;font-size:13px;color:#27272a;">To: <strong>${escapeHtml(prospectName)}</strong> &lt;${escapeHtml(prospectEmail)}&gt;</p>
+  <p style="margin:2px 0 0;font-size:12px;color:#52525b;">Subject: ${escapeHtml(subject)}</p>
+</div>`;
+  return banner + body;
+}
+
+function buildOperatorCopyText(
+  body: string,
+  prospectName: string,
+  prospectEmail: string,
+  subject: string
+): string {
+  return `[SENT — Operator copy]\nTo: ${prospectName} <${prospectEmail}>\nSubject: ${subject}\n\n---\n\n${htmlToText(body)}`;
 }
 
 async function runWithConcurrency<T, R>(
