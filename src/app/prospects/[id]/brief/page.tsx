@@ -121,7 +121,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
         {/* Current site screenshot */}
         {prospect.website && (
           <div className="mt-6">
-            <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">Trenutni sajt</p>
+            <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-medium mb-2">Current site</p>
             <div className="rounded-lg overflow-hidden border border-zinc-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={thumioUrl(prospect.website)} alt={prospect.website} className="w-full block" />
@@ -132,7 +132,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
 
         {/* Observations */}
         {points && points.observations.length > 0 && (
-          <Section title="Šta sam primijetio na njihovom sajtu">
+          <Section title="What I noticed on their site">
             <ol className="space-y-2.5">
               {points.observations.map((o, i) => (
                 <li key={i} className="flex gap-3 text-sm">
@@ -171,7 +171,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
 
         {/* Pricing rationale */}
         {points?.pricingBand.rationale && (
-          <Section title="Cjenovni nivo — obrazloženje">
+          <Section title="Pricing tier — rationale">
             <p className="text-sm text-zinc-700 leading-relaxed">{points.pricingBand.rationale}</p>
           </Section>
         )}

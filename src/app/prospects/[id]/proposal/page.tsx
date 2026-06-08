@@ -12,7 +12,7 @@ export const maxDuration = 60;
  * Claude inline on render (which would block 20-40s and exceed Vercel Hobby's
  * 10s budget). Instead:
  *
- *   - No cached content → render an empty state with "Generate ponudu" button
+ *   - No cached content → render an empty state with "Generate proposal" button
  *   - Button POSTs to /api/prospects/[id]/proposal with maxDuration=60
  *   - On success, router.refresh() pulls the now-cached content
  *
@@ -32,10 +32,10 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
           <p className="text-zinc-500 text-[10px] uppercase tracking-[0.25em] font-semibold mb-3">Proposition Commerciale</p>
           <h1 className="text-2xl font-semibold tracking-tight">{prospect.firmaNaziv}</h1>
           <p className="text-zinc-600 text-sm mt-2 mb-8">
-            Generate personalizovanu francusku ponudu sa 3 cjenovna nivoa, value calculator-om i scope-om prilagođenim nišinjihovom sektoru. Claude Sonnet, ~30 sekundi.
+            Generate a personalised French proposal with 3 pricing tiers, value calculator and scope tailored to their sector. Claude Sonnet, ~30 seconds.
           </p>
           <GenerateProposalButton prospectId={id} />
-          <p className="text-zinc-500 text-xs mt-4">Generisana ponuda se kešira — sljedeća posjeta učitava odmah.</p>
+          <p className="text-zinc-500 text-xs mt-4">Generated proposal is cached — next visit loads instantly.</p>
         </div>
       </div>
     );

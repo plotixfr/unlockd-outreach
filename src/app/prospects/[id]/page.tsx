@@ -156,7 +156,7 @@ export default async function ProspectDetailPage({
             <p className="text-amber-300 font-medium text-sm">Otvorio Calendly link — topao lead</p>
             <p className="text-amber-200/70 text-xs mt-0.5">
               Klik: {new Date(calendlyClickedEmail.calendlyClickedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-              {" — pošalji follow-up odmah ako još nije rezervisao."}
+              {" — send a follow-up immediately if they haven't booked yet."}
             </p>
           </div>
         </div>
@@ -165,7 +165,7 @@ export default async function ProspectDetailPage({
       {/* Conversion info */}
       {prospect.conversions[0] && (
         <div className="rounded-xl bg-green-950/30 border border-green-800/40 p-5">
-          <p className="text-green-300 font-medium text-sm mb-2">Konvertovan ✓</p>
+          <p className="text-green-300 font-medium text-sm mb-2">Converted ✓</p>
           <div className="flex flex-wrap gap-5 text-sm">
             <div>
               <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Vrijednost projekta</p>
@@ -232,7 +232,7 @@ export default async function ProspectDetailPage({
               target="_blank"
               className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] hover:border-emerald-500/40 p-5 transition-all group card-elevation"
             >
-              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Generate ponudu →</p>
+              <p className="text-zinc-200 font-medium text-sm group-hover:text-emerald-300 transition-colors">Generate proposal →</p>
               <p className="text-zinc-500 text-xs mt-1.5">4-stranice na francuskom sa 3 cjenovna nivoa + value calculator + Stripe link</p>
             </Link>
           </div>
@@ -280,7 +280,7 @@ export default async function ProspectDetailPage({
           )}
           {prospect.datumOdgovora && (
             <div>
-              <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Odgovorio</p>
+              <p className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Replied</p>
               <p className="text-emerald-400 text-sm">
                 {prospect.datumOdgovora.toLocaleDateString("fr-FR")}
               </p>
@@ -316,7 +316,7 @@ export default async function ProspectDetailPage({
                   <p className="text-zinc-300 text-sm font-medium mb-2">{r.subject}</p>
                 )}
                 <pre className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                  {r.body || "(prazno tijelo)"}
+                  {r.body || "(empty body)"}
                 </pre>
                 {r.draft && (
                   <ReplyDraftPanel
@@ -390,7 +390,7 @@ export default async function ProspectDetailPage({
         {emails.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#1f1f2e] p-10 text-center">
             <p className="text-zinc-500 text-sm">
-              Nema generisanih emailova. Klikni &ldquo;Generate emailove&rdquo; da Claude napiše kampanju.
+              No emails generated yet. Klikni &ldquo;Generate emailove&rdquo; da Claude napiše kampanju.
             </p>
           </div>
         ) : (

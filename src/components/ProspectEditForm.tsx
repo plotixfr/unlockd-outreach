@@ -81,7 +81,7 @@ export function ProspectEditForm({ prospect }: Props) {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
             <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Naziv firme *
+              Company name *
             </label>
             <input
               type="text"

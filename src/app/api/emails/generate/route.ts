@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "ANTHROPIC_API_KEY nije konfigurisan na serveru. Dodaj ga u Vercel Environment Variables." },
+        { error: "ANTHROPIC_API_KEY not configured on server. Add it in Vercel Environment Variables." },
         { status: 500 }
       );
     }
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
       console.error("[generate] JSON parse failed:", parseErr);
       console.error("[generate] Full raw text:", rawText);
       return NextResponse.json(
-        { error: "Claude vratio odgovor koji nije validan JSON. Pokušaj ponovo." },
+        { error: "Claude returned invalid JSON. Try again." },
         { status: 502 }
       );
     }

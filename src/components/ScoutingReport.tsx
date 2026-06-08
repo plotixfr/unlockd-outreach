@@ -97,14 +97,14 @@ export function ScoutingReport({ prospectId, hasWebsite, snapshot, snapshotAt }:
             <p className="text-amber-200/70 text-xs mt-1">
               {current.error ?? "Unknown error"} {current.status ? `(HTTP ${current.status})` : ""}
             </p>
-            <p className="text-zinc-500 text-xs mt-1">Posljednji pokušaj: {fmtDate(currentAt)}</p>
+            <p className="text-zinc-500 text-xs mt-1">Last attempt: {fmtDate(currentAt)}</p>
           </div>
           <button
             onClick={onRescrape}
             disabled={loading}
             className="bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg transition-colors shrink-0"
           >
-            {loading ? "Pokušavam…" : "Pokušaj ponovo"}
+            {loading ? "Trying…" : "Try again"}
           </button>
         </div>
         {error && <p className="text-red-400 text-xs">{error}</p>}

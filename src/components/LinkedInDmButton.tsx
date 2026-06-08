@@ -146,7 +146,7 @@ export function LinkedInDmButton({ prospectId, initialTouchedAt }: Props) {
             {error && <p className="text-red-400 text-xs mt-4">{error}</p>}
 
             <p className="text-zinc-700 text-[10px] mt-5 leading-relaxed">
-              Šalješ ručno — LinkedIn ToS zabranjuje automatizaciju. Cmd+C → otvori LinkedIn → otvori njihov profil → poruka → Cmd+V → pošalji.
+              Send manually — LinkedIn ToS forbids automation. Cmd+C → open LinkedIn → their profile → message → Cmd+V → send.
             </p>
           </div>
         </div>

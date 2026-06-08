@@ -1,12 +1,12 @@
 /**
- * Scores a prospect 1–10 for fit with Unlockd.art (premium web design studio).
- * Runs after the site has been scraped, so we already have title/H1/signals.
- * Used to surface the highest-value prospects in the dashboard and avoid
- * wasting the daily send cap on poor fits.
+ * Scores a prospect 1–10 for fit with Unlockd.art. Unlockd sells three things:
+ * brand identity, premium websites, and custom software / SaaS / automation.
+ * Target groups: B2B professional services (consulting, law, accounting,
+ * agencies) and French tech startups / SaaS / digital agencies.
  *
- * 10 = obvious win (premium niche, weak site, clear budget signals)
+ * 10 = obvious win (clear budget signals, weak/dated site, buying triggers)
  *  5 = uncertain — needs operator judgement
- *  1 = wrong fit (no site, dead business, wrong country, etc.)
+ *  1 = wrong fit (no site needed, dead business, wrong country)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -17,7 +17,7 @@ const MODEL = "claude-haiku-4-5-20251001";
 
 export interface QualityScore {
   score: number; // 1–10
-  note: string; // short explanation in Bosnian/Serbian
+  note: string; // short English explanation
 }
 
 export interface ProspectScoringInput {
@@ -34,43 +34,48 @@ export interface ProspectScoringInput {
 function buildScoringPrompt(p: ProspectScoringInput): string {
   const facts: string[] = [];
   if (p.siteSnapshot?.ok) {
-    if (p.siteSnapshot.title) facts.push(`Title sajta: "${p.siteSnapshot.title}"`);
+    if (p.siteSnapshot.title) facts.push(`Site title: "${p.siteSnapshot.title}"`);
     if (p.siteSnapshot.h1) facts.push(`H1: "${p.siteSnapshot.h1}"`);
-    facts.push(`Platforma: ${p.siteSnapshot.signals.techHints.join(", ") || "nepoznata"}`);
-    facts.push(`Responsive mobile: ${p.siteSnapshot.signals.responsiveViewport ? "da" : "ne"}`);
-    facts.push(`Rezervacijski sistem: ${p.siteSnapshot.signals.hasReservation ? "da" : "ne"}`);
-    facts.push(`Broj slika: ${p.siteSnapshot.signals.approxImageCount}`);
+    facts.push(`Platform: ${p.siteSnapshot.signals.techHints.join(", ") || "unknown"}`);
+    facts.push(`Mobile responsive: ${p.siteSnapshot.signals.responsiveViewport ? "yes" : "no"}`);
+    facts.push(`Booking/reservation widget: ${p.siteSnapshot.signals.hasReservation ? "yes" : "no"}`);
+    facts.push(`Contact form: ${p.siteSnapshot.signals.hasContactForm ? "yes" : "no"}`);
+    facts.push(`Image count: ${p.siteSnapshot.signals.approxImageCount}`);
   } else if (p.website) {
-    facts.push(`Sajt postoji (${p.website}) ali scrape nije uspio.`);
+    facts.push(`Site exists (${p.website}) but scrape failed.`);
   } else {
-    facts.push("Nema sajta.");
+    facts.push("No website.");
   }
   if (p.pagespeed?.ok && p.pagespeed.performanceScore !== null) {
     facts.push(`Lighthouse mobile score: ${p.pagespeed.performanceScore}/100`);
     if (p.pagespeed.lcpMs) facts.push(`LCP: ${(p.pagespeed.lcpMs / 1000).toFixed(1)}s`);
   }
 
-  return `Ocijeni ovaj prospect za premium web studio Unlockd.art (Paris, redizajn + razvoj sajtova za ekskluzivne brendove, deal size €5k–50k).
+  return `Score this prospect for Unlockd.art (Paris studio — brand identity, premium websites, and custom software / SaaS / automation tools; deal size €5k–50k for sites/brand, €15k–80k for custom software).
+
+Target groups:
+  Group A — B2B professional services (consulting firms, law firms, accountants, agencies, recruiters, architecture studios). Buying trigger = need a website that signals "peer of the top tier", not a builder template.
+  Group B — French tech startups / SaaS / digital agencies. Buying trigger = need a credible marketing site + automation tools to scale ops.
 
 Prospect:
-- Firma: ${p.firmaNaziv}
+- Company: ${p.firmaNaziv}
 - Niche: ${p.nisa}
 - City: ${p.grad}
-- Website: ${p.website || "nema"}
-- Opis: ${p.opisFirme || "nema"}
-- Operator notes: ${p.napomena || "nema"}
+- Website: ${p.website || "none"}
+- Description: ${p.opisFirme || "none"}
+- Operator notes: ${p.napomena || "none"}
 
-Tehnički signali:
+Technical signals:
 ${facts.map((f) => `- ${f}`).join("\n")}
 
-Skala 1–10:
-- 10 = idealan: premium niša, slab sajt (loš design / spor / nemoderan), jasni signali budžeta (skupa lokacija, više objekata, premium vokabular).
-- 7-9 = vrlo dobar fit, neki bumovi (npr. dobar sajt ali zastareo design, ili odlična niša ali siromašan grad)
-- 4-6 = neizvjesno — može da konvertuje ali traži više rada
-- 1-3 = loš fit (nema sajta a niši ne treba, mrtav biznis, pogrešan jezik/zemlja, već premium-level sajt bez potrebe za promjenom).
+Scale 1–10:
+- 10 = obvious win: target niche, weak or dated site, clear budget signals (premium location, multiple offices, mature business).
+- 7–9 = strong fit, minor caveats (e.g. decent site but outdated design, or great niche in a smaller city).
+- 4–6 = uncertain — may convert but needs more work.
+- 1–3 = poor fit (no site needed for their model, dead business, wrong language/country, already premium-grade site without need to change).
 
-Odgovori SAMO JSON objektom, bez ikakvog markdown ili teksta okolo:
-{"score": 7, "note": "Kratko (max 80 znakova) na bosanskom: zašto baš taj broj."}`;
+Respond with JSON only, no markdown or surrounding text:
+{"score": 7, "note": "Short English explanation (max 80 chars): why this number."}`;
 }
 
 export async function scoreProspect(p: ProspectScoringInput): Promise<QualityScore | null> {
@@ -104,12 +109,9 @@ export async function scoreProspect(p: ProspectScoringInput): Promise<QualitySco
 }
 
 /**
- * Post-LLM boost: hard-coded buying-trigger heuristics that are way more
- * reliable than Claude's instinct on this. A premium brand stuck on
- * Wix/Squarespace is the single highest-conversion signal in this niche
- * (5× more likely to buy a custom build per Mailshake's 2024 study). We
- * also penalise Webflow/Shopify since those signal "team already invested
- * in their stack". Bonuses cap the score at 10.
+ * Post-LLM boosts: hard-coded buying-trigger heuristics calibrated for B2B
+ * professional services (Group A) and French tech / SaaS (Group B). These
+ * outperform the LLM's instinct on the buying-signal recognition task.
  */
 function applyBuyingTriggerBoosts(
   baseScore: number,
@@ -124,31 +126,49 @@ function applyBuyingTriggerBoosts(
     p.pagespeed?.ok && p.pagespeed.performanceScore !== null && p.pagespeed.performanceScore < 50;
   const noMobile =
     p.siteSnapshot?.ok && p.siteSnapshot.signals.responsiveViewport === false;
-  const noReservation =
-    p.siteSnapshot?.ok &&
-    p.siteSnapshot.signals.hasReservation === false &&
-    /hotel|hôtel|restaur/i.test(p.nisa);
+  const noContactForm =
+    p.siteSnapshot?.ok && p.siteSnapshot.signals.hasContactForm === false;
+  const niche = p.nisa.toLowerCase();
+  const isGroupA =
+    /conseil|consulting|avocat|law|expert-comptable|accountant|agence|marketing|relations presse|pr |recrutement|hr|formation|traduction|architect/i.test(niche);
+  const isGroupB =
+    /tech|saas|software|logiciel|digital|62\.0|63\.1|73\.11/i.test(niche);
 
+  // Stack signals (Group A — they're on a builder, prime to upgrade)
   if (tech.includes("Wix") || tech.includes("Squarespace")) {
     score += 2;
-    notes.push("plateforme générique");
+    notes.push("generic builder");
   } else if (tech.includes("WordPress")) {
     score += 1;
-    notes.push("WordPress (refresh probable)");
+    notes.push("WordPress (refresh likely)");
   } else if (tech.includes("Webflow")) {
-    score -= 1; // équipe déjà investie
+    score -= 1; // team already invested in a modern stack
   }
+
+  // Performance signal — universal
   if (lowPsi) {
     score += 1;
     notes.push("Lighthouse < 50");
   }
   if (noMobile) {
     score += 1;
-    notes.push("pas de mobile viewport");
+    notes.push("no mobile viewport");
   }
-  if (noReservation) {
+
+  // Group A — B2B services that need to project trust
+  if (isGroupA && noContactForm) {
     score += 1;
-    notes.push("pas de réservation en ligne");
+    notes.push("no contact form (B2B trust gap)");
+  }
+
+  // Group B — tech / SaaS specific: a small marketing site is a strong signal
+  // they're early stage and might want a polished v2 + automation
+  if (isGroupB && p.siteSnapshot?.ok) {
+    const imgs = p.siteSnapshot.signals.approxImageCount ?? 0;
+    if (imgs < 5) {
+      score += 1;
+      notes.push("minimal site (early stage)");
+    }
   }
 
   score = Math.max(1, Math.min(10, score));

@@ -55,14 +55,14 @@ export function NotesSection({ prospectId, initialNotes }: Props) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-white font-medium">Bilješke</h2>
+      <h2 className="text-white font-medium">Notes</h2>
       <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-4">
         <div className="space-y-2">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Dodaj bilješku… (Cmd+Enter za slanje)"
+            placeholder="Add a note… (Cmd+Enter to send)"
             rows={2}
             className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors resize-none"
           />
@@ -71,12 +71,12 @@ export function NotesSection({ prospectId, initialNotes }: Props) {
             disabled={saving || !text.trim()}
             className="text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors disabled:opacity-50"
           >
-            {saving ? "Dodajem..." : "Dodaj"}
+            {saving ? "Adding..." : "Dodaj"}
           </button>
         </div>
 
         {notes.length === 0 ? (
-          <p className="text-zinc-600 text-sm">Nema bilješki.</p>
+          <p className="text-zinc-600 text-sm">No notes yet.</p>
         ) : (
           <div className="space-y-0 divide-y divide-[#1f1f2e]">
             {notes.map((n) => (
@@ -91,7 +91,7 @@ export function NotesSection({ prospectId, initialNotes }: Props) {
                   onClick={() => handleDelete(n.id)}
                   disabled={deletingId === n.id}
                   className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 text-lg leading-none disabled:opacity-40 mt-0.5"
-                  title="Delete bilješku"
+                  title="Delete note"
                 >
                   {deletingId === n.id ? "…" : "×"}
                 </button>

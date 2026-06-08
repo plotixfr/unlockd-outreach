@@ -20,7 +20,7 @@ export function ReplyButton({ prospectId, currentStatus }: Props) {
   if (done) {
     return (
       <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/40 px-4 py-3 text-emerald-300 text-sm">
-        Kampanja zaustavljena — prospect je odgovorio ✓
+        Campaign stopped — prospect replied ✓
       </div>
     );
   }

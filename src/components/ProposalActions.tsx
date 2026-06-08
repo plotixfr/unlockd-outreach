@@ -14,7 +14,7 @@ export function ProposalActions({ prospectId }: { prospectId: string }) {
   const router = useRouter();
 
   const regenerate = async () => {
-    if (!confirm("Regenerirati ponudu? Trenutni sadržaj će biti zamijenjen.")) return;
+    if (!confirm("Regenerate the proposal? Current content will be replaced.")) return;
     setLoading(true);
     try {
       await fetch(`/api/prospects/${prospectId}/proposal`, {

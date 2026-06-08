@@ -117,7 +117,7 @@ export function AuditDeliverablePanel({
       ) : (
         <div className="rounded-lg border border-dashed border-[#1c1c28] p-8 text-center bg-[#0a0a12]">
           <p className="text-zinc-500 text-sm">
-            Nema mockup-a još. Klikni Regen ispod (~3 sek, ~$0.003) — landing stranica i F2 email će
+            No mockup yet. Click Regen below (~3s, ~$0.003) — the landing page and F2 email will
             ga koristiti automatski.
           </p>
         </div>
@@ -134,7 +134,7 @@ export function AuditDeliverablePanel({
               })}`
             : ""}
           {!hasAudit && (
-            <span className="ml-2 text-amber-400">⚠ Nema 3-finding audit-a — landing će koristiti fallback nalaze</span>
+            <span className="ml-2 text-amber-400">⚠ No 3-finding audit yet — landing will use fallback findings</span>
           )}
         </div>
         <button

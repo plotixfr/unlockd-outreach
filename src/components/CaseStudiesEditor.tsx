@@ -51,7 +51,7 @@ export function CaseStudiesEditor() {
 
   const create = async () => {
     if (!form.title.trim() || !form.nisa.trim() || !form.summary.trim()) {
-      setError("title, niša i opis su obavezni");
+      setError("title, niche and summary are required");
       return;
     }
     setCreating(true);
@@ -157,7 +157,7 @@ export function CaseStudiesEditor() {
           disabled={creating}
           className="ml-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-md transition-colors"
         >
-          {creating ? "Dodajem…" : "+ Dodaj case study"}
+          {creating ? "Adding…" : "+ Add case study"}
         </button>
       </div>
 
@@ -166,7 +166,7 @@ export function CaseStudiesEditor() {
         <p className="text-zinc-500 text-sm">Loading…</p>
       ) : items.length === 0 ? (
         <p className="text-zinc-600 text-sm pt-3 border-t border-[#1f1f2e]">
-          Još nema case studies. Dodaj barem jedan po niši — drastično podiže follow-up #2.
+          No case studies yet. Add at least one per niche — significantly lifts follow-up #2.
         </p>
       ) : (
         <div className="space-y-2 pt-3 border-t border-[#1f1f2e]">

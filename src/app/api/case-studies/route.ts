@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const summary = body.summary?.trim();
     if (!title || !nisa || !summary) {
       return NextResponse.json(
-        { error: "title, nisa i summary su obavezni" },
+        { error: "title, niche and summary are required" },
         { status: 400 }
       );
     }

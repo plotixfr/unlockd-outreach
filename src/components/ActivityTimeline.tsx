@@ -88,7 +88,7 @@ export function ActivityTimeline({ events }: { events: ActivityEvent[] }) {
     return (
       <div className="rounded-xl border border-dashed border-[#1c1c28] p-8 text-center">
         <Activity className="w-5 h-5 text-zinc-600 mx-auto mb-2" />
-        <p className="text-zinc-500 text-sm">Još nema aktivnosti za ovog prospekta.</p>
+        <p className="text-zinc-500 text-sm">No activity for this prospect yet.</p>
       </div>
     );
   }

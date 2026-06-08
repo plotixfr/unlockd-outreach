@@ -48,7 +48,7 @@ export function VoiceProfileEditor() {
   const submit = async () => {
     const cleaned = samples.map((s) => s.trim()).filter((s) => s.length >= 50);
     if (cleaned.length < 1) {
-      setError("Pasteuj barem 1 email od min. 50 znakova");
+      setError("Paste at least 1 email of min. 50 characters");
       return;
     }
     setSaving(true);
@@ -96,7 +96,7 @@ export function VoiceProfileEditor() {
         <div className="flex-1">
           <h2 className="text-white font-semibold">Voice Profile</h2>
           <p className="text-zinc-500 text-xs mt-1 leading-relaxed">
-            Pasteuj 3–5 svojih stvarnih emaila koje si pisao prospektima — idealno one koji su <strong className="text-zinc-300">doveli do sastanka</strong>. Claude izvuče tvoj stil (otvori, sign-off, ritam, idiomi). Otad svaki generisani mail piše u tvom glasu, ne u generic AI maniru.
+            Paste 3–5 of your real prospect emails — ideally ones that <strong className="text-zinc-300">led to a meeting</strong>. Claude extracts your style (opener, sign-off, rhythm, idioms). From then on every generated email writes in your voice, not generic AI tone.
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export function VoiceProfileEditor() {
             <textarea
               value={s}
               onChange={(e) => updateSample(i, e.target.value)}
-              placeholder={`Email ${i + 1} — pasteuj cijeli body (od "Bonjour" do sign-off-a)`}
+              placeholder={`Email ${i + 1} — paste the full body (from "Bonjour" to sign-off)`}
               rows={5}
               className="w-full bg-[#07070b] border border-[#1c1c28] rounded-md px-3 py-2.5 text-xs text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-emerald-500/50 transition-colors leading-relaxed font-mono"
             />
@@ -160,7 +160,7 @@ export function VoiceProfileEditor() {
           disabled={samples.length >= 10}
           className="text-zinc-500 hover:text-zinc-200 text-xs disabled:opacity-40 transition-colors"
         >
-          + Dodaj još jedan slot ({samples.length}/10)
+          + Add another slot ({samples.length}/10)
         </button>
       </div>
 

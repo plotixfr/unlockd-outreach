@@ -47,7 +47,7 @@ export function ClearDatabaseButton() {
           <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
             <h3 className="text-white font-semibold mb-2">Delete cijelu bazu</h3>
             <p className="text-zinc-400 text-sm mb-6">
-              Ovo će trajno obrisati{" "}
+              This will permanently delete{" "}
               <span className="text-red-400 font-medium">sve prospekte i sve emailove</span>.
               Akcija se ne može poništiti.
             </p>

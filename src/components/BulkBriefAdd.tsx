@@ -40,7 +40,7 @@ export function BulkBriefAdd() {
 
   const submit = async () => {
     if (!text.trim()) {
-      setError("Pasteuj barem jednu liniju");
+      setError("Paste at least one line");
       return;
     }
     setLoading(true);
@@ -84,7 +84,7 @@ export function BulkBriefAdd() {
       <div>
         <h2 className="text-white font-medium">Bulk Add — bilo koja niša, bilo koji grad</h2>
         <p className="text-zinc-500 text-xs mt-1">
-          Pasteuj listu: <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-blue-300">niche, grad</code> po liniji.
+          Paste a list: <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded text-blue-300">niche, grad</code> per line.
           Opcionalno: <code className="bg-[#1a1a28] px-1.5 py-0.5 rounded">niche, grad, country, minRating, minReviews</code>.
           Niches su slobodno polje — radi sa avocati, dentisti, fotografi, automehaničari, šta god.
         </p>
@@ -153,7 +153,7 @@ export function BulkBriefAdd() {
         <div className="rounded-md bg-[#0d0d14] border border-[#1f1f2e] p-3 space-y-2">
           <p className="text-zinc-300 text-sm">
             <span className="text-emerald-400 font-medium">{stats.created} kreirano</span>
-            {stats.skipped > 0 && <span className="text-zinc-500"> · {stats.skipped} već postoji</span>}
+            {stats.skipped > 0 && <span className="text-zinc-500"> · {stats.skipped} already exists</span>}
             {stats.invalid > 0 && <span className="text-amber-400"> · {stats.invalid} nevažeća</span>}
           </p>
           {stats.invalid > 0 && results && (

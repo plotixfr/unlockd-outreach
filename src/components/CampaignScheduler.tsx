@@ -49,7 +49,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
   if (!hasEmails) {
     return (
       <div className="rounded-xl border border-dashed border-[#1f1f2e] p-6 text-center">
-        <p className="text-zinc-500 text-sm">Prvo generiši emailove da bi mogao pokrenuti kampanju.</p>
+        <p className="text-zinc-500 text-sm">Generate emails first to launch the campaign.</p>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
     return (
       <div className="rounded-xl bg-sky-950/30 border border-sky-800/40 p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sky-300 font-medium text-sm">Kampanja zakazana</p>
+          <p className="text-sky-300 font-medium text-sm">Campaign scheduled</p>
           <button
             onClick={() => setSuccess(null)}
             className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
@@ -87,7 +87,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
     return (
       <div className="rounded-xl bg-emerald-950/40 border border-emerald-800/40 p-5 space-y-3">
         <p className="text-emerald-300 font-medium text-sm">
-          {sentNow > 0 ? "Prvi email poslan — kampanja pokrenuta" : "Kampanja zakazana"}
+          {sentNow > 0 ? "First email sent — campaign started" : "Campaign scheduled"}
         </p>
         <div className="space-y-1.5">
           {dates.map((d, i) => (
@@ -198,8 +198,8 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
       >
         {loading && <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
         {loading
-          ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Sending…" : "Zakazivanje...")
-          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Send odmah i zakaži follow-up" : "Run kampanju")}
+          ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Sending…" : "Scheduling...")
+          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Send now and schedule follow-ups" : "Run campaign")}
       </button>
     </div>
   );

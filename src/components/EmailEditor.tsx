@@ -46,9 +46,9 @@ export function EmailEditor({
         }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Error snimanju");
+      if (!res.ok) throw new Error(data.error || "Save failed");
       setEditing(false);
-      setMessage({ kind: "ok", text: "Sačuvano" });
+      setMessage({ kind: "ok", text: "Saved" });
       router.refresh();
     } catch (e) {
       setMessage({ kind: "err", text: e instanceof Error ? e.message : "Error" });
@@ -68,7 +68,7 @@ export function EmailEditor({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Error");
-      setMessage({ kind: "ok", text: `Test poslan na ${data.to}` });
+      setMessage({ kind: "ok", text: `Test sent to ${data.to}` });
     } catch (e) {
       setMessage({ kind: "err", text: e instanceof Error ? e.message : "Error" });
     } finally {
@@ -129,7 +129,7 @@ export function EmailEditor({
           type="text"
           value={subjectB}
           onChange={(e) => setSubjectB(e.target.value)}
-          placeholder="Ostaviti prazno za bez A/B testiranja"
+          placeholder="Leave empty to skip A/B testing"
           className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
         />
       </div>
@@ -158,7 +158,7 @@ export function EmailEditor({
           {loading && (
             <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Snimam..." : "Save"}
+          {loading ? "Saving..." : "Save"}
         </button>
         <button
           onClick={() => {

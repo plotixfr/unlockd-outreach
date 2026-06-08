@@ -22,7 +22,7 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
   const run = async () => {
     if (
       hasAnyBrief &&
-      !confirm("Već imaš brief-ove. Quick Setup će dodati još 10 preset-ova (pa eventualno i neke duplikate sa različitim imenima). Nastaviti?")
+      !confirm("You already have briefs. Quick Setup will add the preset list (may create some duplicates with different names). Continue?")
     ) {
       return;
     }
@@ -52,10 +52,10 @@ export function QuickSetupButton({ hasAnyBrief }: Props) {
           <CheckCircle2 strokeWidth={2} className="w-5 h-5 text-emerald-400 mt-0.5 shrink-0" />
           <div>
             <p className="text-emerald-300 font-medium text-sm">
-              Quick Setup završen — {done.created} novih brief-ova, {done.skipped} već postojeći
+              Quick Setup complete — {done.created} new briefs, {done.skipped} already existed
             </p>
             <p className="text-emerald-200/70 text-xs mt-1">
-              Autopilot ih sve pokreće sljedeći radni dan u 08:00 Paris automatski.
+              Autopilot runs them all next business day at 08:00 Paris automatically.
             </p>
             {done.names.length > 0 && done.names.length <= 8 && (
               <ul className="mt-3 text-emerald-200/60 text-[11px] space-y-0.5 columns-2">

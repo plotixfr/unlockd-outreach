@@ -28,7 +28,7 @@ export async function POST(
     }
     const { replyId, draft } = body;
     if (!replyId || !draft?.trim()) {
-      return NextResponse.json({ error: "replyId i draft su obavezni" }, { status: 400 });
+      return NextResponse.json({ error: "replyId and draft are required" }, { status: 400 });
     }
 
     const [prospect, reply, initial] = await Promise.all([

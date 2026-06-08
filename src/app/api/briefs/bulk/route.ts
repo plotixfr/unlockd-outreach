@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     .filter((l) => l && !l.startsWith("#"));
 
   if (lines.length === 0) {
-    return NextResponse.json({ error: "Nema linija" }, { status: 400 });
+    return NextResponse.json({ error: "No lines" }, { status: 400 });
   }
 
   const maxPerRun = Math.max(1, Math.min(20, Math.round(body.maxPerRun ?? 2)));
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     const briefName = `${parsed.niche} ${parsed.city}`;
     const existing = await prisma.searchBrief.findFirst({ where: { name: briefName } });
     if (existing) {
-      results.push({ line: raw, status: "skipped", reason: "već postoji", briefName });
+      results.push({ line: raw, status: "skipped", reason: "already exists", briefName });
       continue;
     }
     try {

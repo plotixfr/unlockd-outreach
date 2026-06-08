@@ -72,7 +72,7 @@ export function MockupPanel({
           <div>
             <h2 className="text-zinc-200 font-medium text-sm">Concept preview</h2>
             <p className="text-zinc-600 text-xs mt-0.5">
-              Njihov sadržaj u premium editorial layout-u — share-screen na pozivu ili pošalji link prije sastanka
+              Their content in a premium editorial layout — share-screen on a call or send the link before the meeting
             </p>
           </div>
         </div>
@@ -106,7 +106,7 @@ export function MockupPanel({
       />
 
       <div className="text-zinc-600 text-[11px] leading-relaxed pt-2 border-t border-[#1c1c28]">
-        <strong className="text-zinc-400">Kako se koristi:</strong> u sales pozivu — Otvori original lijevo, share-screen prospect-u i pokaži ovaj preview. Ili kopiraj share link i pošalji ga prospekt-u 1h prije sastanka kao &ldquo;voici la direction créative que je vous proposerai&rdquo;. Link je javan (svako ko ga ima može da otvori) — bez logina.
+        <strong className="text-zinc-400">How to use:</strong> on a sales call — open the original on the left, share-screen with the prospect and show this preview. Or copy the share link and send it to the prospect 1h before the meeting as &ldquo;voici la direction créative que je vous proposerai&rdquo;. Link is public (anyone with it can open) — no login.
       </div>
     </div>
   );

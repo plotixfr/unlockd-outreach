@@ -45,7 +45,7 @@ export function GenerateProposalButton({ prospectId }: { prospectId: string }) {
         className="inline-flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 text-white font-medium px-5 py-3 rounded-lg transition-all"
       >
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-        {loading ? "Generišem… (do 30s)" : "Generate ponudu"}
+        {loading ? "Generating… (up to 30s)" : "Generate proposal"}
       </button>
       {error && <p className="text-red-600 text-xs mt-3">{error}</p>}
     </>

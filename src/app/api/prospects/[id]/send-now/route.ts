@@ -54,7 +54,7 @@ export async function POST(
 
   if (TERMINAL_STATUSES.has(prospect.status)) {
     return NextResponse.json(
-      { error: `Prospect je u terminalnom statusu (${prospect.status}) — slanje preskočeno.` },
+      { error: `Prospect is in a terminal status (${prospect.status}) — send skipped.` },
       { status: 400 }
     );
   }
@@ -62,7 +62,7 @@ export async function POST(
   const nextTip = STATUS_TO_NEXT_TIP[prospect.status];
   if (!nextTip) {
     return NextResponse.json(
-      { error: `Status "${prospect.status}" nema definisan sljedeći email.` },
+      { error: `Status "${prospect.status}" has no defined next email.` },
       { status: 400 }
     );
   }
@@ -71,7 +71,7 @@ export async function POST(
   if (!nextEmail) {
     return NextResponse.json(
       {
-        error: `Nema spreman ${nextTip} email. Klikni "Generate Emails" da Claude napiše kampanju.`,
+        error: `No ready ${nextTip} email. Click "Generate Emails" to have Claude write the campaign.`,
       },
       { status: 400 }
     );

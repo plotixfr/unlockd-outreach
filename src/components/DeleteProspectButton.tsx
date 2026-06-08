@@ -49,9 +49,9 @@ export function DeleteProspectButton({ prospectId, firmaNaziv, redirectAfter = f
           <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
             <h3 className="text-white font-semibold mb-2">Delete prospekta</h3>
             <p className="text-zinc-400 text-sm mb-6">
-              Da li ste sigurni da želite obrisati{" "}
+              Are you sure you want to delete{" "}
               <span className="text-white font-medium">{firmaNaziv}</span>?
-              Ovo će obrisati i sve generisane emailove. Akcija se ne može poništiti.
+              This will also delete all generated emails. This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button

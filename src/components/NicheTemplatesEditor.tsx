@@ -30,7 +30,7 @@ export function NicheTemplatesEditor() {
       setTemplates(data.templates ?? []);
       setActiveNiches(data.activeNiches ?? []);
     } catch {
-      setError("Error učitavanju");
+      setError("Load failed");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export function NicheTemplatesEditor() {
 
   const save = async () => {
     if (!nisa.trim() || !hint.trim()) {
-      setError("Niche i hint su obavezni");
+      setError("Niche and hint are required");
       return;
     }
     setSaving(true);
@@ -150,7 +150,7 @@ export function NicheTemplatesEditor() {
                   value={hint}
                   onChange={(e) => setHint(e.target.value)}
                   rows={5}
-                  placeholder="Specifične instrukcije za ovaj sektor — ton, vokabular, primjeri, šta izbjegavati…"
+                  placeholder="Specific instructions for this sector — tone, vocabulary, examples, what to avoid…"
                   className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors resize-y"
                 />
               </div>
@@ -164,7 +164,7 @@ export function NicheTemplatesEditor() {
                   {saving && (
                     <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
-                  {saving ? "Snimam..." : "Save"}
+                  {saving ? "Saving..." : "Save"}
                 </button>
                 <button onClick={cancel} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
                   Cancel
@@ -227,7 +227,7 @@ export function NicheTemplatesEditor() {
           )}
 
           {templates.length === 0 && niseBezHinta.length === 0 && (
-            <p className="text-zinc-600 text-sm">Još nema niša u bazi. Uploaduj CSV da počneš.</p>
+            <p className="text-zinc-600 text-sm">No niches in the database yet. Upload a CSV to start.</p>
           )}
         </>
       )}
