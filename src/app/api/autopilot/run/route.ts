@@ -22,13 +22,21 @@ import { runRedrivePass } from "@/lib/redrive";
 export const maxDuration = 300;
 
 async function runAndSummarize(emailSummary: boolean) {
+  // ONE shared clock for the whole invocation: redrive, discovery and the
+  // send sweep all stop against absolute deadlines derived from t0 —
+  // sequential per-segment budgets were additive and produced 504s.
+  const t0 = Date.now();
+  const tickDeadline = t0 + Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 230_000);
   // Re-drive first: prospects stranded in "New" by an earlier failure get
   // their missing stages re-run (capped batch) before fresh discovery.
   let redrive: Awaited<ReturnType<typeof runRedrivePass>> | null = null;
   try {
-    // Redrive gets its own sub-budget so it can never starve discovery or
-    // blow the 300s function ceiling (REDRIVE_TIME_BUDGET_MS, default 120s).
-    const redriveDeadline = Date.now() + Number(process.env.REDRIVE_TIME_BUDGET_MS ?? 120_000);
+    // Redrive's slice of the shared budget (default 90s); its longest
+    // in-flight item (~100s) still lands well before tickDeadline.
+    const redriveDeadline = Math.min(
+      t0 + Number(process.env.REDRIVE_TIME_BUDGET_MS ?? 90_000),
+      tickDeadline
+    );
     redrive = await runRedrivePass(undefined, redriveDeadline);
     console.log(
       `[autopilot] redrive: ${redrive.retried} retried, ${redrive.advanced} advanced, ${redrive.failedTerminal} marked Failed`
@@ -36,7 +44,7 @@ async function runAndSummarize(emailSummary: boolean) {
   } catch (e) {
     console.error("[autopilot] redrive pass failed:", e);
   }
-  const summaries = await runAllActiveBriefs();
+  const summaries = await runAllActiveBriefs(tickDeadline);
   // Same-day scheduled prospects (scheduledInitial = ~now) become due as soon
   // as the scheduler writes them. Drain them right here so a fresh-deploy or
   // post-reset day actually ships sends today instead of waiting until the

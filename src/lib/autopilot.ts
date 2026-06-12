@@ -42,10 +42,12 @@ const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 5)
 // the cursor for the next fire. Fetching wide is what lets dedupe hits stop
 // starving the pipeline.
 const DISCOVERY_FETCH_SIZE = Number(process.env.AUTOPILOT_FETCH_SIZE ?? 20);
-// Internal stop-deadline. maxDuration on the route is 300s; 240s here leaves
-// ~60s slack so the run finishes the item in flight and persists results
-// cleanly instead of being killed mid-write by the platform.
-const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 240_000);
+// Internal stop-deadline for the WHOLE invocation (redrive + discovery +
+// sweep share one clock — the route passes an absolute deadline computed at
+// invocation start; per-segment budgets must never be additive, that's what
+// produced back-to-back 504s). 230s + ≤50s generation headroom + the sweep
+// stays under the 300s ceiling.
+const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 230_000);
 const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 3);
 // Briefs whose runs create nothing back off exponentially (cooldownMs) and
 // are only marked exhausted when the source truly has no more pages/variants
@@ -397,7 +399,8 @@ export async function scheduleInline(prospectId: string): Promise<void> {
 async function processPlace(
   place: DiscoveredPlace,
   brief: BriefInput,
-  runId: string
+  runId: string,
+  genMustEndBy?: number
 ): Promise<{ status: "skipped" | "created" | "qualified" | "scheduled"; reason?: string }> {
   // Already in DB? Skip silently. We dedupe on externalId and on email.
   const existing = await prisma.prospect.findFirst({
@@ -591,7 +594,15 @@ async function processPlace(
     });
   }
 
-  // Generate emails.
+  // Generate emails — but never START a generation that cannot finish
+  // before the function's hard stop; defer to the redrive pass instead.
+  if (genMustEndBy && Date.now() + GEN_TIMEOUT_MS > genMustEndBy) {
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { lastError: "generate: deferred (out of run budget)" },
+    });
+    return { status: "qualified", reason: "generation deferred (run budget)" };
+  }
   const generated = await generateEmailsInline(prospect.id, { site, psi, dm });
   if (generated.count === 0) {
     // Same FAILURE persistence as scoring — the redrive pass retries this.
@@ -674,7 +685,7 @@ export async function runBrief(briefId: string, deadlineAt?: number): Promise<Br
         break;
       }
       try {
-        const result = await processPlace(place, brief, run.id);
+        const result = await processPlace(place, brief, run.id, deadlineAt ? deadlineAt + 50_000 : undefined);
         consumed++;
         if (result.status === "created" || result.status === "qualified" || result.status === "scheduled") {
           summary.created++;
@@ -810,9 +821,10 @@ function interleaveByCountry<T extends { country: string }>(briefs: T[]): T[] {
  * never catch up without rotation, and even with rotation the daily send
  * pipeline would stay underfilled.
  */
-export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
+export async function runAllActiveBriefs(deadlineAtArg?: number): Promise<BriefRunSummary[]> {
   await recoverStaleRuns();
   const startedAt = Date.now();
+  const sharedDeadline = deadlineAtArg ?? startedAt + RUN_TIME_BUDGET_MS;
   // Recycle long-exhausted briefs: a month later the same queries surface
   // new businesses and reshuffled rankings, so start them over.
   await prisma.searchBrief.updateMany({
@@ -835,7 +847,7 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
   const briefs = interleaveByCountry(raw);
   const out: BriefRunSummary[] = [];
 
-  const deadlineAt = startedAt + RUN_TIME_BUDGET_MS;
+  const deadlineAt = sharedDeadline;
 
   async function runOne(b: { id: string; name: string }): Promise<BriefRunSummary> {
     try {
@@ -857,7 +869,7 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
   }
 
   for (let i = 0; i < briefs.length; i += BRIEF_CONCURRENCY) {
-    if (Date.now() - startedAt > RUN_TIME_BUDGET_MS) {
+    if (Date.now() > sharedDeadline) {
       console.log(
         `[autopilot] time budget exhausted (${Date.now() - startedAt}ms) — ${briefs.length - out.length} briefs deferred to next cron`
       );
