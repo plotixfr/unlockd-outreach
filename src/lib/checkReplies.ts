@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { analyzeReply, prospectActionFor } from "@/lib/replyClassifier";
 import { notifyHotReply } from "@/lib/notify";
 import { suppressDomain } from "@/lib/suppression";
+import { normalizeMessageId, computeBackfillSince } from "@/lib/replyMatching";
+export { normalizeMessageId, computeBackfillSince };
 
 /**
  * Pulls recent INBOX messages over IMAP and:
@@ -14,31 +16,41 @@ import { suppressDomain } from "@/lib/suppression";
  * keeps running even if the user hasn't configured a mailbox.
  *
  * Required env:
- *  - IMAP_HOST (default imap.gmail.com)
- *  - IMAP_PORT (default 993)
- *  - IMAP_USER (the inbox that receives prospect replies — e.g. temim@unlockd.art)
- *  - IMAP_PASSWORD (App Password for Gmail/Workspace; never the real password)
+ *  - IMAP_HOST (default imap.titan.email — EU-hosted Titan accounts use
+ *    imap0101.titan.email, same port/SSL)
+ *  - IMAP_PORT (default 993, TLS)
+ *  - IMAP_USER (the inbox that receives prospect replies)
+ *  - IMAP_PASSWORD (the mailbox password / app password)
+ *
+ * `ok` in the result means the connection + scan completed (regardless of
+ * how many replies were found) — the follow-up gate in sendEmail.ts only
+ * unfreezes after an ok scan, so replied sequences are always marked BEFORE
+ * any follow-up is evaluated.
  */
-export async function checkReplies(): Promise<{
+export interface CheckRepliesResult {
+  ok: boolean;
   configured: boolean;
   scanned: number;
   matched: number;
   saved: number;
   errors: string[];
-}> {
-  const host = process.env.IMAP_HOST ?? "imap.gmail.com";
+}
+
+export async function checkReplies(): Promise<CheckRepliesResult> {
+  const host = process.env.IMAP_HOST ?? "imap.titan.email";
   const port = Number(process.env.IMAP_PORT ?? 993);
   const user = process.env.IMAP_USER;
   const pass = process.env.IMAP_PASSWORD;
 
   if (!user || !pass) {
-    return { configured: false, scanned: 0, matched: 0, saved: 0, errors: [] };
+    return { ok: false, configured: false, scanned: 0, matched: 0, saved: 0, errors: [] };
   }
 
   const errors: string[] = [];
   let scanned = 0;
   let matched = 0;
   let saved = 0;
+  let connectionFailed = false;
 
   const client = new ImapFlow({
     host,
@@ -49,34 +61,58 @@ export async function checkReplies(): Promise<{
   });
 
   try {
+    const sentProspects = await prisma.prospect.findMany({
+      where: {
+        status: { in: ["Emailed", "Follow1", "Follow2", "Follow3", "Replied"] },
+        datumPrvogMaila: { not: null },
+      },
+      select: {
+        id: true,
+        email: true,
+        datumPrvogMaila: true,
+        status: true,
+        firmaNaziv: true,
+        nisa: true,
+        grad: true,
+        kontaktIme: true,
+      },
+    });
+
     await client.connect();
     const lock = await client.getMailboxLock("INBOX");
     try {
-      const since = new Date(Date.now() - 7 * 86400000);
+      // Window covers every ACTIVE sequence back to its initial send, so a
+      // gate that's been closed for days backfills everything it missed.
+      const since = computeBackfillSince(
+        sentProspects
+          .filter((p) => p.status !== "Replied")
+          .map((p) => p.datumPrvogMaila!)
+          .filter(Boolean)
+      );
       const uids = await client.search({ since }, { uid: true });
       if (!uids || uids.length === 0)
-        return { configured: true, scanned: 0, matched: 0, saved: 0, errors };
+        return { ok: true, configured: true, scanned: 0, matched: 0, saved: 0, errors };
 
-      const sentProspects = await prisma.prospect.findMany({
-        where: {
-          status: { in: ["Emailed", "Follow1", "Follow2", "Follow3", "Replied"] },
-          datumPrvogMaila: { not: null },
-        },
-        select: {
-          id: true,
-          email: true,
-          datumPrvogMaila: true,
-          status: true,
-          firmaNaziv: true,
-          nisa: true,
-          grad: true,
-          kontaktIme: true,
-        },
-      });
       if (sentProspects.length === 0)
-        return { configured: true, scanned: uids.length, matched: 0, saved: 0, errors };
+        return { ok: true, configured: true, scanned: uids.length, matched: 0, saved: 0, errors };
 
       const byEmail = new Map(sentProspects.map((p) => [p.email.toLowerCase(), p]));
+      // Thread-based matching first: prospects' initial Message-IDs →
+      // In-Reply-To/References beat from-address (forwards, alias replies).
+      const prospectById = new Map(sentProspects.map((p) => [p.id, p]));
+      const initialEmails = await prisma.email.findMany({
+        where: {
+          prospectId: { in: sentProspects.map((p) => p.id) },
+          tip: "initial",
+          messageId: { not: null },
+        },
+        select: { prospectId: true, messageId: true },
+      });
+      const byMessageId = new Map(
+        initialEmails
+          .map((e) => [normalizeMessageId(e.messageId), prospectById.get(e.prospectId)] as const)
+          .filter((pair): pair is [string, (typeof sentProspects)[number]] => !!pair[0] && !!pair[1])
+      );
 
       for await (const msg of client.fetch(uids, {
         uid: true,
@@ -87,7 +123,8 @@ export async function checkReplies(): Promise<{
         scanned++;
         const fromAddr = msg.envelope?.from?.[0]?.address?.toLowerCase();
         if (!fromAddr) continue;
-        const prospect = byEmail.get(fromAddr);
+        const inReplyTo = normalizeMessageId(msg.envelope?.inReplyTo);
+        const prospect = (inReplyTo ? byMessageId.get(inReplyTo) : undefined) ?? byEmail.get(fromAddr);
         if (!prospect) continue;
         const messageDate = msg.internalDate ?? msg.envelope?.date ?? new Date();
         if (prospect.datumPrvogMaila && messageDate < prospect.datumPrvogMaila) continue;
@@ -204,6 +241,8 @@ export async function checkReplies(): Promise<{
     }
   } catch (e) {
     errors.push(e instanceof Error ? e.message : "IMAP error");
+    // Connection/scan-level failure: the follow-up gate must NOT lift.
+    connectionFailed = true;
   } finally {
     try {
       await client.logout();
@@ -212,7 +251,7 @@ export async function checkReplies(): Promise<{
     }
   }
 
-  return { configured: true, scanned, matched, saved, errors };
+  return { ok: !connectionFailed, configured: true, scanned, matched, saved, errors };
 }
 
 /**

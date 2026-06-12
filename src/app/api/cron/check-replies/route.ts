@@ -35,7 +35,7 @@ async function run(req: NextRequest) {
     console.log(
       `[check-replies] scanned=${result.scanned} matched=${result.matched} saved=${result.saved} errors=${result.errors.length}`
     );
-    return NextResponse.json({ ok: true, ...result });
+    return NextResponse.json({ ...result });
   } catch (err) {
     console.error("[check-replies] threw:", err);
     return NextResponse.json(

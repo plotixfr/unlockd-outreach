@@ -23,7 +23,9 @@ import { resendGate } from "@/lib/sendEmail";
 export const maxDuration = 300;
 
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
-const REPLY_TO = process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
+// Replies must land in the mailbox that reply detection reads (IMAP_USER),
+// otherwise the system is blind to answers — so IMAP_USER wins when set.
+const REPLY_TO = process.env.IMAP_USER ?? process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
 const BCC_EMAIL = process.env.BCC_EMAIL ?? "temim.fr@gmail.com";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";

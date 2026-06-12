@@ -53,7 +53,9 @@ export async function resendGate(): Promise<void> {
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
-const REPLY_TO = process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
+// Replies must land in the mailbox that reply detection reads (IMAP_USER),
+// otherwise the system is blind to answers — so IMAP_USER wins when set.
+const REPLY_TO = process.env.IMAP_USER ?? process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
 const BCC_EMAIL = process.env.BCC_EMAIL ?? "temim.fr@gmail.com";
 export const DAILY_SEND_CAP = Number(process.env.DAILY_SEND_CAP ?? 30);
 
@@ -601,18 +603,39 @@ export async function processDueEmails(opts?: {
   // Reply-detection gate: without IMAP credentials the system is blind to
   // replies, so automated follow-ups would keep firing at prospects who
   // already answered — a deliverability/reputation risk. Initial and other
-  // standalone touches above still send. Configuring IMAP_USER +
-  // IMAP_PASSWORD re-enables follow-ups automatically; set
+  // standalone touches above still send. Set
   // FOLLOWUPS_WITHOUT_REPLY_DETECTION=true to override deliberately.
+  //
+  // Backfill-before-unfreeze: when IMAP IS configured, we scan the mailbox
+  // RIGHT HERE — marking every replied sequence — and follow-ups run only
+  // if that scan completed (scan.ok). The gate therefore auto-lifts on the
+  // first successful scan after credentials appear, and a sequence frozen
+  // for days can never get a follow-up before its backlog of replies has
+  // been processed. (Dynamic import: checkReplies → notify → sendEmail
+  // would otherwise be a static import cycle.)
   const replyDetectionConfigured = !!(process.env.IMAP_USER && process.env.IMAP_PASSWORD);
-  const followupsEnabled =
-    replyDetectionConfigured || process.env.FOLLOWUPS_WITHOUT_REPLY_DETECTION === "true";
+  let followupsEnabled = process.env.FOLLOWUPS_WITHOUT_REPLY_DETECTION === "true";
+  let gateReason = "no reply detection (add IMAP_USER/IMAP_PASSWORD)";
+  if (!followupsEnabled && replyDetectionConfigured) {
+    try {
+      const { checkReplies } = await import("@/lib/checkReplies");
+      const scan = await checkReplies();
+      if (scan.ok) {
+        followupsEnabled = true;
+        console.log(
+          `[processDueEmails] reply backfill ok: scanned ${scan.scanned}, matched ${scan.matched}, saved ${scan.saved} — follow-ups unfrozen`
+        );
+      } else {
+        gateReason = `reply scan failed: ${scan.errors[0] ?? "IMAP error"}`;
+      }
+    } catch (e) {
+      gateReason = `reply scan threw: ${e instanceof Error ? e.message : "error"}`;
+    }
+  }
   if (!followupsEnabled) {
-    console.log(
-      "[processDueEmails] follow-ups gated: reply detection not configured (add IMAP_USER/IMAP_PASSWORD, or set FOLLOWUPS_WITHOUT_REPLY_DETECTION=true to override)"
-    );
+    console.log(`[processDueEmails] follow-ups gated: ${gateReason}`);
     results.push({
-      rule: "followups-gated (no reply detection)",
+      rule: `followups-gated (${gateReason.split(":")[0]})`,
       sent: 0,
       skipped: 0,
       errors: [],

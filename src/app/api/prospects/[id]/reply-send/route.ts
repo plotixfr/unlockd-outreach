@@ -6,7 +6,9 @@ import { resendGate } from "@/lib/sendEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
-const REPLY_TO = process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
+// Replies must land in the mailbox that reply detection reads (IMAP_USER),
+// otherwise the system is blind to answers — so IMAP_USER wins when set.
+const REPLY_TO = process.env.IMAP_USER ?? process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;
 const BCC_EMAIL = process.env.BCC_EMAIL ?? "temim.fr@gmail.com";
 
 /**
