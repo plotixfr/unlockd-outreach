@@ -26,7 +26,10 @@ async function runAndSummarize(emailSummary: boolean) {
   // their missing stages re-run (capped batch) before fresh discovery.
   let redrive: Awaited<ReturnType<typeof runRedrivePass>> | null = null;
   try {
-    redrive = await runRedrivePass();
+    // Redrive gets its own sub-budget so it can never starve discovery or
+    // blow the 300s function ceiling (REDRIVE_TIME_BUDGET_MS, default 120s).
+    const redriveDeadline = Date.now() + Number(process.env.REDRIVE_TIME_BUDGET_MS ?? 120_000);
+    redrive = await runRedrivePass(undefined, redriveDeadline);
     console.log(
       `[autopilot] redrive: ${redrive.retried} retried, ${redrive.advanced} advanced, ${redrive.failedTerminal} marked Failed`
     );

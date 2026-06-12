@@ -84,7 +84,10 @@ export interface RedriveSummary {
   errors: string[];
 }
 
-export async function runRedrivePass(limit: number = DEFAULT_BATCH): Promise<RedriveSummary> {
+export async function runRedrivePass(
+  limit: number = DEFAULT_BATCH,
+  deadlineAt?: number
+): Promise<RedriveSummary> {
   const summary: RedriveSummary = { examined: 0, retried: 0, advanced: 0, failedTerminal: 0, errors: [] };
 
   const candidates = await prisma.prospect.findMany({
@@ -120,6 +123,16 @@ export async function runRedrivePass(limit: number = DEFAULT_BATCH): Promise<Red
     if (action !== "retry-score" && action !== "retry-generate" && action !== "retry-schedule") continue;
     if (!backoffElapsed(p)) continue;
     if (summary.retried >= limit) continue; // batch cap — each retry can cost Claude calls
+    // Time budget: one retry can legitimately take score+generate ≈ 2min now
+    // that GEN_TIMEOUT is 90s — without this check, 5 retries could eat the
+    // whole 300s function (the 504 we hit on the first post-fix live tick).
+    // Never START a retry past the deadline; in-flight one finishes.
+    if (deadlineAt && Date.now() > deadlineAt) {
+      console.log(
+        `[redrive] time budget reached after ${summary.retried} retries — remaining candidates defer to next tick`
+      );
+      break;
+    }
 
     // Claim BEFORE working: a concurrent fire now sees a fresh lastAttemptAt
     // and skips via backoff.
