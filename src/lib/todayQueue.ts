@@ -106,7 +106,7 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: r.prospect.nisa,
       priority: 1,
       estimateMin: 4,
-      title: `Send draft odgovora — ${r.prospect.firmaNaziv}`,
+      title: `Send reply draft — ${r.prospect.firmaNaziv}`,
       hint: `${r.classification} · replied ${rel(r.receivedAt, now)}`,
       href: `/prospects/${r.prospectId}`,
       badge: "🔥",
@@ -123,8 +123,8 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: e.prospect.nisa,
       priority: 2,
       estimateMin: 3,
-      title: `Kontaktiraj — ${e.prospect.firmaNaziv}`,
-      hint: `Kliknuo Calendly ${e.calendlyClickedAt ? rel(e.calendlyClickedAt, now) : ""} ali nije book-ovao`,
+      title: `Reach out — ${e.prospect.firmaNaziv}`,
+      hint: `Clicked Calendly ${e.calendlyClickedAt ? rel(e.calendlyClickedAt, now) : ""} but didn't book`,
       href: `/prospects/${e.prospectId}`,
       badge: "💎",
       badgeTone: "warning",
@@ -140,8 +140,8 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: p.nisa,
       priority: 3,
       estimateMin: 1,
-      title: `Postavi deal stage — ${p.firmaNaziv}`,
-      hint: `Replied ${p.datumOdgovora ? rel(p.datumOdgovora, now) : ""} ali nije u pipeline-u`,
+      title: `Set deal stage — ${p.firmaNaziv}`,
+      hint: `Replied ${p.datumOdgovora ? rel(p.datumOdgovora, now) : ""} but not in the pipeline yet`,
       href: `/prospects/${p.id}`,
       badge: "→",
       badgeTone: "info",
@@ -157,8 +157,8 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: p.nisa,
       priority: 4,
       estimateMin: 5,
-      title: `Podsjetnik — ${p.firmaNaziv}`,
-      hint: p.podsjetnikNapomena || `Za ${p.podsjetnikDatum ? rel(p.podsjetnikDatum, now) : "danas"}`,
+      title: `Reminder — ${p.firmaNaziv}`,
+      hint: p.podsjetnikNapomena || `Due ${p.podsjetnikDatum ? rel(p.podsjetnikDatum, now) : "today"}`,
       href: `/prospects/${p.id}`,
       badge: "🔔",
       badgeTone: "info",
@@ -174,8 +174,8 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
       niche: p.nisa,
       priority: 5,
       estimateMin: 5,
-      title: `Pratiti deal — ${p.firmaNaziv}`,
-      hint: `${p.dealStage} · stanje od ${p.dealStageAt ? rel(p.dealStageAt, now) : ""}${p.dealValue ? ` · ${p.dealValue.toLocaleString("fr-FR")} €` : ""}`,
+      title: `Follow up on deal — ${p.firmaNaziv}`,
+      hint: `${p.dealStage} · in stage since ${p.dealStageAt ? rel(p.dealStageAt, now) : ""}${p.dealValue ? ` · ${p.dealValue.toLocaleString("fr-FR")} €` : ""}`,
       href: `/prospects/${p.id}`,
       badge: p.dealStage === "Negotiating" ? "💰" : "📄",
       badgeTone: p.dealStage === "Negotiating" ? "success" : "info",
@@ -189,11 +189,11 @@ export async function getTodayQueue(): Promise<TodayTask[]> {
 function rel(d: Date, now = new Date()): string {
   const diff = now.getTime() - d.getTime();
   const min = Math.round(diff / 60000);
-  if (Math.abs(min) < 60) return min >= 0 ? `prije ${min} min` : `za ${-min} min`;
+  if (Math.abs(min) < 60) return min >= 0 ? `${min} min ago` : `in ${-min} min`;
   const h = Math.round(min / 60);
-  if (Math.abs(h) < 24) return h >= 0 ? `prije ${h} h` : `za ${-h} h`;
+  if (Math.abs(h) < 24) return h >= 0 ? `${h} h ago` : `in ${-h} h`;
   const day = Math.round(h / 24);
-  return day >= 0 ? `prije ${day} dan${day === 1 ? "" : "a"}` : `za ${-day} dana`;
+  return day >= 0 ? `${day} day${day === 1 ? "" : "s"} ago` : `in ${-day} days`;
 }
 
 /**

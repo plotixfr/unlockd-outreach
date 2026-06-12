@@ -15,10 +15,10 @@ interface Props {
 }
 
 const TONE_STYLES = {
-  neutral: { bar: "bg-zinc-700/60", text: "text-zinc-300" },
-  ok: { bar: "bg-emerald-500/60", text: "text-emerald-300" },
-  good: { bar: "bg-emerald-500/60", text: "text-emerald-300" },
-  great: { bar: "bg-emerald-500/80", text: "text-emerald-200" },
+  neutral: { bar: "bg-zinc-300", text: "text-zinc-700" },
+  ok: { bar: "bg-emerald-200", text: "text-emerald-800" },
+  good: { bar: "bg-emerald-300", text: "text-emerald-800" },
+  great: { bar: "bg-emerald-400", text: "text-emerald-900" },
 };
 
 function pct(n: number, d: number): string {
@@ -37,34 +37,34 @@ export function FunnelView({ stages, totalSpendEur, costPerMeetingEur, costPerDe
   const top = Math.max(stages[0].count, 1);
 
   return (
-    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation">
+    <div className="card p-6">
       <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h2 className="text-zinc-200 font-medium text-sm">Sales funnel</h2>
-          <p className="text-zinc-500 text-xs mt-1">Konverzija po koraku · cost-per-meeting / deal</p>
+          <h2 className="text-[var(--text)] font-semibold text-sm">Sales funnel</h2>
+          <p className="text-[var(--text-muted)] text-xs mt-1">Conversion per stage · cost per meeting / deal</p>
         </div>
         <div className="flex items-center gap-5 text-right">
           {typeof totalSpendEur === "number" && (
             <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Trošak</p>
-              <p className="text-zinc-300 text-sm font-medium tabular-nums">
-                ~{totalSpendEur.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €
+              <p className="section-label justify-end">Spend</p>
+              <p className="text-[var(--text)] text-sm font-medium tabular-nums mt-1">
+                ~€{totalSpendEur.toLocaleString("en-US", { maximumFractionDigits: 2 })}
               </p>
             </div>
           )}
           {costPerMeetingEur !== undefined && (
             <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Po sastanku</p>
-              <p className={`text-sm font-medium tabular-nums ${costPerMeetingEur === null ? "text-zinc-600" : "text-amber-300"}`}>
-                {costPerMeetingEur === null ? "—" : `~${costPerMeetingEur.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`}
+              <p className="section-label justify-end">Per meeting</p>
+              <p className={`text-sm font-medium tabular-nums mt-1 ${costPerMeetingEur === null ? "text-[var(--text-muted)]" : "text-amber-600"}`}>
+                {costPerMeetingEur === null ? "—" : `~€${costPerMeetingEur.toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
               </p>
             </div>
           )}
           {costPerDealEur !== undefined && (
             <div>
-              <p className="text-zinc-600 text-[10px] uppercase tracking-widest">Po deal-u</p>
-              <p className={`text-sm font-medium tabular-nums ${costPerDealEur === null ? "text-zinc-600" : "text-emerald-300"}`}>
-                {costPerDealEur === null ? "—" : `~${costPerDealEur.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} €`}
+              <p className="section-label justify-end">Per deal</p>
+              <p className={`text-sm font-medium tabular-nums mt-1 ${costPerDealEur === null ? "text-[var(--text-muted)]" : "text-emerald-700"}`}>
+                {costPerDealEur === null ? "—" : `~€${costPerDealEur.toLocaleString("en-US", { maximumFractionDigits: 2 })}`}
               </p>
             </div>
           )}
@@ -81,23 +81,23 @@ export function FunnelView({ stages, totalSpendEur, costPerMeetingEur, costPerDe
             <div key={stage.label}>
               {prev && (
                 <div className="flex items-center gap-2 mb-1 ml-1">
-                  <ArrowDown strokeWidth={2} className="w-3 h-3 text-zinc-700" />
-                  <span className="text-zinc-600 text-[10px] tabular-nums">{conversion} konverzija od {prev.label.toLowerCase()}</span>
+                  <ArrowDown strokeWidth={2} className="w-3 h-3 text-[var(--text-muted)]" />
+                  <span className="text-[var(--text-muted)] text-[10px] tabular-nums">{conversion} conversion from {prev.label.toLowerCase()}</span>
                 </div>
               )}
               <div className="flex items-center gap-4">
                 <div className="w-32 shrink-0">
-                  <p className="text-zinc-400 text-xs font-medium uppercase tracking-wider">{stage.label}</p>
-                  {stage.detail && <p className="text-zinc-600 text-[10px] mt-0.5">{stage.detail}</p>}
+                  <p className="text-[var(--text-secondary)] text-xs font-semibold uppercase tracking-wider">{stage.label}</p>
+                  {stage.detail && <p className="text-[var(--text-muted)] text-[10px] mt-0.5">{stage.detail}</p>}
                 </div>
-                <div className="flex-1 relative h-8 rounded-lg bg-[#14141c] overflow-hidden">
+                <div className="flex-1 relative h-8 rounded-lg bg-zinc-100 overflow-hidden border border-[var(--border)]">
                   <div
                     className={`absolute inset-y-0 left-0 ${styles.bar} transition-all duration-500`}
                     style={{ width: `${width}%` }}
                   />
                   <div className="absolute inset-0 flex items-center px-3">
                     <span className={`text-sm font-semibold tabular-nums ${styles.text}`}>
-                      {stage.count.toLocaleString("fr-FR")}
+                      {stage.count.toLocaleString("en-US")}
                     </span>
                   </div>
                 </div>

@@ -6,20 +6,21 @@ import {
   formatParisDateTime,
   relativeFromNow,
 } from "@/lib/autopilotStatus";
-import { getForecast, getMomentum } from "@/lib/todayQueue";
+import { getForecast } from "@/lib/todayQueue";
 import {
-  ArrowUpRight,
   Activity,
   Zap,
   Sparkles,
   Mail,
   Reply,
   CalendarCheck2,
-  Eye,
-  Bot,
+  CheckCircle2,
+  BellRing,
+  AlertTriangle,
 } from "lucide-react";
 import { RunAutopilotNowButton } from "@/components/RunAutopilotNowButton";
 import { PipelineChart } from "@/components/charts/PipelineChart";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -51,10 +52,12 @@ export default async function DashboardPage() {
   const tomorrowStart = utcMidnight(1);
   const dayAfter = utcMidnight(2);
   const thirtyAgo = utcMidnight(-30);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const dailyCap = Number(process.env.DAILY_SEND_CAP ?? 30);
 
   const [
     forecast,
-    momentum,
     activeBriefs,
     pausedBriefs,
     discoveryQueue,
@@ -62,9 +65,7 @@ export default async function DashboardPage() {
     sentLast30,
     repliesLast30,
     conversionsLast30,
-    todaysReplies,
     todaysScheduled,
-    pipelineCount,
     openRate30,
     openedLast30,
     nextDueProspect,
@@ -75,9 +76,13 @@ export default async function DashboardPage() {
     recentConversions,
     recentRuns,
     suppressedCount,
+    // "Needs attention" — read-only lookups for replies awaiting an answer,
+    // reminders due today and Failed prospects with a stored error.
+    repliedAwaiting,
+    remindersDue,
+    failedProspects,
   ] = await Promise.all([
     getForecast(),
-    getMomentum(),
     prisma.searchBrief.count({ where: { active: true } }),
     prisma.searchBrief.count({ where: { active: false } }),
     prisma.prospect.count({
@@ -87,11 +92,9 @@ export default async function DashboardPage() {
     prisma.email.findMany({ where: { poslat: true, poslatAt: { gte: thirtyAgo } }, select: { poslatAt: true } }),
     prisma.reply.findMany({ where: { receivedAt: { gte: thirtyAgo } }, select: { receivedAt: true } }),
     prisma.conversion.findMany({ where: { datumKonverzije: { gte: thirtyAgo } }, select: { datumKonverzije: true } }),
-    prisma.reply.count({ where: { receivedAt: { gte: todayStart, lt: tomorrowStart } } }),
     prisma.prospect.count({
       where: { scheduledInitial: { gte: todayStart, lt: tomorrowStart }, status: "Scheduled" },
     }),
-    prisma.prospect.count({ where: { dealStage: { not: null } } }),
     prisma.email.count({ where: { poslat: true, poslatAt: { gte: thirtyAgo } } }),
     prisma.email.count({ where: { otvoren: true, poslatAt: { gte: thirtyAgo } } }),
     prisma.prospect.findFirst({
@@ -125,6 +128,27 @@ export default async function DashboardPage() {
       select: { id: true, status: true, found: true, created: true, qualified: true, startedAt: true, brief: { select: { name: true } } },
     }),
     prisma.suppressedDomain.count(),
+    prisma.prospect.findMany({
+      where: { status: "Replied" },
+      select: { id: true, firmaNaziv: true, nisa: true, datumOdgovora: true },
+      orderBy: { datumOdgovora: "desc" },
+      take: 6,
+    }),
+    prisma.prospect.findMany({
+      where: {
+        podsjetnikDatum: { not: null, lte: todayEnd },
+        status: { notIn: ["Converted", "Unsubscribed", "Bounced"] },
+      },
+      select: { id: true, firmaNaziv: true, podsjetnikDatum: true, podsjetnikNapomena: true },
+      orderBy: { podsjetnikDatum: "asc" },
+      take: 6,
+    }),
+    prisma.prospect.findMany({
+      where: { status: "Failed", lastError: { not: null } },
+      select: { id: true, firmaNaziv: true, lastError: true, lastAttemptAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   // Daily activity buckets
@@ -150,33 +174,30 @@ export default async function DashboardPage() {
     ...recentRuns.map<ActivityRow>((r) => ({ at: r.startedAt, kind: "discovery", title: `Discovery — ${r.brief.name}`, sub: `Found ${r.found} · Created ${r.created} · Qualified ${r.qualified}` })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 12);
 
-  const openRate = openRate30 > 0 ? Math.round((openedLast30 / openRate30) * 100) : 0;
   const replyRate = openRate30 > 0 ? Math.round((repliesLast30.length / openRate30) * 100) : 0;
   const autopilotLive = activeBriefs > 0;
   const greeting = timeOfDayGreeting();
   const totalSent30 = sentLast30.length;
   const totalReplies30 = repliesLast30.length;
   const totalConv30 = conversionsLast30.length;
+  const attentionCount = repliedAwaiting.length + remindersDue.length + failedProspects.length;
 
   return (
-    <div className="max-w-[1400px] space-y-3">
-      {/* ─── Hero ─── */}
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-2">
+    <div className="max-w-[1400px] space-y-6">
+      {/* ─── Header ─── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-3">
-            <span className={`pill ${autopilotLive ? "pill-accent" : "pill-warning"}`}>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[22px] text-[var(--text)]">
+              {greeting}, Temim.
+            </h1>
+            <span className={`badge ${autopilotLive ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
               <span className={`dot ${autopilotLive ? "dot-live" : ""}`} />
               {autopilotLive ? "Autopilot running" : "Autopilot paused"}
             </span>
-            <span className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-[var(--text-dim)]">
-              {new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" })}
-            </span>
           </div>
-          <h1 className="text-white text-4xl sm:text-5xl tracking-tight">
-            {greeting}, <span className="text-gradient-brand">Temim</span>.
-          </h1>
-          <p className="text-[var(--text-muted)] text-sm mt-3 max-w-2xl">
-            {activeBriefs} {activeBriefs === 1 ? "brief" : "briefs"} live · {sendingTomorrow} queued for tomorrow · Next discovery {relativeFromNow(nextAutopilot, now)} · Next send {relativeFromNow(nextSend, now)}.
+          <p className="text-[var(--text-secondary)] text-sm mt-1.5">
+            {activeBriefs} {activeBriefs === 1 ? "brief" : "briefs"} live · {discoveryQueue} prospects queued · {sendingTomorrow} going out tomorrow · Next discovery {relativeFromNow(nextAutopilot, now)} · Next send {relativeFromNow(nextSend, now)}.
           </p>
         </div>
         <RunAutopilotNowButton />
@@ -184,175 +205,236 @@ export default async function DashboardPage() {
 
       {/* ─── 4 KPI cards ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi label="Closed this month" value={fmtCurrency(forecast.closedThisMonth)} sub={forecast.closedLastMonth > 0 ? `${forecast.trend30 >= 0 ? "+" : ""}${Math.round(forecast.trend30)}% vs last` : "First month with revenue"} tone="emerald" />
-        <Kpi label="30-day forecast" value={fmtCurrency(forecast.expectedNext30)} sub="Probability-weighted" tone="neutral" />
-        <Kpi label="Meetings this month" value={momentum.meetingsThisMonth.toString()} sub={`Pipeline value ${fmtCurrency(forecast.pipelineValueOpen)}`} tone="neutral" />
-        <Kpi label="Reply rate" value={`${replyRate}%`} sub={`${totalReplies30} replies / ${totalSent30} sends (30d)`} tone="amber" />
+        <Kpi
+          label="Closed this month"
+          value={fmtCurrency(forecast.closedThisMonth)}
+          sub={forecast.closedLastMonth > 0 ? `${forecast.trend30 >= 0 ? "+" : ""}${Math.round(forecast.trend30)}% vs last month` : "First month with revenue"}
+          accent
+        />
+        <Kpi
+          label="30-day forecast"
+          value={fmtCurrency(forecast.expectedNext30)}
+          sub={`Open pipeline ${fmtCurrency(forecast.pipelineValueOpen)} · probability-weighted`}
+        />
+        <Kpi
+          label="Reply rate"
+          value={`${replyRate}%`}
+          sub={`${totalReplies30} replies / ${totalSent30} sends (30d)`}
+        />
+        <Kpi
+          label="Sends today"
+          value={`${sentToday} / ${dailyCap}`}
+          sub={
+            nextDueProspect
+              ? `Next out ${nextDueProspect.firmaNaziv}${nextDueProspect.scheduledInitial ? ` · ${formatParisDateTime(nextDueProspect.scheduledInitial)}` : ""}`
+              : `${todaysScheduled} scheduled today · cap ${dailyCap}/day`
+          }
+        />
       </div>
 
-      {/* ─── Two-column: Discovery Queue + Today's Status + Health ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 card card-accent corner-accent p-8">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="section-label text-emerald-400/80">
-                <Sparkles className="w-3 h-3" /> Discovery Queue
-              </p>
-              <p className="display-number text-white text-[80px] mt-4 leading-none">{discoveryQueue}</p>
-              <p className="text-[var(--text-muted)] text-sm mt-3 font-medium">prospects in the pipeline</p>
-              {nextDueProspect && (
-                <p className="text-[var(--text-dim)] text-xs mt-5 tabular">
-                  Next out → <span className="text-[var(--text-muted)]">{nextDueProspect.firmaNaziv}</span> · {nextDueProspect.scheduledInitial ? formatParisDateTime(nextDueProspect.scheduledInitial) : ""}
-                </p>
-              )}
-            </div>
-            <div className="hidden sm:flex w-16 h-16 rounded-md bg-emerald-500/10 items-center justify-center shrink-0 border border-emerald-500/20">
-              <Bot className="w-7 h-7 text-emerald-400" strokeWidth={1.4} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-6 mt-8 pt-6 etch-top">
-            <Mini label="Sent today" value={sentToday} />
-            <Mini label="Sent (30d)" value={totalSent30} />
-            <Mini label="Replies (30d)" value={totalReplies30} />
-          </div>
-          <div className="mt-7 flex items-center gap-3">
-            <Link href="/autopilot" className="btn-accent">
-              Open autopilot <ArrowUpRight className="w-4 h-4" />
-            </Link>
-            <Link href="/prospects" className="btn-ghost">
-              View prospects
-            </Link>
-          </div>
+      {/* ─── Needs attention ─── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="section-label"><BellRing className="w-3 h-3" /> Needs attention</p>
+          <p className="text-xs text-[var(--text-muted)]">
+            {repliedAwaiting.length} replies · {remindersDue.length} reminders · {failedProspects.length} failed
+          </p>
         </div>
-
-        <div className="space-y-3">
-          <div className="card p-5">
-            <p className="section-label mb-4"><Activity className="w-3 h-3" /> Today&apos;s Status</p>
-            <StatusRow icon={Reply} label="Replies" value={todaysReplies.toString()} tone="emerald" />
-            <StatusRow icon={Mail} label="Scheduled out" value={todaysScheduled.toString()} tone="info" />
-            <StatusRow icon={CalendarCheck2} label="In pipeline" value={pipelineCount.toString()} tone="neutral" />
-            <StatusRow icon={Eye} label="Open rate (30d)" value={`${openRate}%`} tone={openRate >= 40 ? "emerald" : openRate >= 20 ? "amber" : "muted"} />
+        {attentionCount === 0 ? (
+          <EmptyState
+            icon={<CheckCircle2 />}
+            title="Nothing needs your attention"
+            hint="Replies waiting for an answer, reminders due today and Failed prospects with a stored error show up here."
+          />
+        ) : (
+          <div className="card divide-y divide-[var(--border)]">
+            {repliedAwaiting.map((p) => (
+              <AttentionRow
+                key={p.id}
+                href={`/prospects/${p.id}`}
+                badge="Reply"
+                badgeCls="bg-emerald-50 text-emerald-700 border border-emerald-200"
+                icon={<Reply className="w-3.5 h-3.5" />}
+                title={p.firmaNaziv}
+                sub={`Replied — awaiting your answer · ${p.nisa}`}
+                when={p.datumOdgovora ? relativeFromNow(p.datumOdgovora, now) : ""}
+              />
+            ))}
+            {remindersDue.map((p) => (
+              <AttentionRow
+                key={p.id}
+                href={`/prospects/${p.id}`}
+                badge="Reminder"
+                badgeCls="bg-sky-50 text-sky-700 border border-sky-200"
+                icon={<BellRing className="w-3.5 h-3.5" />}
+                title={p.firmaNaziv}
+                sub={p.podsjetnikNapomena || "Reminder due"}
+                when={p.podsjetnikDatum ? relativeFromNow(p.podsjetnikDatum, now) : ""}
+              />
+            ))}
+            {failedProspects.map((p) => (
+              <AttentionRow
+                key={p.id}
+                href={`/prospects/${p.id}`}
+                badge="Failed"
+                badgeCls="bg-red-50 text-red-700 border border-red-200"
+                icon={<AlertTriangle className="w-3.5 h-3.5" />}
+                title={p.firmaNaziv}
+                sub={p.lastError ?? ""}
+                subTitle={p.lastError ?? undefined}
+                subCls="text-red-600"
+                when={p.lastAttemptAt ? relativeFromNow(p.lastAttemptAt, now) : ""}
+              />
+            ))}
           </div>
-          <div className="card p-5">
-            <p className="section-label mb-4"><Zap className="w-3 h-3" /> Health</p>
-            <HealthRow label="Sending domain" status="ok" detail="Resend · unlockd.art" />
-            <HealthRow label="Reply detection" status={process.env.IMAP_USER ? "ok" : "warn"} detail={process.env.IMAP_USER ? "IMAP 3×/day" : "Add IMAP — follow-ups paused"} />
-            <HealthRow label="Calendly tracking" status="ok" detail="Live" />
-            <HealthRow label="BCC failures" status={bccFailures === 0 ? "ok" : bccFailures < 5 ? "warn" : "err"} detail={bccFailures === 0 ? "0 logged" : `${bccFailures} fails`} />
-            <HealthRow label="Suppression list" status="ok" detail={`${suppressedCount} domains`} />
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* ─── Pipeline chart + Recent activity ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* ─── Pipeline chart + activity feed ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 card p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="section-label"><Activity className="w-3 h-3" /> Pipeline Activity</p>
-              <p className="text-white text-sm font-semibold mt-2">Last 30 days · sends, replies, conversions</p>
+              <p className="section-label"><Activity className="w-3 h-3" /> Pipeline activity</p>
+              <p className="text-[var(--text)] text-sm font-semibold mt-2">Last 30 days · sends, replies, conversions</p>
             </div>
             <div className="text-right">
-              <p className="text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-semibold">Totals</p>
-              <p className="text-[var(--text-muted)] text-xs mt-1 tabular">
-                <span className="text-emerald-300 font-semibold">{totalSent30}</span> sends ·
-                <span className="text-sky-300 font-semibold"> {totalReplies30}</span> replies ·
-                <span className="text-amber-300 font-semibold"> {totalConv30}</span> conv.
+              <p className="section-label justify-end">Totals</p>
+              <p className="text-[var(--text-secondary)] text-xs mt-1 tabular">
+                <span className="text-emerald-700 font-semibold">{totalSent30}</span> sends ·
+                <span className="text-sky-700 font-semibold"> {totalReplies30}</span> replies ·
+                <span className="text-amber-700 font-semibold"> {totalConv30}</span> conv.
               </p>
             </div>
           </div>
           <PipelineChart data={chartDays} />
         </div>
 
-        <div className="card p-5">
-          <p className="section-label mb-4"><Sparkles className="w-3 h-3" /> Recent Activity</p>
+        <div>
+          <p className="section-label mb-3"><Sparkles className="w-3 h-3" /> Recent activity</p>
           {feed.length === 0 ? (
-            <p className="text-[var(--text-dim)] text-sm py-8 text-center">Nothing yet. First autopilot fire 07:00 Paris.</p>
+            <EmptyState
+              icon={<Activity />}
+              title="No activity yet"
+              hint="Sends, replies, conversions and discovery runs land here as autopilot works. First discovery fires at 07:00 Paris."
+            />
           ) : (
-            <ul className="space-y-3.5">
-              {feed.map((f, i) => (
-                <li key={i} className="flex items-start gap-3 text-xs">
-                  <FeedDot kind={f.kind} />
-                  <div className="min-w-0 flex-1">
-                    {f.href ? (
-                      <Link href={f.href} className="text-[var(--text)] hover:text-emerald-300 font-semibold block truncate transition-colors">{f.title}</Link>
-                    ) : (
-                      <p className="text-[var(--text)] font-semibold truncate">{f.title}</p>
-                    )}
-                    <p className="text-[var(--text-dim)] mt-0.5 truncate">{f.sub}</p>
-                  </div>
-                  <span className="text-[var(--text-faint)] text-[10px] tabular shrink-0 pt-0.5">{relativeFromNow(f.at, now)}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="card p-5">
+              <ul className="space-y-3.5">
+                {feed.map((f, i) => (
+                  <li key={i} className="flex items-start gap-3 text-xs">
+                    <FeedDot kind={f.kind} />
+                    <div className="min-w-0 flex-1">
+                      {f.href ? (
+                        <Link href={f.href} className="text-[var(--text)] hover:text-[var(--accent)] font-semibold block truncate transition-colors">{f.title}</Link>
+                      ) : (
+                        <p className="text-[var(--text)] font-semibold truncate">{f.title}</p>
+                      )}
+                      <p className="text-[var(--text-muted)] mt-0.5 truncate">{f.sub}</p>
+                    </div>
+                    <span className="text-[var(--text-muted)] text-[10px] tabular shrink-0 pt-0.5">{relativeFromNow(f.at, now)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       </div>
 
-      <p className="text-center text-[var(--text-faint)] text-[10.5px] uppercase tracking-widest pt-4 pb-2 font-semibold">
-        Reply rate {replyRate}% · {pausedBriefs} paused briefs · {totalSent30} sends in 30 days
-      </p>
+      {/* ─── Compact health strip ─── */}
+      <div className="card px-6 py-4">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <p className="section-label"><Zap className="w-3 h-3" /> Health</p>
+          <HealthCell status="ok" label="Sending domain" detail="Resend · unlockd.art" />
+          <HealthCell
+            status={process.env.IMAP_USER ? "ok" : "warn"}
+            label="Reply detection"
+            detail={process.env.IMAP_USER ? "IMAP 3×/day" : "Add IMAP — follow-ups paused"}
+          />
+          <HealthCell status="ok" label="Calendly tracking" detail="Live" />
+          <HealthCell
+            status={bccFailures === 0 ? "ok" : bccFailures < 5 ? "warn" : "err"}
+            label="BCC failures"
+            detail={bccFailures === 0 ? "0 logged" : `${bccFailures} fails — see Email.bccError`}
+          />
+          <HealthCell status="ok" label="Suppression list" detail={`${suppressedCount} domains`} />
+          <p className="text-[11px] text-[var(--text-muted)] ml-auto">
+            {pausedBriefs} paused {pausedBriefs === 1 ? "brief" : "briefs"} · <Link href="/autopilot" className="text-[var(--accent)] hover:underline font-medium">Open autopilot</Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Kpi({ label, value, sub, tone }: { label: string; value: string; sub: string; tone: "emerald" | "neutral" | "amber" }) {
-  const toneClass = { emerald: "text-emerald-300", neutral: "text-white", amber: "text-amber-300" }[tone];
+function Kpi({ label, value, sub, accent }: { label: string; value: string; sub: string; accent?: boolean }) {
   return (
     <div className="card card-interactive p-5">
       <p className="section-label">{label}</p>
-      <p className={`display-number text-3xl sm:text-[36px] mt-3 ${toneClass}`}>{value}</p>
-      <p className="text-[var(--text-dim)] text-xs mt-2 font-medium">{sub}</p>
+      <p className={`kpi-value mt-3 ${accent ? "text-[var(--accent)]" : ""}`}>{value}</p>
+      <p className="text-[var(--text-muted)] text-xs mt-2">{sub}</p>
     </div>
   );
 }
 
-function Mini({ label, value }: { label: string; value: number }) {
+function AttentionRow({
+  href,
+  badge,
+  badgeCls,
+  icon,
+  title,
+  sub,
+  subTitle,
+  subCls,
+  when,
+}: {
+  href: string;
+  badge: string;
+  badgeCls: string;
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  subTitle?: string;
+  subCls?: string;
+  when: string;
+}) {
   return (
-    <div>
-      <p className="display-number text-emerald-400/85 text-2xl">{value}</p>
-      <p className="text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-semibold mt-1.5">{label}</p>
-    </div>
-  );
-}
-
-function StatusRow({ icon: Icon, label, value, tone }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; value: string; tone: "emerald" | "info" | "amber" | "neutral" | "muted" }) {
-  const toneClass = { emerald: "text-emerald-300", info: "text-sky-300", amber: "text-amber-300", neutral: "text-white", muted: "text-[var(--text-dim)]" }[tone];
-  return (
-    <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-1)] last:border-b-0 last:pb-0">
-      <div className="flex items-center gap-2.5">
-        <Icon strokeWidth={1.75} className="w-3.5 h-3.5 text-[var(--text-dim)]" />
-        <span className="text-[var(--text-muted)] text-sm">{label}</span>
+    <Link href={href} className="flex items-center gap-4 px-5 py-3 hover:bg-zinc-50 transition-colors first:rounded-t-xl last:rounded-b-xl">
+      <span className={`badge w-[92px] justify-center shrink-0 ${badgeCls}`}>
+        {icon}
+        {badge}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[var(--text)] text-sm font-semibold truncate">{title}</p>
+        <p className={`text-xs mt-0.5 truncate ${subCls ?? "text-[var(--text-muted)]"}`} title={subTitle}>{sub}</p>
       </div>
-      <span className={`text-sm font-bold tabular ${toneClass}`}>{value}</span>
-    </div>
+      <span className="text-[var(--text-muted)] text-[11px] tabular shrink-0">{when}</span>
+    </Link>
   );
 }
 
-function HealthRow({ label, status, detail }: { label: string; status: "ok" | "warn" | "err"; detail: string }) {
-  const dotClass = { ok: "bg-emerald-400", warn: "bg-amber-400", err: "bg-rose-400" }[status];
-  const detailClass = { ok: "text-emerald-300", warn: "text-amber-300", err: "text-rose-300" }[status];
+function HealthCell({ status, label, detail }: { status: "ok" | "warn" | "err"; label: string; detail: string }) {
+  const dotClass = { ok: "bg-emerald-500", warn: "bg-amber-500", err: "bg-red-500" }[status];
+  const detailClass = { ok: "text-[var(--text-secondary)]", warn: "text-amber-600", err: "text-red-600" }[status];
   return (
-    <div className="flex items-center justify-between py-2.5 border-b border-[var(--border-1)] last:border-b-0 last:pb-0">
-      <div className="flex items-center gap-2.5">
-        <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-        <span className="text-[var(--text-muted)] text-sm">{label}</span>
-      </div>
-      <span className={`text-[10.5px] uppercase tracking-wider font-bold ${detailClass}`}>{detail}</span>
+    <div className="flex items-center gap-2">
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+      <span className="text-xs font-medium text-[var(--text)]">{label}</span>
+      <span className={`text-[11px] ${detailClass}`}>{detail}</span>
     </div>
   );
 }
 
 function FeedDot({ kind }: { kind: "send" | "reply" | "conversion" | "discovery" }) {
   const map = {
-    send: { Icon: Mail, color: "text-zinc-400 bg-zinc-800/40 border-[var(--border-2)]" },
-    reply: { Icon: Reply, color: "text-sky-300 bg-sky-500/15 border-sky-500/30" },
-    conversion: { Icon: CalendarCheck2, color: "text-emerald-300 bg-emerald-500/15 border-emerald-500/30" },
-    discovery: { Icon: Sparkles, color: "text-amber-300 bg-amber-500/15 border-amber-500/30" },
+    send: { Icon: Mail, color: "text-zinc-500 bg-zinc-100 border-zinc-200" },
+    reply: { Icon: Reply, color: "text-sky-700 bg-sky-50 border-sky-200" },
+    conversion: { Icon: CalendarCheck2, color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+    discovery: { Icon: Sparkles, color: "text-amber-700 bg-amber-50 border-amber-200" },
   }[kind];
   const Icon = map.Icon;
   return (
-    <div className={`w-7 h-7 rounded-sm flex items-center justify-center shrink-0 border ${map.color}`}>
+    <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${map.color}`}>
       <Icon strokeWidth={1.75} className="w-3.5 h-3.5" />
     </div>
   );

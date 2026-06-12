@@ -15,8 +15,8 @@ interface Props {
 }
 
 /**
- * 30-day pipeline activity. Three stacked area series — sends (emerald),
- * replies (sky), conversions (amber). Dark theme tooltip + gradient fills.
+ * 30-day pipeline activity. Three area series — sends (emerald), replies
+ * (sky), conversions (amber). Light-theme axes, grid and tooltip.
  */
 export function PipelineChart({ data }: Props) {
   return (
@@ -25,28 +25,28 @@ export function PipelineChart({ data }: Props) {
         <AreaChart data={data} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
           <defs>
             <linearGradient id="grad-sends" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor="#059669" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#059669" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="grad-replies" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+              <stop offset="0%" stopColor="#0284c7" stopOpacity={0.25} />
+              <stop offset="100%" stopColor="#0284c7" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="grad-conversions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.55} />
-              <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+              <stop offset="0%" stopColor="#d97706" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#d97706" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#1a1a23" strokeDasharray="2 4" vertical={false} />
+          <CartesianGrid stroke="#e4e4e7" strokeDasharray="2 4" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: "#5a5b66", fontSize: 10, fontFamily: "var(--font-sans)" }}
+            tick={{ fill: "#a1a1aa", fontSize: 10, fontFamily: "var(--font-sans)" }}
             tickLine={false}
-            axisLine={{ stroke: "#1a1a23" }}
+            axisLine={{ stroke: "#e4e4e7" }}
             interval={Math.floor(data.length / 6)}
           />
           <YAxis
-            tick={{ fill: "#5a5b66", fontSize: 10, fontFamily: "var(--font-sans)" }}
+            tick={{ fill: "#a1a1aa", fontSize: 10, fontFamily: "var(--font-sans)" }}
             tickLine={false}
             axisLine={false}
             allowDecimals={false}
@@ -54,27 +54,27 @@ export function PipelineChart({ data }: Props) {
           />
           <Tooltip
             contentStyle={{
-              background: "rgba(10, 10, 14, 0.95)",
-              border: "1px solid #2e2e3c",
-              borderRadius: 6,
+              background: "#ffffff",
+              border: "1px solid #e4e4e7",
+              borderRadius: 8,
               fontSize: 12,
               fontFamily: "var(--font-sans)",
               padding: "8px 12px",
-              backdropFilter: "blur(8px)",
+              boxShadow: "0 4px 12px rgba(24, 24, 27, 0.08)",
             }}
-            labelStyle={{ color: "#9c9daa", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}
-            cursor={{ stroke: "#2e2e3c", strokeWidth: 1 }}
+            labelStyle={{ color: "#52525b", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}
+            cursor={{ stroke: "#d4d4d8", strokeWidth: 1 }}
           />
           <Legend
             iconType="circle"
             iconSize={6}
-            wrapperStyle={{ fontSize: 11, color: "#9c9daa", fontFamily: "var(--font-sans)", paddingLeft: 32 }}
+            wrapperStyle={{ fontSize: 11, color: "#52525b", fontFamily: "var(--font-sans)", paddingLeft: 32 }}
           />
           <Area
             type="monotone"
             dataKey="sends"
             name="Sends"
-            stroke="#10b981"
+            stroke="#059669"
             strokeWidth={1.8}
             fill="url(#grad-sends)"
           />
@@ -82,7 +82,7 @@ export function PipelineChart({ data }: Props) {
             type="monotone"
             dataKey="replies"
             name="Replies"
-            stroke="#38bdf8"
+            stroke="#0284c7"
             strokeWidth={1.8}
             fill="url(#grad-replies)"
           />
@@ -90,7 +90,7 @@ export function PipelineChart({ data }: Props) {
             type="monotone"
             dataKey="conversions"
             name="Conversions"
-            stroke="#fbbf24"
+            stroke="#d97706"
             strokeWidth={1.8}
             fill="url(#grad-conversions)"
           />

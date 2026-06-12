@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DollarSign, TrendingUp } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 function StatCard({ label, value, tone }: { label: string; value: string; tone?: "emerald" | "neutral" | "amber" }) {
-  const toneClass = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : "text-white";
+  const toneClass = tone === "emerald" ? "text-[var(--accent)]" : tone === "amber" ? "text-amber-600" : "";
   return (
     <div className="card card-interactive p-5">
       <p className="section-label">{label}</p>
-      <p className={`display-number text-3xl mt-3 ${toneClass}`}>{value}</p>
+      <p className={`kpi-value mt-3 ${toneClass}`}>{value}</p>
     </div>
   );
 }
@@ -51,16 +52,16 @@ export default async function RevenuePage() {
   const maxMonthly = Math.max(...months.map((m) => m.total), 1);
 
   return (
-    <div className="max-w-[1400px] space-y-3">
-      <div className="pb-2">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="pill pill-accent">
+    <div className="max-w-[1400px] space-y-6">
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-[22px] text-[var(--text)]">Revenue</h1>
+          <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
             <DollarSign className="w-3 h-3" />
-            Revenue
+            Money in the door
           </span>
         </div>
-        <h1 className="text-white text-4xl sm:text-5xl tracking-tight">Money in the door</h1>
-        <p className="text-[var(--text-muted)] text-sm mt-3 max-w-2xl">Conversions and project revenue.</p>
+        <p className="text-[var(--text-secondary)] text-sm mt-1.5">Conversions and project revenue.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -73,22 +74,22 @@ export default async function RevenuePage() {
       {/* Monthly bar chart */}
       <div className="card p-6">
         <p className="section-label mb-1"><TrendingUp className="w-3 h-3" /> Revenue by month</p>
-        <p className="text-[var(--text-dim)] text-xs mb-6">Last 12 months</p>
+        <p className="text-[var(--text-muted)] text-xs mb-6">Last 12 months</p>
         <div className="flex items-end gap-2 h-40">
           {months.map((m) => (
             <div key={m.key} className="flex-1 flex flex-col items-center gap-2 min-w-0">
               <div className="w-full flex flex-col justify-end" style={{ height: "120px" }}>
                 {m.total > 0 ? (
                   <div
-                    className="w-full bg-gradient-to-t from-emerald-700/40 to-emerald-400/80 rounded-sm"
+                    className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-sm"
                     style={{ height: `${Math.max((m.total / maxMonthly) * 100, 4)}%` }}
                     title={fmtCurrency(m.total)}
                   />
                 ) : (
-                  <div className="w-full h-px bg-[var(--border-1)]" />
+                  <div className="w-full h-px bg-[var(--border)]" />
                 )}
               </div>
-              <span className="text-[9px] text-[var(--text-faint)] truncate w-full text-center font-semibold uppercase tracking-wider">
+              <span className="text-[9px] text-[var(--text-muted)] truncate w-full text-center font-semibold uppercase tracking-wider">
                 {m.label}
               </span>
             </div>
@@ -98,39 +99,41 @@ export default async function RevenuePage() {
 
       {/* Conversions table */}
       {conversions.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="text-[var(--text-muted)] text-sm">No conversions yet. Add one from any prospect&apos;s detail page when a deal closes.</p>
-        </div>
+        <EmptyState
+          icon={<DollarSign />}
+          title="No conversions yet"
+          hint="Log one from any prospect's detail page when a deal closes — totals and the monthly chart fill in automatically."
+        />
       ) : (
         <div className="card overflow-hidden">
-          <div className="px-5 py-3 etch-top border-b border-[var(--border-2)] bg-[var(--bg-elev-1)]">
+          <div className="px-5 py-3 border-b border-[var(--border)]">
             <p className="section-label">All conversions</p>
           </div>
-          <table className="w-full text-sm">
+          <table className="table-base">
             <thead>
-              <tr className="border-b border-[var(--border-2)] bg-[var(--bg-elev-1)]">
-                <th className="px-5 py-3 text-left text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">Client</th>
-                <th className="px-5 py-3 text-left text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">Date</th>
-                <th className="px-5 py-3 text-right text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">Value</th>
-                <th className="px-5 py-3 text-left text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">Note</th>
+              <tr>
+                <th>Client</th>
+                <th>Date</th>
+                <th className="!text-right">Value</th>
+                <th>Note</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border-1)]">
+            <tbody>
               {conversions.map((c) => (
-                <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3">
-                    <p className="text-white font-semibold">{c.prospect.firmaNaziv}</p>
-                    <p className="text-[var(--text-dim)] text-xs">{c.prospect.email}</p>
+                <tr key={c.id}>
+                  <td>
+                    <p className="text-[var(--text)] font-semibold">{c.prospect.firmaNaziv}</p>
+                    <p className="text-[var(--text-muted)] text-xs">{c.prospect.email}</p>
                   </td>
-                  <td className="px-5 py-3 text-[var(--text-muted)] tabular">
+                  <td className="tabular">
                     {new Date(c.datumKonverzije).toLocaleDateString("en-US")}
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <span className="text-emerald-300 font-bold tabular display-number text-base">
+                  <td className="text-right">
+                    <span className="text-emerald-700 font-semibold tabular font-mono">
                       {fmtCurrency(c.vrijednostProjekta)}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-[var(--text-dim)] text-xs max-w-xs truncate">
+                  <td className="text-[var(--text-muted)] text-xs max-w-xs truncate">
                     {c.napomena ?? "—"}
                   </td>
                 </tr>

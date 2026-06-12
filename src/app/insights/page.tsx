@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { FunnelView, type FunnelStage } from "@/components/FunnelView";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { BarChart3, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -255,17 +256,17 @@ export default async function InsightsPage() {
   );
 
   return (
-    <div className="max-w-[1400px] space-y-3">
-      <div className="pb-2">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="pill pill-accent">
+    <div className="max-w-[1400px] space-y-6">
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-[22px] text-[var(--text)]">Insights</h1>
+          <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
             <BarChart3 className="w-3 h-3" />
-            Insights
+            What&apos;s working
           </span>
         </div>
-        <h1 className="text-white text-4xl sm:text-5xl tracking-tight">What&apos;s working</h1>
-        <p className="text-[var(--text-muted)] text-sm mt-3 max-w-2xl">
-          Funnel, cost-per-meeting, per-niche performance, A/B winners.
+        <p className="text-[var(--text-secondary)] text-sm mt-1.5">
+          Funnel, cost per meeting, per-niche performance, A/B winners.
         </p>
       </div>
 
@@ -291,45 +292,49 @@ export default async function InsightsPage() {
         ].map(({ label, value }) => (
           <div key={label} className="card card-interactive p-4">
             <p className="section-label">{label}</p>
-            <p className="display-number text-white text-2xl mt-2.5 tabular">{value}</p>
+            <p className="kpi-value text-2xl mt-2.5">{value}</p>
           </div>
         ))}
       </div>
 
       {/* Subject line leaderboard */}
-      {subjectLeaderboard.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="section-label"><Sparkles className="w-3 h-3" /> Top subject lines</p>
-              <p className="text-[var(--text-dim)] text-xs mt-1.5">By open rate — minimum 5 sends to qualify</p>
-            </div>
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="section-label"><Sparkles className="w-3 h-3" /> Top subject lines</p>
+            <p className="text-[var(--text-muted)] text-xs mt-1.5">By open rate — minimum 5 sends to qualify</p>
           </div>
+        </div>
+        {subjectLeaderboard.length === 0 ? (
+          <EmptyState
+            icon={<Sparkles />}
+            title="No subject lines qualify yet"
+            hint="A subject needs at least 5 initial sends before it appears on the leaderboard. Keep autopilot running."
+          />
+        ) : (
           <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="table-base">
               <thead>
-                <tr className="border-b border-[var(--border-2)] bg-[var(--bg-elev-1)]">
+                <tr>
                   {["Subject", "Niche", "Sent", "Opened", "Replied", "Open rate"].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold">
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-1)]">
+              <tbody>
                 {subjectLeaderboard.map((row, i) => (
-                  <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3 text-white max-w-md truncate" title={row.subject}>{row.subject}</td>
-                    <td className="px-4 py-3">
-                      <span className="pill pill-muted">
+                  <tr key={i}>
+                    <td className="text-[var(--text)] font-medium max-w-md truncate" title={row.subject}>{row.subject}</td>
+                    <td>
+                      <span className="badge bg-zinc-100 text-zinc-700 border border-zinc-200">
                         {row.niche}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[var(--text-muted)] tabular">{row.sent}</td>
-                    <td className="px-4 py-3 text-[var(--text)] tabular">{row.opened}</td>
-                    <td className="px-4 py-3 text-emerald-300 tabular font-bold">{row.replied}</td>
-                    <td className="px-4 py-3">
-                      <span className={`tabular font-bold ${row.openRate >= 0.4 ? "text-emerald-300" : row.openRate >= 0.2 ? "text-amber-300" : "text-[var(--text-dim)]"}`}>
+                    <td className="tabular">{row.sent}</td>
+                    <td className="tabular text-[var(--text)]">{row.opened}</td>
+                    <td className="tabular text-emerald-700 font-semibold">{row.replied}</td>
+                    <td>
+                      <span className={`tabular font-semibold ${row.openRate >= 0.4 ? "text-emerald-700" : row.openRate >= 0.2 ? "text-amber-600" : "text-[var(--text-muted)]"}`}>
                         {Math.round(row.openRate * 100)}%
                       </span>
                     </td>
@@ -338,82 +343,79 @@ export default async function InsightsPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Per-niche table */}
-      {stats.length === 0 ? (
-        <div className="card p-10 text-center">
-          <p className="text-[var(--text-muted)] text-sm">No data yet. Upload prospects or run Autopilot to see per-niche performance.</p>
-        </div>
-      ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border-2)] bg-[var(--bg-elev-1)]">
-                {["Niche", "Prospects", "Sent", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-[var(--text-dim)] text-[10px] uppercase tracking-widest font-bold"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-1)]">
-              {stats.map((s) => {
-                const openRate = s.emailed > 0 ? s.opened / s.emailed : 0;
-                const replyRate = s.emailed > 0 ? s.replied / s.emailed : 0;
-                const convRate = s.emailed > 0 ? s.converted / s.emailed : 0;
-                return (
-                  <tr key={s.nisa} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3 text-white font-semibold">{s.nisa}</td>
-                    <td className="px-4 py-3 text-[var(--text-muted)] tabular">{s.prospects}</td>
-                    <td className="px-4 py-3 text-[var(--text-muted)] tabular">{s.emailed}</td>
-                    <td className={`px-4 py-3 tabular font-bold ${openRate >= 0.3 ? "text-emerald-300" : openRate > 0 ? "text-amber-300" : "text-[var(--text-dim)]"}`}>
-                      {pct(s.opened, s.emailed)}
-                    </td>
-                    <td className={`px-4 py-3 tabular font-bold ${replyRate >= 0.05 ? "text-emerald-300" : replyRate > 0 ? "text-amber-300" : "text-[var(--text-dim)]"}`}>
-                      {pct(s.replied, s.emailed)}
-                    </td>
-                    <td className={`px-4 py-3 tabular font-bold ${convRate > 0 ? "text-emerald-300" : "text-[var(--text-dim)]"}`}>
-                      {pct(s.converted, s.emailed)}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text)] tabular font-semibold">
-                      {s.revenue > 0 ? `€${Math.round(s.revenue).toLocaleString("en-US")}` : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {(() => {
-                        const winner = pickWinner(s.ab);
-                        const cls =
-                          winner.tone === "a"
-                            ? "pill"
-                            : winner.tone === "b"
-                              ? "pill pill-accent"
-                              : winner.tone === "tie"
-                                ? "pill pill-muted"
-                                : "pill pill-muted";
-                        const styleA = winner.tone === "a" ? { background: "rgba(96, 165, 250, 0.10)", color: "#7dd3fc", border: "1px solid rgba(96, 165, 250, 0.30)" } : undefined;
-                        return (
-                          <div className="flex items-center gap-2">
-                            <span className={cls} style={styleA}>
-                              {winner.label}
-                            </span>
-                            <span className="text-[var(--text-faint)] tabular">
-                              {s.ab.sentA}/{s.ab.sentB}
-                            </span>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div>
+        <p className="section-label mb-3"><BarChart3 className="w-3 h-3" /> Per-niche performance</p>
+        {stats.length === 0 ? (
+          <EmptyState
+            icon={<BarChart3 />}
+            title="No per-niche data yet"
+            hint="Upload prospects or run Autopilot — open, reply and conversion rates per niche appear here."
+          />
+        ) : (
+          <div className="card overflow-hidden">
+            <table className="table-base">
+              <thead>
+                <tr>
+                  {["Niche", "Prospects", "Sent", "Open rate", "Reply rate", "Conv. rate", "Revenue", "A/B winner"].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {stats.map((s) => {
+                  const openRate = s.emailed > 0 ? s.opened / s.emailed : 0;
+                  const replyRate = s.emailed > 0 ? s.replied / s.emailed : 0;
+                  const convRate = s.emailed > 0 ? s.converted / s.emailed : 0;
+                  return (
+                    <tr key={s.nisa}>
+                      <td className="text-[var(--text)] font-semibold">{s.nisa}</td>
+                      <td className="tabular">{s.prospects}</td>
+                      <td className="tabular">{s.emailed}</td>
+                      <td className={`tabular font-semibold ${openRate >= 0.3 ? "text-emerald-700" : openRate > 0 ? "text-amber-600" : "text-[var(--text-muted)]"}`}>
+                        {pct(s.opened, s.emailed)}
+                      </td>
+                      <td className={`tabular font-semibold ${replyRate >= 0.05 ? "text-emerald-700" : replyRate > 0 ? "text-amber-600" : "text-[var(--text-muted)]"}`}>
+                        {pct(s.replied, s.emailed)}
+                      </td>
+                      <td className={`tabular font-semibold ${convRate > 0 ? "text-emerald-700" : "text-[var(--text-muted)]"}`}>
+                        {pct(s.converted, s.emailed)}
+                      </td>
+                      <td className="text-[var(--text)] tabular font-semibold">
+                        {s.revenue > 0 ? `€${Math.round(s.revenue).toLocaleString("en-US")}` : "—"}
+                      </td>
+                      <td className="text-xs">
+                        {(() => {
+                          const winner = pickWinner(s.ab);
+                          const cls =
+                            winner.tone === "a"
+                              ? "badge bg-sky-50 text-sky-700 border border-sky-200"
+                              : winner.tone === "b"
+                                ? "badge bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "badge bg-zinc-100 text-zinc-600 border border-zinc-200";
+                          return (
+                            <div className="flex items-center gap-2">
+                              <span className={cls}>
+                                {winner.label}
+                              </span>
+                              <span className="text-[var(--text-muted)] tabular">
+                                {s.ab.sentA}/{s.ab.sentB}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -100,43 +100,40 @@ export function NicheTemplatesEditor() {
   const niseBezHinta = activeNiches.filter((n) => !templatedNiches.has(n.nisa));
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6 space-y-5">
+    <div className="card p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-white font-medium">Per-niche hint za Claude</h2>
-          <p className="text-zinc-500 text-xs mt-0.5">
-            Ekstra instrukcije koje se dodaju u prompt za svaku nišu (npr. za "Avocat": "ne pominji 'site web' — fokus na 'présence digitale conforme RGPD'").
+          <h2 className="text-[var(--text)] font-semibold">Per-niche hints for Claude</h2>
+          <p className="text-[var(--text-muted)] text-xs mt-0.5">
+            Extra instructions appended to the prompt for each niche (e.g. for &quot;Avocat&quot;: &quot;don&apos;t mention &apos;site web&apos; — focus on &apos;présence digitale conforme RGPD&apos;&quot;).
           </p>
         </div>
         {editing !== "__new__" && (
-          <button
-            onClick={startNew}
-            className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
-          >
-            + Novi hint
+          <button onClick={startNew} className="btn-primary text-xs px-3 py-1.5">
+            + New hint
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="text-zinc-600 text-sm">Loading…</p>
+        <p className="text-[var(--text-muted)] text-sm">Loading…</p>
       ) : (
         <>
           {editing && (
-            <div className="rounded-lg bg-[#0a0a0f] border border-[#1f1f2e] p-4 space-y-3">
+            <div className="rounded-lg bg-[var(--bg)] border border-[var(--border)] p-4 space-y-3">
               <div>
-                <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Niche</label>
+                <label className="block section-label mb-1">Niche</label>
                 {editing === "__new__" ? (
                   <input
                     type="text"
                     value={nisa}
                     onChange={(e) => setNisa(e.target.value)}
-                    placeholder="npr. Avocat, Spa, Boutique de luxe…"
+                    placeholder="e.g. Avocat, Spa, Boutique de luxe…"
                     list="active-niches"
-                    className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
+                    className="w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
                   />
                 ) : (
-                  <p className="text-zinc-300 text-sm font-mono">{nisa}</p>
+                  <p className="text-[var(--text)] text-sm font-mono">{nisa}</p>
                 )}
                 <datalist id="active-niches">
                   {activeNiches.map((n) => (
@@ -145,28 +142,28 @@ export function NicheTemplatesEditor() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Hint za Claude</label>
+                <label className="block section-label mb-1">Hint for Claude</label>
                 <textarea
                   value={hint}
                   onChange={(e) => setHint(e.target.value)}
                   rows={5}
                   placeholder="Specific instructions for this sector — tone, vocabulary, examples, what to avoid…"
-                  className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors resize-y"
+                  className="w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors resize-y"
                 />
               </div>
-              {error && <p className="text-red-400 text-xs">{error}</p>}
+              {error && <p className="text-red-600 text-xs">{error}</p>}
               <div className="flex gap-2">
                 <button
                   onClick={save}
                   disabled={saving}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white transition-colors flex items-center gap-1.5"
+                  className="btn-primary text-xs px-3 py-1.5"
                 >
                   {saving && (
                     <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
                   {saving ? "Saving..." : "Save"}
                 </button>
-                <button onClick={cancel} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                <button onClick={cancel} className="text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
                   Cancel
                 </button>
               </div>
@@ -176,22 +173,22 @@ export function NicheTemplatesEditor() {
           {templates.length > 0 && (
             <div className="space-y-2">
               {templates.map((t) => (
-                <div key={t.nisa} className="rounded-lg bg-[#0a0a0f] border border-[#1f1f2e] p-3">
+                <div key={t.nisa} className="rounded-lg bg-white border border-[var(--border)] p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-zinc-200 text-sm font-medium">{t.nisa}</p>
-                      <p className="text-zinc-500 text-xs mt-1 line-clamp-2">{t.promptHint}</p>
+                      <p className="text-[var(--text)] text-sm font-medium">{t.nisa}</p>
+                      <p className="text-[var(--text-muted)] text-xs mt-1 line-clamp-2">{t.promptHint}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => startEdit(t)}
-                        className="text-zinc-500 hover:text-zinc-200 text-xs transition-colors"
+                        className="text-[var(--text-muted)] hover:text-[var(--text)] text-xs transition-colors"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => remove(t.nisa)}
-                        className="text-red-500 hover:text-red-400 text-xs transition-colors"
+                        className="text-red-600 hover:text-red-700 text-xs transition-colors"
                       >
                         Delete
                       </button>
@@ -203,9 +200,9 @@ export function NicheTemplatesEditor() {
           )}
 
           {niseBezHinta.length > 0 && (
-            <div className="pt-2 border-t border-[#1f1f2e]">
-              <p className="text-zinc-600 text-xs mb-2">
-                Niches u bazi bez hint-a (generišu se sa default-nim promptom):
+            <div className="pt-2 etch-top">
+              <p className="text-[var(--text-muted)] text-xs mb-2">
+                Niches in the database without a hint (these use the default prompt):
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {niseBezHinta.map((n) => (
@@ -217,7 +214,7 @@ export function NicheTemplatesEditor() {
                       setHint("");
                       setError("");
                     }}
-                    className="text-xs px-2 py-1 rounded bg-[#1a1a28] text-zinc-400 hover:text-white hover:bg-[#252535] transition-colors"
+                    className="text-xs px-2 py-1 rounded bg-zinc-100 border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-colors"
                   >
                     {n.nisa} ({n.count})
                   </button>
@@ -227,7 +224,7 @@ export function NicheTemplatesEditor() {
           )}
 
           {templates.length === 0 && niseBezHinta.length === 0 && (
-            <p className="text-zinc-600 text-sm">No niches in the database yet. Upload a CSV to start.</p>
+            <p className="text-[var(--text-muted)] text-sm">No niches in the database yet. Upload a CSV to start.</p>
           )}
         </>
       )}
