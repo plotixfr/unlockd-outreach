@@ -15,10 +15,11 @@ import { runRedrivePass } from "@/lib/redrive";
  * the session-cookie proxy has already authenticated the user.
  */
 
-// Vercel Hobby caps serverless functions at 60s regardless of this value.
-// On Pro (300s cap), bump this back up. Either way, runAllActiveBriefs
-// honours AUTOPILOT_TIME_BUDGET_MS as its internal stop-deadline.
-export const maxDuration = 60;
+// Vercel's default function timeout is 300s on all plans (Fluid Compute).
+// runAllActiveBriefs honours AUTOPILOT_TIME_BUDGET_MS (default 240s) as
+// its internal stop-deadline, leaving slack to finish in-flight work and
+// persist results instead of being killed mid-write.
+export const maxDuration = 300;
 
 async function runAndSummarize(emailSummary: boolean) {
   // Re-drive first: prospects stranded in "New" by an earlier failure get

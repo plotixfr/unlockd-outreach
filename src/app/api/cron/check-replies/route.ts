@@ -14,7 +14,7 @@ import { checkReplies } from "@/lib/checkReplies";
  * Interested/Question/Referral classifications, so the operator gets a push
  * on their phone within ~5 min of the prospect hitting send.
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 async function run(req: NextRequest) {
   const auth = req.headers.get("authorization");

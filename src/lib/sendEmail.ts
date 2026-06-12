@@ -598,7 +598,27 @@ export async function processDueEmails(opts?: {
   }
 
   // ── Follow-ups ──
-  for (const rule of FOLLOWUP_RULES) {
+  // Reply-detection gate: without IMAP credentials the system is blind to
+  // replies, so automated follow-ups would keep firing at prospects who
+  // already answered — a deliverability/reputation risk. Initial and other
+  // standalone touches above still send. Configuring IMAP_USER +
+  // IMAP_PASSWORD re-enables follow-ups automatically; set
+  // FOLLOWUPS_WITHOUT_REPLY_DETECTION=true to override deliberately.
+  const replyDetectionConfigured = !!(process.env.IMAP_USER && process.env.IMAP_PASSWORD);
+  const followupsEnabled =
+    replyDetectionConfigured || process.env.FOLLOWUPS_WITHOUT_REPLY_DETECTION === "true";
+  if (!followupsEnabled) {
+    console.log(
+      "[processDueEmails] follow-ups gated: reply detection not configured (add IMAP_USER/IMAP_PASSWORD, or set FOLLOWUPS_WITHOUT_REPLY_DETECTION=true to override)"
+    );
+    results.push({
+      rule: "followups-gated (no reply detection)",
+      sent: 0,
+      skipped: 0,
+      errors: [],
+    });
+  }
+  for (const rule of followupsEnabled ? FOLLOWUP_RULES : []) {
     if (remaining <= 0) {
       results.push({ rule: rule.emailTip, sent: 0, skipped: 0, errors: [] });
       continue;

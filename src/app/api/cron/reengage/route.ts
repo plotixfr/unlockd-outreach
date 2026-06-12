@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { runReengageBatch } from "@/lib/reengage";
 import { isCronOrSessionAuthorized } from "@/lib/routeAuth";
 
-// Hobby caps at 60s regardless of what we ask. On Pro upgrade, raise to 300.
-export const maxDuration = 60;
+// Vercel's default function timeout is 300s on all plans (Fluid Compute).
+export const maxDuration = 300;
 
 /**
  * Weekly re-engagement cron. Scans for dormant prospects (90/180/365 days

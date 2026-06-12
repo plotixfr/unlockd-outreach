@@ -36,13 +36,16 @@ const EMAIL_MODEL = "claude-sonnet-4-6";
 //   AUTOPILOT_MAX_PER_BRIEF=5
 //   AUTOPILOT_CONCURRENCY=5
 //   AUTOPILOT_TIME_BUDGET_MS=240000
-const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 2);
+const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 5);
 // How many raw candidates to pull from the discovery source per run — the
 // create cap above limits how many become prospects; the rest stay ahead of
 // the cursor for the next fire. Fetching wide is what lets dedupe hits stop
 // starving the pipeline.
 const DISCOVERY_FETCH_SIZE = Number(process.env.AUTOPILOT_FETCH_SIZE ?? 20);
-const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 50_000);
+// Internal stop-deadline. maxDuration on the route is 300s; 240s here leaves
+// ~60s slack so the run finishes the item in flight and persists results
+// cleanly instead of being killed mid-write by the platform.
+const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 240_000);
 const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 3);
 // Briefs whose runs create nothing back off exponentially (cooldownMs) and
 // are only marked exhausted when the source truly has no more pages/variants
@@ -505,6 +508,13 @@ async function processPlace(
       where: { id: prospect.id },
       data: { qualityScore: scoring.score, qualityNote: scoring.note },
     });
+  } else {
+    // Scoring is a FAILURE here (Claude error/timeout), not a rejection —
+    // persist the stage so the redrive pass picks this prospect back up.
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { lastError: "scoring: returned null (Claude error/timeout)" },
+    });
   }
 
   void runId;
@@ -570,6 +580,11 @@ async function processPlace(
   // Generate emails.
   const generated = await generateEmailsInline(prospect.id, { site, psi, dm });
   if (generated === 0) {
+    // Same FAILURE persistence as scoring — the redrive pass retries this.
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { lastError: "generate: returned 0 emails (Claude error/timeout/parse)" },
+    });
     return { status: "qualified", reason: "email generation failed" };
   }
 
@@ -581,7 +596,7 @@ async function processPlace(
   return { status: "scheduled" };
 }
 
-export async function runBrief(briefId: string): Promise<BriefRunSummary> {
+export async function runBrief(briefId: string, deadlineAt?: number): Promise<BriefRunSummary> {
   const brief = await prisma.searchBrief.findUnique({ where: { id: briefId } });
   if (!brief) throw new Error(`Brief ${briefId} not found`);
 
@@ -603,6 +618,8 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
   const cursor = parseCursor(brief.discoveryCursor, briefKey(brief));
   let nextCursor: BriefCursor | null = null; // null = discovery failed, keep stored cursor
   let exhaustedNow = false;
+  let budgetStopped = false;
+  const skipTally: Record<string, number> = {};
 
   try {
     // Route to the right discovery adapter. Google Places for location
@@ -631,6 +648,16 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
     let consumed = 0;
     for (const place of places) {
       if (summary.created >= createCap) break;
+      // Budget check per PLACE (not per wave): never START a new place past
+      // the deadline — the in-flight one finishes inside the maxDuration
+      // slack, partial progress persists in the finally below.
+      if (deadlineAt && Date.now() > deadlineAt) {
+        budgetStopped = true;
+        console.log(
+          `[autopilot] budget-stopped "${brief.name}" after ${consumed}/${places.length} places — cursor persists, next cron resumes`
+        );
+        break;
+      }
       try {
         const result = await processPlace(place, brief, run.id);
         consumed++;
@@ -640,9 +667,15 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
         if (result.status === "qualified" || result.status === "scheduled") summary.qualified++;
         if (result.status === "scheduled") summary.scheduled++;
         if (place.website) summary.emailsFound++;
+        if (result.status === "skipped" && result.reason) {
+          // Tally why candidates don't become prospects — without this the
+          // operator sees "found:20 created:0" with no explanation.
+          const key = result.reason.split(/[(:]/)[0].trim();
+          skipTally[key] = (skipTally[key] ?? 0) + 1;
+        }
       } catch (e) {
         consumed++;
-        summary.errors.push(`${place.name}: ${e instanceof Error ? e.message : "error"}`);
+        summary.errors.push(`${place.name}: [process] ${e instanceof Error ? e.message : "error"}`);
       }
     }
 
@@ -671,7 +704,14 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
         qualified: summary.qualified,
         scheduled: summary.scheduled,
         errors: summary.errors.length > 0 ? summary.errors : undefined,
-        notes: `variant=${(nextCursor ?? cursor).variant} pos=${(nextCursor ?? cursor).position}${exhaustedNow ? " exhausted" : ""}`,
+        notes: [
+          `variant=${(nextCursor ?? cursor).variant} pos=${(nextCursor ?? cursor).position}`,
+          exhaustedNow ? "exhausted" : "",
+          budgetStopped ? "budget-stopped" : "",
+          Object.keys(skipTally).length > 0 ? `skipped: ${JSON.stringify(skipTally)}` : "",
+        ]
+          .filter(Boolean)
+          .join(" | "),
       },
     });
     // Zero-created runs back off exponentially instead of pausing forever;
@@ -780,11 +820,13 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
   const briefs = interleaveByCountry(raw);
   const out: BriefRunSummary[] = [];
 
+  const deadlineAt = startedAt + RUN_TIME_BUDGET_MS;
+
   async function runOne(b: { id: string; name: string }): Promise<BriefRunSummary> {
     try {
       // Cooldown/exhaustion bookkeeping happens inside runBrief's finally, so
       // manual single-brief triggers get the same treatment as cron waves.
-      return await runBrief(b.id);
+      return await runBrief(b.id, deadlineAt);
     } catch (e) {
       return {
         briefId: b.id,

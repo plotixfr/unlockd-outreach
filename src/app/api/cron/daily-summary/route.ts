@@ -6,7 +6,7 @@ import { resendGate } from "@/lib/sendEmail";
 
 // IMAP poll (checkReplies) + Claude classification on matched replies can run
 // 20-40s on a busy inbox. Default ~10s Hobby cap was too tight.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const SUMMARY_TO = "temim.fr@gmail.com";

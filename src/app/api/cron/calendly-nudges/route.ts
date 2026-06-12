@@ -5,7 +5,7 @@ import { processDueEmails } from "@/lib/sendEmail";
 
 // Vercel Hobby cap. Each candidate prospect adds ~5-10s of Claude generation
 // + DB writes. We limit candidates to NUDGE_CAP_PER_RUN to stay under budget.
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Look back this many days for clicks worth following up. Past 7 days a
 // nudge feels stale; better to fall through into the re-engagement cron's

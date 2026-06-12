@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processDueEmails } from "@/lib/sendEmail";
 
-// Without this, Hobby caps the function at ~10s. Today's send cron hit that
-// after one wave (5 parallel sends ~5s) and died with 12 due prospects still
-// un-sent. 60s is the Hobby ceiling; on Pro this can go to 300.
-export const maxDuration = 60;
+// Without an explicit value the function defaults short; 300s is the
+// platform default ceiling and gives the send sweep room for a full queue.
+export const maxDuration = 300;
 
 async function run(req: NextRequest) {
   try {

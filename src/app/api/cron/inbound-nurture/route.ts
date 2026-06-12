@@ -20,7 +20,7 @@ import { resendGate } from "@/lib/sendEmail";
  * count > 0), prospects who clicked Calendly, terminal statuses.
  */
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "temim@unlockd.art";
 const REPLY_TO = process.env.REPLY_TO_EMAIL ?? FROM_EMAIL;

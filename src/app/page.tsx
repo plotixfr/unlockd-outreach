@@ -236,7 +236,7 @@ export default async function DashboardPage() {
           <div className="card p-5">
             <p className="section-label mb-4"><Zap className="w-3 h-3" /> Health</p>
             <HealthRow label="Sending domain" status="ok" detail="Resend · unlockd.art" />
-            <HealthRow label="Reply detection" status={process.env.IMAP_USER ? "ok" : "warn"} detail={process.env.IMAP_USER ? "IMAP 3×/day" : "Add IMAP"} />
+            <HealthRow label="Reply detection" status={process.env.IMAP_USER ? "ok" : "warn"} detail={process.env.IMAP_USER ? "IMAP 3×/day" : "Add IMAP — follow-ups paused"} />
             <HealthRow label="Calendly tracking" status="ok" detail="Live" />
             <HealthRow label="BCC failures" status={bccFailures === 0 ? "ok" : bccFailures < 5 ? "warn" : "err"} detail={bccFailures === 0 ? "0 logged" : `${bccFailures} fails`} />
             <HealthRow label="Suppression list" status="ok" detail={`${suppressedCount} domains`} />
