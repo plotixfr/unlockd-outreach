@@ -113,25 +113,6 @@ function nextWorkingSlot(daysAhead = 1): Date {
   return slotInDay(d);
 }
 
-function inferNicheFromPlaceType(primaryType: string | null, briefNiche: string): string {
-  if (!primaryType) return briefNiche;
-  // Google Places primaryType → canonical niche label. Mapped only for
-  // categories Unlockd targets (Group A B2B services). Sirene briefs pass
-  // NAF codes here — leave them as-is so the email prompt sees the code
-  // and the operator can map them in the UI.
-  const map: Record<string, string> = {
-    lawyer: "Law firm",
-    accounting: "Accountant",
-    consultant: "Consultancy",
-    marketing_agency: "Marketing agency",
-    advertising_agency: "Marketing agency",
-    architect: "Architecture",
-    employment_agency: "Recruiter",
-    insurance_agency: "Insurance broker",
-  };
-  return map[primaryType] ?? briefNiche;
-}
-
 interface BriefInput {
   id: string;
   name: string;
@@ -439,7 +420,9 @@ async function processPlace(
     }
   }
 
-  const nicheLabel = inferNicheFromPlaceType(place.primaryType, brief.niche);
+  // The brief's own niche is the label — the brief hunted for it, so it IS
+  // the niche by construction (Sirene NAF baskets pass through unchanged).
+  const nicheLabel = brief.niche;
 
   // Create the prospect now so subsequent enrichment can update it.
   const prospect = await prisma.prospect.create({
@@ -491,17 +474,21 @@ async function processPlace(
     await prisma.prospect.update({ where: { id: prospect.id }, data: enrichUpdate as never });
   }
 
-  // Score for fit.
-  const scoring = await scoreProspect({
-    firmaNaziv: place.name,
-    nisa: nicheLabel,
-    grad: place.city ?? brief.city ?? "Unknown",
-    website: place.website,
-    opisFirme: null,
-    napomena: prospect.napomena,
-    siteSnapshot: site,
-    pagespeed: psi,
-  });
+  // Score for fit — the brief's targeting fields tell the scorer what the
+  // hunt was for, so it never penalizes the niche/market it was sent to find.
+  const scoring = await scoreProspect(
+    {
+      firmaNaziv: place.name,
+      nisa: nicheLabel,
+      grad: place.city ?? brief.city ?? "Unknown",
+      website: place.website,
+      opisFirme: null,
+      napomena: prospect.napomena,
+      siteSnapshot: site,
+      pagespeed: psi,
+    },
+    { niche: brief.niche, city: brief.city, country: brief.country, language: brief.language }
+  );
   if (scoring) {
     await prisma.prospect.update({
       where: { id: prospect.id },

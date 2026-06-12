@@ -1,23 +1,34 @@
 /**
- * Scores a prospect 1–10 for fit with Unlockd.art. Unlockd sells three things:
- * brand identity, premium websites, and custom software / SaaS / automation.
- * Target groups: B2B professional services (consulting, law, accounting,
- * agencies) and French tech startups / SaaS / digital agencies.
+ * Scores a prospect 1–10 for fit with Unlockd.art. The target-customer
+ * definition comes from src/lib/icp.ts (shared with the email-generation
+ * prompts) plus the discovering brief's own targeting fields — NEVER from
+ * hardcoded niches/geography in this file. When a brief context is given,
+ * its niche and market are correct by construction: the scorer judges
+ * business quality and website need, not niche/country fit.
  *
  * 10 = obvious win (clear budget signals, weak/dated site, buying triggers)
  *  5 = uncertain — needs operator judgement
- *  1 = wrong fit (no site needed, dead business, wrong country)
+ *  1 = wrong fit (hard exclusion, dead business, already premium-grade site)
  */
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
+import { ICP, GROUP_A_NICHE_RE, GROUP_B_NICHE_RE, countryName } from "@/lib/icp";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
 export interface QualityScore {
   score: number; // 1–10
   note: string; // short English explanation
+}
+
+/** Targeting fields of the SearchBrief that discovered the prospect. */
+export interface ScoringBriefContext {
+  niche: string;
+  city: string | null;
+  country: string;
+  language: string;
 }
 
 export interface ProspectScoringInput {
@@ -31,7 +42,17 @@ export interface ProspectScoringInput {
   pagespeed: PageSpeedSnapshot | null;
 }
 
-function buildScoringPrompt(p: ProspectScoringInput): string {
+function describeBriefNiche(niche: string): string {
+  // Sirene briefs carry NAF code baskets ("41.20A,43.22A,…") as their niche.
+  return /^\d{2}\./.test(niche.trim())
+    ? `French industrial registry NAF codes ${niche} (Group A industrial/B2B SMEs)`
+    : `"${niche}"`;
+}
+
+export function buildScoringPrompt(
+  p: ProspectScoringInput,
+  briefCtx: ScoringBriefContext | null = null
+): string {
   const facts: string[] = [];
   if (p.siteSnapshot?.ok) {
     if (p.siteSnapshot.title) facts.push(`Site title: "${p.siteSnapshot.title}"`);
@@ -51,11 +72,22 @@ function buildScoringPrompt(p: ProspectScoringInput): string {
     if (p.pagespeed.lcpMs) facts.push(`LCP: ${(p.pagespeed.lcpMs / 1000).toFixed(1)}s`);
   }
 
-  return `Score this prospect for Unlockd.art (Paris studio — brand identity, premium websites, and custom software / SaaS / automation tools; deal size €5k–50k for sites/brand, €15k–80k for custom software).
+  const targetingBlock = briefCtx
+    ? `This prospect was discovered by a targeting brief hunting: ${describeBriefNiche(briefCtx.niche)}${
+        briefCtx.city ? ` in ${briefCtx.city}` : ""
+      } (${countryName(briefCtx.country)}). The niche and market are correct by construction — do NOT downgrade for niche or geography. Score on business quality and website need.`
+    : `No targeting brief — judge fit against Group A / Group B above.`;
 
-Target groups:
-  Group A — B2B professional services (consulting firms, law firms, accountants, agencies, recruiters, architecture studios). Buying trigger = need a website that signals "peer of the top tier", not a builder template.
-  Group B — French tech startups / SaaS / digital agencies. Buying trigger = need a credible marketing site + automation tools to scale ops.
+  return `Score this prospect 1–10 for fit with Unlockd.art (Paris studio — ${ICP.services.en}; deal sizes ${ICP.dealSizes}).
+
+Target customer profile:
+  Group A — ${ICP.groupA.en}.
+  Group B — ${ICP.groupB.en}.
+Valid markets: ${ICP.markets.en}. Valid outreach languages: French, Dutch.
+
+HARD EXCLUSIONS — score 1–3 regardless of other signals: ${ICP.exclusions.en} — anyone with an in-house IT/marketing team.
+
+${targetingBlock}
 
 Prospect:
 - Company: ${p.firmaNaziv}
@@ -69,16 +101,19 @@ Technical signals:
 ${facts.map((f) => `- ${f}`).join("\n")}
 
 Scale 1–10:
-- 10 = obvious win: target niche, weak or dated site, clear budget signals (premium location, multiple offices, mature business).
-- 7–9 = strong fit, minor caveats (e.g. decent site but outdated design, or great niche in a smaller city).
-- 4–6 = uncertain — may convert but needs more work.
-- 1–3 = poor fit (no site needed for their model, dead business, wrong language/country, already premium-grade site without need to change).
+- 10 = obvious win: solid business in the target profile, weak or dated site, clear budget signals (premium location, established business, strong ratings).
+- 7–9 = strong fit, minor caveats (e.g. decent site but outdated design, or smaller city).
+- 4–6 = uncertain — may convert but needs operator judgement.
+- 1–3 = poor fit: hard exclusion (has in-house IT/marketing), dead business, or already premium-grade site with no need to change.
 
 Respond with JSON only, no markdown or surrounding text:
 {"score": 7, "note": "Short English explanation (max 80 chars): why this number."}`;
 }
 
-export async function scoreProspect(p: ProspectScoringInput): Promise<QualityScore | null> {
+export async function scoreProspect(
+  p: ProspectScoringInput,
+  briefCtx: ScoringBriefContext | null = null
+): Promise<QualityScore | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
   const anthropic = new Anthropic({ apiKey });
@@ -86,7 +121,7 @@ export async function scoreProspect(p: ProspectScoringInput): Promise<QualitySco
     const message = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 200,
-      messages: [{ role: "user", content: buildScoringPrompt(p) }],
+      messages: [{ role: "user", content: buildScoringPrompt(p, briefCtx) }],
     });
     const block = message.content[0];
     if (!block || block.type !== "text") return null;
@@ -109,11 +144,11 @@ export async function scoreProspect(p: ProspectScoringInput): Promise<QualitySco
 }
 
 /**
- * Post-LLM boosts: hard-coded buying-trigger heuristics calibrated for B2B
- * professional services (Group A) and French tech / SaaS (Group B). These
- * outperform the LLM's instinct on the buying-signal recognition task.
+ * Post-LLM boosts: hard-coded buying-trigger heuristics for the two ICP
+ * groups (detected via the shared multilingual niche regexes in icp.ts).
+ * These outperform the LLM's instinct on buying-signal recognition.
  */
-function applyBuyingTriggerBoosts(
+export function applyBuyingTriggerBoosts(
   baseScore: number,
   baseNote: string,
   p: ProspectScoringInput
@@ -128,13 +163,12 @@ function applyBuyingTriggerBoosts(
     p.siteSnapshot?.ok && p.siteSnapshot.signals.responsiveViewport === false;
   const noContactForm =
     p.siteSnapshot?.ok && p.siteSnapshot.signals.hasContactForm === false;
-  const niche = p.nisa.toLowerCase();
-  const isGroupA =
-    /conseil|consulting|avocat|law|expert-comptable|accountant|agence|marketing|relations presse|pr |recrutement|hr|formation|traduction|architect/i.test(niche);
-  const isGroupB =
-    /tech|saas|software|logiciel|digital|62\.0|63\.1|73\.11/i.test(niche);
+  const noReservation =
+    p.siteSnapshot?.ok && p.siteSnapshot.signals.hasReservation === false;
+  const isGroupA = GROUP_A_NICHE_RE.test(p.nisa);
+  const isGroupB = GROUP_B_NICHE_RE.test(p.nisa);
 
-  // Stack signals (Group A — they're on a builder, prime to upgrade)
+  // Stack signals — a generic builder is prime to upgrade.
   if (tech.includes("Wix") || tech.includes("Squarespace")) {
     score += 2;
     notes.push("generic builder");
@@ -155,20 +189,17 @@ function applyBuyingTriggerBoosts(
     notes.push("no mobile viewport");
   }
 
-  // Group A — B2B services that need to project trust
+  // Group A — B2B businesses that need to project trust
   if (isGroupA && noContactForm) {
     score += 1;
     notes.push("no contact form (B2B trust gap)");
   }
 
-  // Group B — tech / SaaS specific: a small marketing site is a strong signal
-  // they're early stage and might want a polished v2 + automation
-  if (isGroupB && p.siteSnapshot?.ok) {
-    const imgs = p.siteSnapshot.signals.approxImageCount ?? 0;
-    if (imgs < 5) {
-      score += 1;
-      notes.push("minimal site (early stage)");
-    }
+  // Group B — lifestyle businesses live off bookings; a premium spot without
+  // online booking is leaving money on the table (and is an easy pitch).
+  if (isGroupB && noReservation) {
+    score += 1;
+    notes.push("no online booking");
   }
 
   score = Math.max(1, Math.min(10, score));

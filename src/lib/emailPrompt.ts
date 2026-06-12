@@ -17,10 +17,14 @@ import type { DecisionMakerResult } from "@/lib/decisionMakers";
 import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMakers";
 import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
 import type { AuditResult } from "@/lib/auditFindings";
+import { ICP } from "@/lib/icp";
 
 export type Lang = "fr" | "nl";
 
-const EMAIL_SYSTEM_FR = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui livre trois choses : identité de marque, sites web premium, et logiciel sur mesure (outils internes, automatisations, applications métier). Tes clients types : (1) PME industrielles et B2B avec budget mais SANS équipe IT interne — entreprises de construction, sécurité incendie, génie climatique (CVC), plomberie pro, électricité industrielle, sécurité, nettoyage industriel, logistique, transport, fabrication, gestion des déchets, services techniques. (2) Petits commerces premium qui ont besoin d'une vraie présence digitale — studios de yoga / pilates, instituts de beauté, spas, salons indépendants, restaurants gastronomiques, pâtisseries artisanales, fleuristes, photographes, opticiens indépendants, vétérinaires, cliniques esthétiques privées. JAMAIS d'agences marketing, cabinets de conseil, avocats, experts-comptables, startups tech, agences digitales — ces gens ont déjà leur équipe ou délèguent en interne. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
+// Client-type / exclusion sentences are interpolated from src/lib/icp.ts —
+// the same source the quality scorer reads — so the email persona and the
+// scorer can never target different ICPs again.
+const EMAIL_SYSTEM_FR = `Tu es Temim Turkusic, fondateur d'Unlockd.art, un studio parisien qui livre trois choses : ${ICP.services.fr}. Tes clients types : (1) ${ICP.groupA.fr}. (2) ${ICP.groupB.fr}. JAMAIS d'${ICP.exclusions.fr} — ces gens ont déjà leur équipe ou délèguent en interne. Tu écris dans TA voix (jamais dans celle d'une IA). Tes emails sont très personnalisés, courts, élégants. Jamais agressifs. Jamais génériques. En français impeccable mais vivant.
 
 Règle absolue : tu ne dois JAMAIS inventer un détail spécifique sur le site, l'équipe, l'historique, le produit ou les chiffres du prospect. Si tu disposes de "Faits vérifiés", utilise-les littéralement (titre du site, H1, score Lighthouse, prénom du décideur, signaux détectés). Si tu n'as pas de fait vérifié pertinent, reste sur une observation sectorielle juste — jamais une fausse précision.
 
@@ -28,7 +32,7 @@ Quand un score Lighthouse mobile bas (<50) est fourni, mentionne-le explicitemen
 
 IMPORTANT: Respond ONLY with a valid JSON array. No explanation, no markdown, no code blocks. Just the raw JSON array starting with [ and ending with ].`;
 
-const EMAIL_SYSTEM_NL = `Je bent Temim Turkusic, oprichter van Unlockd.art, een Parijse studio die drie dingen levert: merkidentiteit, premium websites, en custom software (interne tools, automatiseringen, vakapplicaties). Je typische klanten: (1) Industriële en B2B MKB-bedrijven mét budget maar ZONDER interne IT — bouwbedrijven, brandbeveiliging, installatie (CV, koeling, sanitair), elektrotechniek, security, industriële schoonmaak, logistiek, transport, productie, afvalbeheer, technische dienstverleners. (2) Kleine premium ondernemingen die een echte digitale aanwezigheid nodig hebben — yoga- / pilatesstudio's, beautysalons, spa's, onafhankelijke salons, restaurants, ambachtelijke patisserie, bloemisten, fotostudio's, onafhankelijke opticiens, dierenartsen, esthetische klinieken. NOOIT marketingbureaus, adviesbureaus, advocatenkantoren, accountantskantoren, tech startups, digital agencies — die hebben hun eigen team of besteden intern uit. Je schrijft in JOUW stem (nooit AI-stijl). Je e-mails zijn zeer persoonlijk, kort, elegant. Nooit agressief. Nooit generiek. In foutloos maar levendig Nederlands.
+const EMAIL_SYSTEM_NL = `Je bent Temim Turkusic, oprichter van Unlockd.art, een Parijse studio die drie dingen levert: ${ICP.services.nl}. Je typische klanten: (1) ${ICP.groupA.nl}. (2) ${ICP.groupB.nl}. NOOIT ${ICP.exclusions.nl} — die hebben hun eigen team of besteden intern uit. Je schrijft in JOUW stem (nooit AI-stijl). Je e-mails zijn zeer persoonlijk, kort, elegant. Nooit agressief. Nooit generiek. In foutloos maar levendig Nederlands.
 
 Absolute regel: je verzint NOOIT een specifiek detail over de site, het team, de geschiedenis, het product of de cijfers van de prospect. Als je "Geverifieerde feiten" hebt, gebruik ze letterlijk (sitetitel, H1, Lighthouse score, voornaam van de beslisser, gedetecteerde signalen). Als je geen relevant feit hebt, blijf bij een correcte sectorobservatie — nooit een valse precisie.
 
@@ -67,35 +71,22 @@ export async function getEmailSystemPrompt(lang: string | null = "fr"): Promise<
 export const EMAIL_SYSTEM_PROMPT = EMAIL_SYSTEM_FR;
 
 const NICHE_FR_HINTS: Record<string, string> = {
-  // Group A — B2B professional services
-  "cabinet de conseil": "conseil B2B",
-  "consulting": "conseil B2B",
-  "cabinet d'avocats": "cabinet d'avocats",
-  "law firm": "cabinet d'avocats",
-  "expert-comptable": "expertise comptable",
-  "accountant": "expertise comptable",
-  "agence de communication": "agence de communication",
-  "marketing agency": "agence marketing",
-  "agence de relations presse": "relations presse",
-  "pr agency": "relations presse",
-  "cabinet de recrutement": "recrutement",
-  "recruiter": "recrutement",
-  "cabinet rh": "ressources humaines",
-  "agence d'architecture": "architecture",
-  architecture: "architecture",
-  architecte: "architecture",
-  "agence de traduction": "traduction professionnelle",
-  "organisme de formation b2b": "formation B2B",
-  // Group B — Tech / SaaS (Sirene NAF codes also accepted as fuzzy keys)
-  "tech startup": "startup tech",
-  "saas": "éditeur SaaS",
-  "software": "édition logicielle",
-  "it consulting": "conseil IT",
-  "digital agency": "agence digitale",
-  "63.12z": "plateforme web / SaaS",
-  "62.01z": "édition logicielle",
-  "62.02a": "conseil IT",
-  "73.11z": "agence digitale",
+  // Group A — Sirene NAF codes → human labels (single-code keys; comma
+  // baskets fall through to the raw string)
+  "41.20a": "construction",
+  "41.20b": "construction",
+  "42.99z": "génie civil",
+  "43.21a": "installation électrique",
+  "43.22a": "génie climatique (CVC)",
+  "43.22b": "plomberie",
+  "43.91a": "couverture / toiture",
+  "43.99a": "étanchéité / isolation",
+  "80.20z": "sécurité et surveillance",
+  "81.22z": "nettoyage industriel",
+  "38.11z": "collecte de déchets",
+  "33.20a": "installation industrielle",
+  "49.41a": "transport routier de fret",
+  "52.10a": "entreposage / logistique",
 };
 
 function niceNicheLabel(raw: string): string {

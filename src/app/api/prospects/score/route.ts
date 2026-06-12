@@ -24,11 +24,12 @@ export async function POST(req: NextRequest) {
     const limit = Math.max(1, Math.min(MAX_PER_CALL, Number(body.limit) || MAX_PER_CALL));
 
     const prospects = body.onlyId
-      ? await prisma.prospect.findMany({ where: { id: body.onlyId } })
+      ? await prisma.prospect.findMany({ where: { id: body.onlyId }, include: { brief: true } })
       : await prisma.prospect.findMany({
           where: { qualityScore: null },
           orderBy: { createdAt: "desc" },
           take: limit,
+          include: { brief: true },
         });
 
     if (prospects.length === 0) {
@@ -59,16 +60,22 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const result = await scoreProspect({
-          firmaNaziv: p.firmaNaziv,
-          nisa: p.nisa,
-          grad: p.grad,
-          website: p.website,
-          opisFirme: p.opisFirme,
-          napomena: p.napomena,
-          siteSnapshot: site,
-          pagespeed: psi,
-        });
+        const result = await scoreProspect(
+          {
+            firmaNaziv: p.firmaNaziv,
+            nisa: p.nisa,
+            grad: p.grad,
+            website: p.website,
+            opisFirme: p.opisFirme,
+            napomena: p.napomena,
+            siteSnapshot: site,
+            pagespeed: psi,
+          },
+          // CSV-imported prospects have no brief — generic both-groups mode.
+          p.brief
+            ? { niche: p.brief.niche, city: p.brief.city, country: p.brief.country, language: p.brief.language }
+            : null
+        );
         if (!result) {
           errors.push(`${p.firmaNaziv}: scoring vratio null`);
           continue;
