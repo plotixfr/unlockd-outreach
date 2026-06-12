@@ -32,23 +32,23 @@ export default async function EditProspectPage({
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center gap-2 text-sm">
-        <Link href="/prospects" className="text-zinc-500 hover:text-zinc-300 transition-colors">
+        <Link href="/prospects" className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
           Prospects
         </Link>
-        <span className="text-zinc-700">/</span>
+        <span className="text-[var(--text-muted)]">/</span>
         <Link
           href={`/prospects/${id}`}
-          className="text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
         >
           {prospect.firmaNaziv}
         </Link>
-        <span className="text-zinc-700">/</span>
-        <span className="text-zinc-300">Edit</span>
+        <span className="text-[var(--text-muted)]">/</span>
+        <span className="text-[var(--text-secondary)] font-medium">Edit</span>
       </div>
 
       <div>
-        <h1 className="text-2xl font-semibold text-white">Edit prospekta</h1>
-        <p className="text-zinc-500 text-sm mt-1">{prospect.firmaNaziv}</p>
+        <h1 className="text-[22px] text-[var(--text)]">Edit prospect</h1>
+        <p className="text-[var(--text-secondary)] text-sm mt-1.5">{prospect.firmaNaziv}</p>
       </div>
 
       <ProspectEditForm prospect={prospect} />

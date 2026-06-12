@@ -26,12 +26,12 @@ export function GenerateEmailsButton({ prospectId, hasEmails }: Props) {
       try {
         data = await res.json();
       } catch {
-        throw new Error("Error generisanju emailova — pokušajte ponovo");
+        throw new Error("Email generation failed — try again");
       }
-      if (!res.ok) throw new Error(data.error || "Error generisanju emailova");
+      if (!res.ok) throw new Error(data.error || "Email generation failed");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error generisanju emailova");
+      setError(e instanceof Error ? e.message : "Email generation failed");
     } finally {
       setLoading(false);
     }
@@ -39,28 +39,28 @@ export function GenerateEmailsButton({ prospectId, hasEmails }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      {error && <span className="text-red-400 text-xs">{error}</span>}
+      {error && <span className="text-red-600 text-xs">{error}</span>}
       {!hasEmails ? (
         <button
           onClick={() => generate(false)}
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          className="btn-primary text-sm"
         >
           {loading && (
             <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Générer..." : "Generate emailove"}
+          {loading ? "Generating…" : "Generate emails"}
         </button>
       ) : (
         <button
           onClick={() => generate(true)}
           disabled={loading}
-          className="border border-[#1f1f2e] hover:border-zinc-600 text-zinc-400 hover:text-white text-sm px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+          className="btn-secondary text-sm"
         >
           {loading && (
-            <span className="inline-block w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+            <span className="inline-block w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-500 rounded-full animate-spin" />
           )}
-          {loading ? "Génération..." : "Regeneriši"}
+          {loading ? "Regenerating…" : "Regenerate"}
         </button>
       )}
     </div>

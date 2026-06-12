@@ -40,7 +40,7 @@ export function AuditDeliverablePanel({
 
   const regen = async () => {
     if (regenerating) return;
-    if (currentUrl && !confirm("Regenerišem hero? Stari URL će biti zamijenjen.")) return;
+    if (currentUrl && !confirm("Regenerate the hero? The old URL will be replaced.")) return;
     setRegenerating(true);
     setError(null);
     try {
@@ -72,14 +72,14 @@ export function AuditDeliverablePanel({
   };
 
   return (
-    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation space-y-5">
+    <div className="card p-6 space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Sparkles strokeWidth={2} className="w-4 h-4 text-fuchsia-400" />
+          <Sparkles strokeWidth={2} className="w-4 h-4 text-fuchsia-600" />
           <div>
-            <h2 className="text-zinc-200 font-medium text-sm">Audit deliverable</h2>
-            <p className="text-zinc-600 text-xs mt-0.5">
-              Ono što prospekt vidi kad klikne link iz F2 emaila — mockup + 3 findings + Calendly CTA
+            <h2 className="text-[var(--text)] font-semibold text-sm">Audit deliverable</h2>
+            <p className="text-[var(--text-muted)] text-xs mt-0.5">
+              What the prospect sees when they click the F2 email link — mockup + 3 findings + Calendly CTA
             </p>
           </div>
         </div>
@@ -88,23 +88,23 @@ export function AuditDeliverablePanel({
             href={`/audit/${prospectId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 text-xs px-3 py-1.5 rounded-md border border-[#1c1c28] hover:border-[#2a2a3a] transition-colors"
+            className="btn-secondary text-xs px-3 py-1.5"
           >
-            Otvori landing
+            Open landing
             <ExternalLink className="w-3 h-3" />
           </a>
           <button
             onClick={copy}
-            className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-md transition-all border border-emerald-500/30"
+            className="inline-flex items-center gap-1.5 bg-[var(--accent-soft)] hover:bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors border border-[var(--accent-border)]"
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-            {copied ? "Kopirano" : "Kopiraj audit link"}
+            {copied ? "Copied" : "Copy audit link"}
           </button>
         </div>
       </div>
 
       {currentUrl ? (
-        <div className="relative aspect-video rounded-lg overflow-hidden bg-[#07070b] border border-[#1c1c28]">
+        <div className="relative aspect-video rounded-lg overflow-hidden bg-zinc-100 border border-[var(--border)]">
           <Image
             src={currentUrl}
             alt="Mockup hero"
@@ -115,18 +115,18 @@ export function AuditDeliverablePanel({
           />
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-[#1c1c28] p-8 text-center bg-[#0a0a12]">
-          <p className="text-zinc-500 text-sm">
-            No mockup yet. Click Regen below (~3s, ~$0.003) — the landing page and F2 email will
-            ga koristiti automatski.
+        <div className="rounded-lg border border-dashed border-[var(--border-strong)] p-8 text-center bg-zinc-50">
+          <p className="text-[var(--text-muted)] text-sm">
+            No mockup yet. Click Generate below (~3s, ~$0.003) — the landing page and the F2 email
+            pick it up automatically.
           </p>
         </div>
       )}
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="text-zinc-600 text-[11px]">
+        <div className="text-[var(--text-muted)] text-[11px]">
           {mockupAt
-            ? `Generisan ${new Date(mockupAt).toLocaleString("fr-FR", {
+            ? `Generated ${new Date(mockupAt).toLocaleString("en-GB", {
                 day: "numeric",
                 month: "short",
                 hour: "2-digit",
@@ -134,19 +134,19 @@ export function AuditDeliverablePanel({
               })}`
             : ""}
           {!hasAudit && (
-            <span className="ml-2 text-amber-400">⚠ No 3-finding audit yet — landing will use fallback findings</span>
+            <span className="ml-2 text-amber-600">⚠ No 3-finding audit yet — landing will use fallback findings</span>
           )}
         </div>
         <button
           onClick={regen}
           disabled={regenerating}
-          className="inline-flex items-center gap-1.5 bg-fuchsia-500/15 hover:bg-fuchsia-500/25 text-fuchsia-300 text-xs font-medium px-3 py-1.5 rounded-md transition-colors disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
         >
           {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-          {regenerating ? "Generišem…" : currentUrl ? "Regeneriši hero" : "Generiši hero"}
+          {regenerating ? "Generating…" : currentUrl ? "Regenerate hero" : "Generate hero"}
         </button>
       </div>
-      {error && <p className="text-rose-400 text-xs">{error}</p>}
+      {error && <p className="text-red-600 text-xs">{error}</p>}
     </div>
   );
 }

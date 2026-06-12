@@ -12,23 +12,23 @@ interface Props {
 }
 
 const LABEL_STYLES: Record<string, string> = {
-  Interested: "bg-emerald-950/60 text-emerald-300",
-  Question: "bg-blue-950/60 text-blue-300",
-  NotNow: "bg-amber-950/60 text-amber-300",
-  WrongPerson: "bg-orange-950/60 text-orange-300",
-  Negative: "bg-red-950/60 text-red-300",
-  Unsubscribe: "bg-red-950/60 text-red-400",
-  OutOfOffice: "bg-zinc-800 text-zinc-400",
-  AutoReply: "bg-zinc-800 text-zinc-500",
+  Interested: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Question: "bg-sky-50 text-sky-700 border border-sky-200",
+  NotNow: "bg-amber-50 text-amber-700 border border-amber-200",
+  WrongPerson: "bg-orange-50 text-orange-700 border border-orange-200",
+  Negative: "bg-red-50 text-red-700 border border-red-200",
+  Unsubscribe: "bg-red-50 text-red-700 border border-red-200",
+  OutOfOffice: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+  AutoReply: "bg-zinc-100 text-zinc-500 border border-zinc-200",
 };
 
-const LABEL_BS: Record<string, string> = {
-  Interested: "Zainteresovan",
-  Question: "Pitanje",
-  NotNow: "Možda kasnije",
-  WrongPerson: "Pogrešna osoba",
-  Negative: "Negativan",
-  Unsubscribe: "Odjava",
+const LABEL_EN: Record<string, string> = {
+  Interested: "Interested",
+  Question: "Question",
+  NotNow: "Maybe later",
+  WrongPerson: "Wrong person",
+  Negative: "Negative",
+  Unsubscribe: "Unsubscribe",
   OutOfOffice: "Out-of-office",
   AutoReply: "Auto-reply",
 };
@@ -44,7 +44,7 @@ export function ReplyDraftPanel({ replyId, prospectId, initialDraft, classificat
   if (classification === "OutOfOffice" || classification === "AutoReply") {
     return classification ? (
       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${LABEL_STYLES[classification]}`}>
-        {LABEL_BS[classification]}
+        {LABEL_EN[classification]}
       </span>
     ) : null;
   }
@@ -60,7 +60,7 @@ export function ReplyDraftPanel({ replyId, prospectId, initialDraft, classificat
         body: JSON.stringify({ replyId, draft }),
       });
       const data: { ok?: boolean; error?: string } = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error || "Error slanju");
+      if (!res.ok || !data.ok) throw new Error(data.error || "Send failed");
       setSent(true);
       router.refresh();
     } catch (e) {
@@ -71,38 +71,38 @@ export function ReplyDraftPanel({ replyId, prospectId, initialDraft, classificat
   };
 
   return (
-    <div className="mt-3 rounded-lg bg-[#0d0d14] border border-[#1f1f2e] p-3">
+    <div className="mt-3 rounded-lg bg-white border border-[var(--border)] p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-500 text-xs uppercase tracking-wider">AI draft odgovora</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">AI reply draft</span>
           {classification && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${LABEL_STYLES[classification] ?? "bg-zinc-800 text-zinc-400"}`}>
-              {LABEL_BS[classification] ?? classification}
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${LABEL_STYLES[classification] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"}`}>
+              {LABEL_EN[classification] ?? classification}
             </span>
           )}
         </div>
-        <span className="text-zinc-600 text-[11px]">→ {prospectEmail}</span>
+        <span className="text-[var(--text-muted)] text-[11px]">→ {prospectEmail}</span>
       </div>
 
       {sent ? (
-        <p className="text-emerald-400 text-sm py-2">✓ Poslato</p>
+        <p className="text-emerald-700 text-sm py-2 font-medium">✓ Sent</p>
       ) : (
         <>
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             rows={6}
-            className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors leading-relaxed"
+            className="w-full bg-white border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors leading-relaxed"
           />
           <div className="flex items-center justify-between mt-2 gap-3">
-            {error ? <p className="text-red-400 text-xs flex-1">{error}</p> : <span className="flex-1" />}
+            {error ? <p className="text-red-600 text-xs flex-1">{error}</p> : <span className="flex-1" />}
             <button
               onClick={sendDraft}
               disabled={sending || !draft.trim()}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded-md transition-colors flex items-center gap-2"
+              className="btn-primary text-sm px-4 py-1.5"
             >
               {sending && <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {sending ? "Šaljem…" : "Send odgovor"}
+              {sending ? "Sending…" : "Send reply"}
             </button>
           </div>
         </>

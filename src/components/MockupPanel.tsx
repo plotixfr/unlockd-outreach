@@ -56,22 +56,22 @@ export function MockupPanel({
 
   if (!website) {
     return (
-      <div className="rounded-xl border border-dashed border-[#1c1c28] p-6 text-center">
-        <p className="text-zinc-500 text-sm">
-          Bez website-a ne možemo generisati premium concept preview.
+      <div className="empty-state py-8">
+        <p className="text-sm font-semibold text-[var(--text-secondary)]">
+          Without a website we can&apos;t generate a premium concept preview.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl bg-[#0d0d12] border border-[#1c1c28] p-6 card-elevation space-y-5">
+    <div className="card p-6 space-y-5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Wand2 strokeWidth={2} className="w-4 h-4 text-emerald-400" />
+          <Wand2 strokeWidth={2} className="w-4 h-4 text-[var(--accent)]" />
           <div>
-            <h2 className="text-zinc-200 font-medium text-sm">Concept preview</h2>
-            <p className="text-zinc-600 text-xs mt-0.5">
+            <h2 className="text-[var(--text)] font-semibold text-sm">Concept preview</h2>
+            <p className="text-[var(--text-muted)] text-xs mt-0.5">
               Their content in a premium editorial layout — share-screen on a call or send the link before the meeting
             </p>
           </div>
@@ -81,17 +81,17 @@ export function MockupPanel({
             href={website}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-200 text-xs px-3 py-1.5 rounded-md border border-[#1c1c28] hover:border-[#2a2a3a] transition-colors"
+            className="btn-secondary text-xs px-3 py-1.5"
           >
-            Otvori original
+            Open original
             <ExternalLink className="w-3 h-3" />
           </a>
           <button
             onClick={copyLink}
-            className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-xs font-medium px-3 py-1.5 rounded-md transition-all border border-emerald-500/30"
+            className="inline-flex items-center gap-1.5 bg-[var(--accent-soft)] hover:bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors border border-[var(--accent-border)]"
           >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-            {copied ? "Kopirano" : "Kopiraj share link"}
+            {copied ? "Copied" : "Copy share link"}
           </button>
         </div>
       </div>
@@ -105,8 +105,8 @@ export function MockupPanel({
         snapshot={snapshot}
       />
 
-      <div className="text-zinc-600 text-[11px] leading-relaxed pt-2 border-t border-[#1c1c28]">
-        <strong className="text-zinc-400">How to use:</strong> on a sales call — open the original on the left, share-screen with the prospect and show this preview. Or copy the share link and send it to the prospect 1h before the meeting as &ldquo;voici la direction créative que je vous proposerai&rdquo;. Link is public (anyone with it can open) — no login.
+      <div className="text-[var(--text-muted)] text-[11px] leading-relaxed pt-2 etch-top">
+        <strong className="text-[var(--text-secondary)]">How to use:</strong> on a sales call — open the original on the left, share-screen with the prospect and show this preview. Or copy the share link and send it to the prospect 1h before the meeting as &ldquo;voici la direction créative que je vous proposerai&rdquo;. Link is public (anyone with it can open) — no login.
       </div>
     </div>
   );

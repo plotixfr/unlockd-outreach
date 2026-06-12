@@ -19,7 +19,7 @@ export function ReplyButton({ prospectId, currentStatus }: Props) {
 
   if (done) {
     return (
-      <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/40 px-4 py-3 text-emerald-300 text-sm">
+      <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-emerald-700 text-sm font-medium">
         Campaign stopped — prospect replied ✓
       </div>
     );
@@ -44,12 +44,12 @@ export function ReplyButton({ prospectId, currentStatus }: Props) {
     <button
       onClick={handleReply}
       disabled={loading}
-      className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 hover:text-emerald-300 border border-emerald-800/40 rounded-lg transition-colors disabled:opacity-50"
+      className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition-colors disabled:opacity-50"
     >
       {loading && (
-        <span className="inline-block w-3.5 h-3.5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+        <span className="inline-block w-3.5 h-3.5 border-2 border-emerald-700/30 border-t-emerald-700 rounded-full animate-spin" />
       )}
-      {loading ? "..." : "Označi kao odgovoreno"}
+      {loading ? "..." : "Mark as replied"}
     </button>
   );
 }

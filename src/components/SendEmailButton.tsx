@@ -15,8 +15,8 @@ export function SendEmailButton({ emailId, poslat }: Props) {
 
   if (poslat) {
     return (
-      <span className="text-xs bg-emerald-900 text-emerald-300 px-2.5 py-1 rounded-full font-medium">
-        Poslano ✓
+      <span className="badge bg-emerald-50 text-emerald-700 border border-emerald-200">
+        Sent ✓
       </span>
     );
   }
@@ -31,7 +31,7 @@ export function SendEmailButton({ emailId, poslat }: Props) {
         body: JSON.stringify({ emailId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error slanju");
+      if (!res.ok) throw new Error(data.error || "Send failed");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
@@ -42,16 +42,16 @@ export function SendEmailButton({ emailId, poslat }: Props) {
 
   return (
     <div className="flex items-center gap-2">
-      {error && <span className="text-red-400 text-xs">{error}</span>}
+      {error && <span className="text-red-600 text-xs">{error}</span>}
       <button
         onClick={send}
         disabled={loading}
-        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+        className="btn-primary text-xs px-3 py-1.5"
       >
         {loading && (
           <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         )}
-        {loading ? "Sending…" : "Pošalji"}
+        {loading ? "Sending…" : "Send"}
       </button>
     </div>
   );

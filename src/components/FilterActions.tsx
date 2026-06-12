@@ -24,7 +24,7 @@ export function FilterActions({ filter, total }: Props) {
     filter.search && `"${filter.search}"`,
     filter.nisa,
     filter.status,
-  ].filter(Boolean).join(" / ") || "sve";
+  ].filter(Boolean).join(" / ") || "all";
 
   const exportHref = (() => {
     const sp = new URLSearchParams();
@@ -47,7 +47,7 @@ export function FilterActions({ filter, total }: Props) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Error");
       if (action === "delete") {
-        setMessage({ kind: "ok", text: `Obrisano ${data.deleted} prospekata` });
+        setMessage({ kind: "ok", text: `Deleted ${data.deleted} prospects` });
         router.refresh();
       } else if (action === "ids" && Array.isArray(data.ids)) {
         // Forward into the bulk generate flow.
@@ -57,8 +57,8 @@ export function FilterActions({ filter, total }: Props) {
           body: JSON.stringify({ action: "generate", ids: data.ids }),
         });
         const genData = await genRes.json().catch(() => ({}));
-        if (!genRes.ok) throw new Error(genData.error || "Error generisanju");
-        setMessage({ kind: "ok", text: `Generisano za ${genData.generated} prospekata` });
+        if (!genRes.ok) throw new Error(genData.error || "Generation failed");
+        setMessage({ kind: "ok", text: `Generated for ${genData.generated} prospects` });
         router.refresh();
       }
     } catch (e) {
@@ -72,7 +72,7 @@ export function FilterActions({ filter, total }: Props) {
     <div className="flex items-center gap-2 flex-wrap">
       <a
         href={exportHref}
-        className="text-xs px-3 py-1.5 rounded-lg bg-[#1a1a28] text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
+        className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-zinc-50 hover:border-[var(--border-strong)] hover:text-[var(--text)] transition-colors"
       >
         Export CSV
       </a>
@@ -81,27 +81,27 @@ export function FilterActions({ filter, total }: Props) {
           <button
             onClick={() => bulkByFilter("ids")}
             disabled={!!loading}
-            className="text-xs px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-100 disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >
             {loading === "ids" && (
-              <span className="inline-block w-3 h-3 border-2 border-blue-300/30 border-t-blue-300 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-sky-700/30 border-t-sky-700 rounded-full animate-spin" />
             )}
-            Generate za {filterLabel} ({total})
+            Generate for {filterLabel} ({total})
           </button>
           <button
             onClick={() => bulkByFilter("delete", `Delete all ${total} prospects in filter "${filterLabel}"?`)}
             disabled={!!loading}
-            className="text-xs px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600/30 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors flex items-center gap-1.5"
           >
             {loading === "delete" && (
-              <span className="inline-block w-3 h-3 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-red-700/30 border-t-red-700 rounded-full animate-spin" />
             )}
             Delete {filterLabel} ({total})
           </button>
         </>
       )}
       {message && (
-        <span className={`text-xs ${message.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+        <span className={`text-xs ${message.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>
           {message.text}
         </span>
       )}

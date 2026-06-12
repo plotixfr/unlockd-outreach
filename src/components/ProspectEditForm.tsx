@@ -21,7 +21,10 @@ interface Props {
 }
 
 const inputCls =
-  "w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors placeholder-zinc-700";
+  "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors";
+
+const labelCls =
+  "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5";
 
 export function ProspectEditForm({ prospect }: Props) {
   const router = useRouter();
@@ -65,7 +68,7 @@ export function ProspectEditForm({ prospect }: Props) {
       } catch {
         throw new Error("Invalid server response");
       }
-      if (!res.ok) throw new Error(data.error || "Error čuvanju");
+      if (!res.ok) throw new Error(data.error || "Save failed");
       router.push(`/prospects/${prospect.id}`);
       router.refresh();
     } catch (err) {
@@ -77,10 +80,10 @@ export function ProspectEditForm({ prospect }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-6 space-y-5">
+      <div className="card p-6 space-y-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+            <label className={labelCls}>
               Company name *
             </label>
             <input
@@ -92,7 +95,7 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+            <label className={labelCls}>
               Niche
             </label>
             <select
@@ -108,7 +111,7 @@ export function ProspectEditForm({ prospect }: Props) {
             </select>
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+            <label className={labelCls}>
               City
             </label>
             <input
@@ -119,8 +122,8 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Kontakt ime
+            <label className={labelCls}>
+              Contact name
             </label>
             <input
               type="text"
@@ -130,8 +133,8 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Pozicija kontakta
+            <label className={labelCls}>
+              Contact role
             </label>
             <input
               type="text"
@@ -141,7 +144,7 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+            <label className={labelCls}>
               Website
             </label>
             <input
@@ -153,7 +156,7 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+            <label className={labelCls}>
               Instagram
             </label>
             <input
@@ -165,8 +168,8 @@ export function ProspectEditForm({ prospect }: Props) {
             />
           </div>
           <div>
-            <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-              Kvalitet sajta (1-5)
+            <label className={labelCls}>
+              Site quality (1-5)
             </label>
             <input
               type="number"
@@ -180,8 +183,8 @@ export function ProspectEditForm({ prospect }: Props) {
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-            Opis firme
+          <label className={labelCls}>
+            Company description
           </label>
           <textarea
             rows={3}
@@ -191,8 +194,8 @@ export function ProspectEditForm({ prospect }: Props) {
           />
         </div>
         <div>
-          <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-            Napomena
+          <label className={labelCls}>
+            Internal note
           </label>
           <textarea
             rows={2}
@@ -203,23 +206,23 @@ export function ProspectEditForm({ prospect }: Props) {
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+          className="btn-primary px-5 py-2.5"
         >
           {loading && (
             <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )}
-          {loading ? "Čuvanje..." : "Save izmjene"}
+          {loading ? "Saving…" : "Save changes"}
         </button>
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors px-3 py-2.5"
+          className="text-[var(--text-muted)] hover:text-[var(--text)] text-sm transition-colors px-3 py-2.5"
         >
           Cancel
         </button>

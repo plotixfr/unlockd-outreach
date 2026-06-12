@@ -14,7 +14,7 @@ interface Props {
 const TIP_LABELS: Record<string, string> = {
   initial: "Email #1 — Initial",
   follow1: "Email #2 — Follow-up",
-  follow2: "Email #3 — Preuve sociale",
+  follow2: "Email #3 — Social proof",
   follow3: "Email #4 — Final",
 };
 
@@ -25,7 +25,7 @@ export function EmailPreviewButton({ subject, body, tip, prospectEmail, fromEmai
     <>
       <button
         onClick={() => setOpen(true)}
-        className="text-zinc-500 hover:text-zinc-300 text-xs px-2 py-1 rounded border border-[#2a2a3e] hover:border-zinc-600 transition-colors"
+        className="text-xs font-medium px-2 py-1 rounded-lg bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-zinc-50 hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-colors"
       >
         Preview
       </button>
@@ -33,24 +33,24 @@ export function EmailPreviewButton({ subject, body, tip, prospectEmail, fromEmai
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm p-4"
             onClick={() => setOpen(false)}
           >
             <div
-              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+              className="bg-white border border-[var(--border)] rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Mail header */}
               <div className="border-b border-gray-100 px-6 py-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {TIP_LABELS[tip] ?? tip}
                   </span>
                   <button
                     onClick={() => setOpen(false)}
                     className="text-gray-400 hover:text-gray-600 transition-colors text-sm"
                   >
-                    ✕ Zatvori
+                    ✕ Close
                   </button>
                 </div>
                 <h2 className="text-gray-900 font-semibold text-base">{subject}</h2>
@@ -74,7 +74,7 @@ export function EmailPreviewButton({ subject, body, tip, prospectEmail, fromEmai
                 />
                 <div className="mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
                   <em>
-                    [Tracking pixel + lien de désabonnement seront ajoutés à l&apos;envoi]
+                    [Tracking pixel + unsubscribe link are added at send time]
                   </em>
                 </div>
               </div>

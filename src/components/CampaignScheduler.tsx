@@ -17,7 +17,7 @@ interface Props {
   scheduledDates?: ScheduledDates;
 }
 
-const TIP_LABELS = ["Email 1 — Initial", "Email 2 — Follow-up", "Email 3 — Preuve sociale", "Email 4 — Final"];
+const TIP_LABELS = ["Email 1 — Initial", "Email 2 — Follow-up", "Email 3 — Social proof", "Email 4 — Final"];
 
 function defaultInitial(): string {
   // "Now" in local time. The schedule endpoint sends immediately for any
@@ -30,10 +30,16 @@ function defaultInitial(): string {
 
 function fmtDate(d: Date | null | undefined): string {
   if (!d) return "—";
-  return new Date(d).toLocaleString("fr-FR", {
+  return new Date(d).toLocaleString("en-GB", {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
 }
+
+const inputCls =
+  "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)] transition-colors";
+
+const labelCls =
+  "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5";
 
 export function CampaignScheduler({ prospectId, hasEmails, isScheduled, scheduledDates }: Props) {
   const [scheduledInitial, setScheduledInitial] = useState(defaultInitial());
@@ -48,8 +54,8 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
 
   if (!hasEmails) {
     return (
-      <div className="rounded-xl border border-dashed border-[#1f1f2e] p-6 text-center">
-        <p className="text-zinc-500 text-sm">Generate emails first to launch the campaign.</p>
+      <div className="empty-state py-8">
+        <p className="text-sm font-semibold text-[var(--text-secondary)]">Generate emails first to launch the campaign.</p>
       </div>
     );
   }
@@ -60,21 +66,21 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
       scheduledDates.follow2, scheduledDates.follow3,
     ];
     return (
-      <div className="rounded-xl bg-sky-950/30 border border-sky-800/40 p-5 space-y-3">
+      <div className="rounded-xl bg-sky-50 border border-sky-200 p-5 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sky-300 font-medium text-sm">Campaign scheduled</p>
+          <p className="text-sky-700 font-semibold text-sm">Campaign scheduled</p>
           <button
             onClick={() => setSuccess(null)}
-            className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
+            className="text-[var(--text-muted)] hover:text-[var(--text)] text-xs transition-colors"
           >
-            Izmijeni raspored
+            Edit schedule
           </button>
         </div>
         <div className="space-y-1.5">
           {dates.map((d, i) => (
             <div key={i} className="flex items-center gap-3 text-sm">
-              <span className="text-zinc-500 text-xs w-32">{TIP_LABELS[i]}</span>
-              <span className="text-sky-200">{fmtDate(d)}</span>
+              <span className="text-[var(--text-muted)] text-xs w-36">{TIP_LABELS[i]}</span>
+              <span className="text-sky-800 tabular">{fmtDate(d)}</span>
             </div>
           ))}
         </div>
@@ -85,21 +91,21 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
   if (success) {
     const dates = [success.initial, success.follow1, success.follow2, success.follow3];
     return (
-      <div className="rounded-xl bg-emerald-950/40 border border-emerald-800/40 p-5 space-y-3">
-        <p className="text-emerald-300 font-medium text-sm">
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-5 space-y-3">
+        <p className="text-emerald-700 font-semibold text-sm">
           {sentNow > 0 ? "First email sent — campaign started" : "Campaign scheduled"}
         </p>
         <div className="space-y-1.5">
           {dates.map((d, i) => (
             <div key={i} className="flex items-center gap-3 text-sm">
-              <span className="text-zinc-500 text-xs w-32">{TIP_LABELS[i]}</span>
-              <span className="text-emerald-200">{fmtDate(d)}</span>
+              <span className="text-[var(--text-muted)] text-xs w-36">{TIP_LABELS[i]}</span>
+              <span className="text-emerald-800 tabular">{fmtDate(d)}</span>
             </div>
           ))}
         </div>
         {sentNow > 0 && (
-          <p className="text-emerald-400/80 text-xs">
-            Follow-up emailovi će ići automatski po rasporedu — bez ručnih klikova.
+          <p className="text-emerald-700/80 text-xs">
+            Follow-ups go out automatically on schedule — no manual clicks needed.
           </p>
         )}
       </div>
@@ -143,27 +149,27 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
   const preview = [initial, f1, f2, f3];
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-5">
+    <div className="card p-5 space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
-            Datum i vrijeme prvog emaila
+          <label className={labelCls}>
+            First email — date &amp; time
           </label>
           <input
             type="datetime-local"
             value={scheduledInitial}
             onChange={(e) => setScheduledInitial(e.target.value)}
-            className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+            className={inputCls}
           />
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Follow-up 1 (dani)", val: follow1Days, set: setFollow1Days },
-            { label: "Follow-up 2 (dani)", val: follow2Days, set: setFollow2Days },
-            { label: "Follow-up 3 (dani)", val: follow3Days, set: setFollow3Days },
+            { label: "Follow-up 1 (days)", val: follow1Days, set: setFollow1Days },
+            { label: "Follow-up 2 (days)", val: follow2Days, set: setFollow2Days },
+            { label: "Follow-up 3 (days)", val: follow3Days, set: setFollow3Days },
           ].map(({ label, val, set }) => (
             <div key={label}>
-              <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+              <label className={labelCls}>
                 {label}
               </label>
               <input
@@ -172,7 +178,7 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
                 max={30}
                 value={val}
                 onChange={(e) => set(Number(e.target.value))}
-                className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+                className={inputCls}
               />
             </div>
           ))}
@@ -180,26 +186,26 @@ export function CampaignScheduler({ prospectId, hasEmails, isScheduled, schedule
       </div>
 
       {/* Preview */}
-      <div className="bg-[#0a0a0f] rounded-lg p-4 space-y-2">
+      <div className="bg-zinc-50 border border-[var(--border)] rounded-lg p-4 space-y-2">
         {preview.map((d, i) => (
           <div key={i} className="flex items-center gap-3 text-sm">
-            <span className="text-zinc-600 text-xs w-32 shrink-0">{TIP_LABELS[i]}</span>
-            <span className="text-zinc-300">{fmtDate(d)}</span>
+            <span className="text-[var(--text-muted)] text-xs w-36 shrink-0">{TIP_LABELS[i]}</span>
+            <span className="text-[var(--text-secondary)] tabular">{fmtDate(d)}</span>
           </div>
         ))}
       </div>
 
-      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
       <button
         onClick={handleSchedule}
         disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+        className="btn-primary w-full py-2.5"
       >
         {loading && <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
         {loading
           ? (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Sending…" : "Scheduling...")
-          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Send now and schedule follow-ups" : "Run campaign")}
+          : (initial.getTime() <= Date.now() + 10 * 60 * 1000 ? "Send now and schedule follow-ups" : "Launch campaign")}
       </button>
     </div>
   );

@@ -17,7 +17,7 @@ export function SubjectSelector({ emailId, subject, subjectB, activeSubject }: P
 
   if (!subjectB) {
     return (
-      <p className="text-zinc-300 text-sm font-medium truncate">{subject}</p>
+      <p className="text-[var(--text)] text-sm font-semibold truncate">{subject}</p>
     );
   }
 
@@ -54,18 +54,20 @@ export function SubjectSelector({ emailId, subject, subjectB, activeSubject }: P
             <span
               className={`shrink-0 w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
                 isActive
-                  ? "border-blue-500 bg-blue-600"
-                  : "border-zinc-600 group-hover:border-zinc-400"
+                  ? "border-[var(--accent)] bg-[var(--accent)]"
+                  : "border-[var(--border-strong)] group-hover:border-[var(--text-muted)]"
               }`}
             >
               {isActive && (
                 <span className="w-1.5 h-1.5 rounded-full bg-white" />
               )}
             </span>
-            <span className="text-[10px] text-zinc-500 shrink-0 font-mono">{v}</span>
+            <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-mono">{v}</span>
             <span
               className={`text-sm truncate transition-colors ${
-                isActive ? "text-zinc-200 font-medium" : "text-zinc-500 group-hover:text-zinc-400"
+                isActive
+                  ? "text-[var(--text)] font-semibold"
+                  : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"
               }`}
             >
               {text}

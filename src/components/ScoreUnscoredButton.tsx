@@ -51,7 +51,7 @@ export function ScoreUnscoredButton({ unscoredCount }: Props) {
 
   if (unscoredCount === 0 && !running && scored === 0) {
     return (
-      <span className="text-zinc-600 text-xs">Svi prospekti su ocijenjeni</span>
+      <span className="text-[var(--text-muted)] text-xs">All prospects are scored</span>
     );
   }
 
@@ -60,16 +60,16 @@ export function ScoreUnscoredButton({ unscoredCount }: Props) {
       <button
         onClick={run}
         disabled={running || (unscoredCount === 0 && scored === 0)}
-        className="bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-sm px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+        className="btn-primary text-sm"
       >
         {running && (
           <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         )}
         {running
-          ? `Ocjenjujem… ${scored}/${scored + remaining}`
-          : `Ocijeni ${unscoredCount} neprocijenjenih`}
+          ? `Scoring… ${scored}/${scored + remaining}`
+          : `Score ${unscoredCount} unscored`}
       </button>
-      {error && <span className="text-red-400 text-xs">{error}</span>}
+      {error && <span className="text-red-600 text-xs">{error}</span>}
     </div>
   );
 }

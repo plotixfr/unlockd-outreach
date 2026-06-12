@@ -2,13 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEAL_STAGES, DEAL_STAGE_LABEL, DEAL_STAGE_COLOR, type DealStage } from "@/lib/dealStages";
+import { DEAL_STAGES, DEAL_STAGE_LABEL, type DealStage } from "@/lib/dealStages";
 
 interface Props {
   prospectId: string;
   initialStage: string | null;
   initialValue: number | null;
 }
+
+// Light-theme active-stage tints (DEAL_STAGE_COLOR in lib/dealStages keeps the
+// kanban's palette; this map is the detail-page equivalent on white cards).
+const STAGE_ACTIVE_CLS: Record<DealStage, string> = {
+  Discovery: "bg-sky-50 text-sky-700 border-sky-200",
+  Proposal: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  Negotiating: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Won: "bg-emerald-600 text-white border-emerald-600",
+  Lost: "bg-zinc-100 text-zinc-500 border-zinc-200",
+};
 
 /**
  * Inline editor for deal stage + forecast value on the prospect detail page.
@@ -51,18 +61,18 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
   };
 
   return (
-    <div className="rounded-xl bg-[#111118] border border-[#1f1f2e] p-5 space-y-3">
-      <h2 className="text-white font-medium text-sm">Deal</h2>
+    <div className="card p-5 space-y-3">
+      <p className="section-label">Deal</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">Stage</label>
+          <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Stage</label>
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => onStageChange("")}
-              className={`text-[11px] px-2.5 py-1 rounded-md border transition-colors ${
+              className={`text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors ${
                 stage === ""
-                  ? "bg-zinc-800 text-zinc-300 border-zinc-700"
-                  : "bg-transparent text-zinc-600 border-[#1f1f2e] hover:text-zinc-400"
+                  ? "bg-zinc-100 text-zinc-700 border-zinc-300"
+                  : "bg-white text-[var(--text-muted)] border-[var(--border)] hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
               }`}
             >
               —
@@ -72,10 +82,10 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
                 key={s}
                 onClick={() => onStageChange(s)}
                 disabled={saving === "stage"}
-                className={`text-[11px] px-2.5 py-1 rounded-md border transition-colors ${
+                className={`text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors ${
                   stage === s
-                    ? DEAL_STAGE_COLOR[s]
-                    : "bg-transparent text-zinc-500 border-[#1f1f2e] hover:text-zinc-300"
+                    ? STAGE_ACTIVE_CLS[s]
+                    : "bg-white text-[var(--text-muted)] border-[var(--border)] hover:text-[var(--text-secondary)] hover:border-[var(--border-strong)]"
                 }`}
               >
                 {DEAL_STAGE_LABEL[s]}
@@ -84,7 +94,7 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
           </div>
         </div>
         <div>
-          <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1.5">Value (€)</label>
+          <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5">Value (€)</label>
           <input
             type="number"
             min={0}
@@ -93,11 +103,11 @@ export function DealEditor({ prospectId, initialStage, initialValue }: Props) {
             onChange={(e) => setValue(e.target.value)}
             onBlur={onValueBlur}
             placeholder="0"
-            className="w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-600 transition-colors"
+            className="w-full bg-white border border-[var(--border)] rounded-md px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors"
           />
         </div>
       </div>
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-red-600 text-xs">{error}</p>}
     </div>
   );
 }

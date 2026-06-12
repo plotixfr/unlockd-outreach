@@ -11,6 +11,12 @@ interface Props {
   poslat: boolean;
 }
 
+const inputCls =
+  "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors";
+
+const labelCls =
+  "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1";
+
 export function EmailEditor({
   emailId,
   initialSubject,
@@ -83,7 +89,7 @@ export function EmailEditor({
           {!poslat && (
             <button
               onClick={() => setEditing(true)}
-              className="text-xs px-2.5 py-1 rounded-lg bg-[#1a1a28] text-zinc-300 hover:bg-[#252535] hover:text-white transition-colors"
+              className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white border border-[var(--border)] text-[var(--text-secondary)] hover:bg-zinc-50 hover:text-[var(--text)] hover:border-[var(--border-strong)] transition-colors"
             >
               Edit
             </button>
@@ -91,15 +97,15 @@ export function EmailEditor({
           <button
             onClick={sendTest}
             disabled={testLoading}
-            className="text-xs px-2.5 py-1 rounded-lg bg-amber-950/40 text-amber-300 hover:bg-amber-900/60 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="text-xs font-medium px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1.5 disabled:opacity-50"
           >
             {testLoading && (
-              <span className="inline-block w-3 h-3 border-2 border-amber-300/30 border-t-amber-300 rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-amber-700/30 border-t-amber-700 rounded-full animate-spin" />
             )}
             Send test
           </button>
           {message && (
-            <span className={`text-xs ${message.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+            <span className={`text-xs ${message.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>
               {message.text}
             </span>
           )}
@@ -109,43 +115,43 @@ export function EmailEditor({
   }
 
   return (
-    <div className="space-y-3 rounded-lg bg-[#0a0a0f] border border-[#1f1f2e] p-4">
+    <div className="space-y-3 rounded-lg bg-white border border-[var(--border)] p-4">
       <div>
-        <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">
+        <label className={labelCls}>
           Subject A
         </label>
         <input
           type="text"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
-          className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-blue-600 transition-colors"
+          className={inputCls}
         />
       </div>
       <div>
-        <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">
-          Subject B (opciono)
+        <label className={labelCls}>
+          Subject B (optional)
         </label>
         <input
           type="text"
           value={subjectB}
           onChange={(e) => setSubjectB(e.target.value)}
           placeholder="Leave empty to skip A/B testing"
-          className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-blue-600 transition-colors"
+          className={inputCls}
         />
       </div>
       <div>
-        <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">
+        <label className={labelCls}>
           Body (HTML — p, br, strong)
         </label>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={10}
-          className="w-full bg-[#111118] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-blue-600 transition-colors resize-y"
+          className={`${inputCls} font-mono resize-y`}
         />
       </div>
       {message && (
-        <p className={`text-xs ${message.kind === "ok" ? "text-emerald-400" : "text-red-400"}`}>
+        <p className={`text-xs ${message.kind === "ok" ? "text-emerald-700" : "text-red-600"}`}>
           {message.text}
         </p>
       )}
@@ -153,7 +159,7 @@ export function EmailEditor({
         <button
           onClick={save}
           disabled={loading || !dirty}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+          className="btn-primary text-xs px-3 py-1.5"
         >
           {loading && (
             <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -169,7 +175,7 @@ export function EmailEditor({
             setMessage(null);
           }}
           disabled={loading}
-          className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
+          className="text-[var(--text-muted)] hover:text-[var(--text)] text-xs transition-colors"
         >
           Cancel
         </button>

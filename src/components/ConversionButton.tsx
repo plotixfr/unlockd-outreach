@@ -20,7 +20,10 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
   if (currentStatus === "Converted") return null;
 
   const inputCls =
-    "w-full bg-[#0a0a0f] border border-[#1f1f2e] rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-emerald-600 transition-colors";
+    "w-full bg-white border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] transition-colors";
+
+  const labelCls =
+    "block text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)] mb-1.5";
 
   const handleSave = async () => {
     setError("");
@@ -51,22 +54,22 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 text-sm bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 hover:text-emerald-300 border border-emerald-800/40 rounded-lg transition-colors"
+        className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg transition-colors"
       >
         Mark as converted
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#111118] border border-[#1f1f2e] rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm">
+          <div className="card p-6 max-w-md w-full mx-4 shadow-xl space-y-5">
             <div>
-              <h3 className="text-white font-semibold">Conversion</h3>
-              <p className="text-zinc-500 text-sm mt-1">Enter project details</p>
+              <h3 className="text-[var(--text)] font-semibold">Conversion</h3>
+              <p className="text-[var(--text-muted)] text-sm mt-1">Enter project details</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+                <label className={labelCls}>
                   Project value (EUR) *
                 </label>
                 <input
@@ -80,7 +83,7 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+                <label className={labelCls}>
                   Conversion date
                 </label>
                 <input
@@ -91,7 +94,7 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
                 />
               </div>
               <div>
-                <label className="block text-zinc-400 text-xs uppercase tracking-wider mb-1.5">
+                <label className={labelCls}>
                   Note (optional)
                 </label>
                 <textarea
@@ -104,20 +107,20 @@ export function ConversionButton({ prospectId, currentStatus }: Props) {
               </div>
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-600 text-sm">{error}</p>}
 
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setOpen(false)}
                 disabled={loading}
-                className="px-4 py-2 text-sm text-zinc-400 hover:text-white border border-[#1f1f2e] rounded-lg hover:bg-[#1a1a28] transition-colors"
+                className="btn-secondary"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={loading}
-                className="px-4 py-2 text-sm bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                className="btn-primary"
               >
                 {loading && (
                   <span className="inline-block w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
