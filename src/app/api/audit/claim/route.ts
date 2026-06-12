@@ -5,6 +5,7 @@ import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers } from "@/lib/decisionMakers";
 import { scoreProspect } from "@/lib/qualityScore";
 import { sendAuditEmail } from "@/lib/auditEmail";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export const maxDuration = 90;
 
@@ -18,6 +19,19 @@ export const maxDuration = 90;
  * autopilot. They close at 5-10x the rate of cold prospects.
  */
 export async function POST(req: NextRequest) {
+  // Claim creates prospects + Claude scoring + a Resend send — throttle per
+  // IP, and cap the global daily intake so a bot can't stuff the DB.
+  if (!rateLimit(`audit-claim:${clientIp(req)}`, 3, 60 * 60_000)) {
+    return NextResponse.json({ error: "Trop de requêtes — réessayez plus tard." }, { status: 429 });
+  }
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const claimsToday = await prisma.prospect.count({
+    where: { source: "public_audit", createdAt: { gte: todayStart } },
+  });
+  if (claimsToday >= Number(process.env.AUDIT_CLAIM_DAILY_CAP ?? 20)) {
+    return NextResponse.json({ error: "Limite quotidienne atteinte — réessayez demain." }, { status: 429 });
+  }
   let body: { url?: string; email?: string; name?: string };
   try {
     body = await req.json();

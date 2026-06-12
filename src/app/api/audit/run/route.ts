@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scrapeSite } from "@/lib/scrapeSite";
 import { fetchPageSpeed } from "@/lib/pagespeed";
+import { rateLimit, clientIp } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
@@ -11,6 +12,10 @@ export const maxDuration = 60;
  * persistence + outbound email.
  */
 export async function POST(req: NextRequest) {
+  // Each call burns ~30s of scrape + a PageSpeed API hit — throttle per IP.
+  if (!rateLimit(`audit-run:${clientIp(req)}`, 5, 10 * 60_000)) {
+    return NextResponse.json({ error: "Trop de requêtes — réessayez dans quelques minutes." }, { status: 429 });
+  }
   let body: { url?: string };
   try {
     body = await req.json();
