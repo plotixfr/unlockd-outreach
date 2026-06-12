@@ -143,9 +143,10 @@ interface BriefInput {
 /**
  * Generates emails for the prospect and saves them — mirror of the
  * /api/emails/generate route, but inline so the autopilot doesn't have to
- * make an HTTP call back to itself.
+ * make an HTTP call back to itself. Exported for the redrive pass
+ * (lib/redrive.ts), which re-runs failed stages on stalled prospects.
  */
-async function generateEmailsInline(
+export async function generateEmailsInline(
   prospectId: string,
   ctx: {
     site: SiteSnapshot | null;
@@ -346,7 +347,7 @@ function slotInDay(dayStart: Date): Date {
  * cascade from there with +4/+5/+7 day gaps — those don't need cap-awareness
  * because the send cron enforces it at delivery time anyway.
  */
-async function scheduleInline(prospectId: string): Promise<void> {
+export async function scheduleInline(prospectId: string): Promise<void> {
   const cap = Number(process.env.DAILY_SEND_CAP ?? 30);
   const initial = await pickFirstAvailableDay(cap, SCHEDULE_LOOKAHEAD_DAYS);
   const baseOffset = Math.floor((initial.getTime() - Date.now()) / 86400000);

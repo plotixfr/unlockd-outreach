@@ -62,6 +62,9 @@ model Prospect {
   verifiedEmail      Boolean      @default(false)
   verifiedAt         DateTime?
   verifyResult       String?
+  attemptCount       Int          @default(0)
+  lastAttemptAt      DateTime?
+  lastError          String?      @db.Text
   auditFindings      Json?
   auditFindingsAt    DateTime?
   scheduledBreakup   DateTime?

@@ -24,6 +24,10 @@ export const STATUSI = [
   "Converted",
   "Unsubscribed",
   "Bounced",
+  // Terminal: pipeline retries exhausted (see lib/redrive.ts) — the reason
+  // lives in prospect.lastError. Distinct from a scoring REJECTION, which
+  // stays "New" with a qualityScore below the brief threshold.
+  "Failed",
 ] as const;
 export type Status = (typeof STATUSI)[number];
 
@@ -39,6 +43,7 @@ export const STATUS_BOJE: Record<string, string> = {
   Converted:    "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
   Unsubscribed: "bg-red-500/10 text-red-300 border border-red-500/20",
   Bounced:      "bg-red-500/15 text-red-400 border border-red-500/30",
+  Failed:       "bg-orange-500/15 text-orange-300 border border-orange-500/30",
 };
 
 export const PIPELINE_ORDER: Status[] = [

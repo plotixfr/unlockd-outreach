@@ -3,6 +3,7 @@ import { runBrief, runAllActiveBriefs } from "@/lib/autopilot";
 import { notifyAutopilotSummary } from "@/lib/notify";
 import { processDueEmails } from "@/lib/sendEmail";
 import { isCronOrSessionAuthorized } from "@/lib/routeAuth";
+import { runRedrivePass } from "@/lib/redrive";
 
 /**
  * Manual + cron trigger for autopilot. Two modes:
@@ -20,6 +21,17 @@ import { isCronOrSessionAuthorized } from "@/lib/routeAuth";
 export const maxDuration = 60;
 
 async function runAndSummarize(emailSummary: boolean) {
+  // Re-drive first: prospects stranded in "New" by an earlier failure get
+  // their missing stages re-run (capped batch) before fresh discovery.
+  let redrive: Awaited<ReturnType<typeof runRedrivePass>> | null = null;
+  try {
+    redrive = await runRedrivePass();
+    console.log(
+      `[autopilot] redrive: ${redrive.retried} retried, ${redrive.advanced} advanced, ${redrive.failedTerminal} marked Failed`
+    );
+  } catch (e) {
+    console.error("[autopilot] redrive pass failed:", e);
+  }
   const summaries = await runAllActiveBriefs();
   // Same-day scheduled prospects (scheduledInitial = ~now) become due as soon
   // as the scheduler writes them. Drain them right here so a fresh-deploy or
@@ -57,15 +69,15 @@ async function runAndSummarize(emailSummary: boolean) {
       })),
     });
   }
-  return { summaries, sendSweep };
+  return { summaries, sendSweep, redrive };
 }
 
 export async function GET(req: NextRequest) {
   if (!(await isCronOrSessionAuthorized(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const { summaries, sendSweep } = await runAndSummarize(true);
-  return NextResponse.json({ ok: true, summaries, sendSweep });
+  const { summaries, sendSweep, redrive } = await runAndSummarize(true);
+  return NextResponse.json({ ok: true, summaries, sendSweep, redrive });
 }
 
 export async function POST(req: NextRequest) {
@@ -102,6 +114,6 @@ export async function POST(req: NextRequest) {
       );
     }
   }
-  const { summaries, sendSweep } = await runAndSummarize(false);
-  return NextResponse.json({ ok: true, summaries, sendSweep });
+  const { summaries, sendSweep, redrive } = await runAndSummarize(false);
+  return NextResponse.json({ ok: true, summaries, sendSweep, redrive });
 }
