@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runReengageBatch } from "@/lib/reengage";
+import { isCronOrSessionAuthorized } from "@/lib/routeAuth";
 
 // Hobby caps at 60s regardless of what we ask. On Pro upgrade, raise to 300.
 export const maxDuration = 60;
@@ -11,9 +12,7 @@ export const maxDuration = 60;
  * cap and stays inside Vercel duration.
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (!(await isCronOrSessionAuthorized(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const summary = await runReengageBatch(30);
@@ -21,7 +20,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Also allow manual trigger from authenticated session (proxy enforces).
+  if (!(await isCronOrSessionAuthorized(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: { limit?: number } = {};
   try {
     body = await req.json();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runBrief, runAllActiveBriefs } from "@/lib/autopilot";
 import { notifyAutopilotSummary } from "@/lib/notify";
 import { processDueEmails } from "@/lib/sendEmail";
+import { isCronOrSessionAuthorized } from "@/lib/routeAuth";
 
 /**
  * Manual + cron trigger for autopilot. Two modes:
@@ -60,9 +61,7 @@ async function runAndSummarize(emailSummary: boolean) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (!(await isCronOrSessionAuthorized(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { summaries, sendSweep } = await runAndSummarize(true);
@@ -70,6 +69,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await isCronOrSessionAuthorized(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   let body: { briefId?: string };
   try {
     body = await req.json();

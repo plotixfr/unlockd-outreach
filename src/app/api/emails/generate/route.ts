@@ -15,8 +15,6 @@ const DM_TTL_DAYS = 60;
 export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    console.log("[generate] ANTHROPIC_API_KEY present:", !!apiKey, "| length:", apiKey?.length ?? 0);
-
     if (!apiKey) {
       return NextResponse.json(
         { error: "ANTHROPIC_API_KEY not configured on server. Add it in Vercel Environment Variables." },
