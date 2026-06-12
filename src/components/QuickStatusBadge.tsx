@@ -68,9 +68,9 @@ export function QuickStatusBadge({ prospectId, status: initialStatus }: Props) {
       <button
         onClick={handleToggle}
         disabled={saving}
-        className={`text-xs px-2 py-0.5 rounded-full font-medium transition-opacity cursor-pointer ${
+        className={`badge transition-opacity cursor-pointer ${
           saving ? "opacity-50" : "hover:opacity-75"
-        } ${STATUS_BOJE[status] ?? "bg-zinc-700 text-zinc-200"}`}
+        } ${STATUS_BOJE[status] ?? "bg-zinc-100 text-zinc-700 border border-zinc-200"}`}
       >
         {status}
       </button>
@@ -85,7 +85,7 @@ export function QuickStatusBadge({ prospectId, status: initialStatus }: Props) {
               zIndex: 9999,
             }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-[#1a1a28] border border-[#2a2a3e] rounded-lg shadow-2xl overflow-hidden py-1 min-w-[130px]"
+            className="bg-white border border-[var(--border)] rounded-lg shadow-lg overflow-hidden py-1 min-w-[130px]"
           >
             {STATUSI.map((s) => (
               <button
@@ -94,15 +94,14 @@ export function QuickStatusBadge({ prospectId, status: initialStatus }: Props) {
                 className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center gap-2 ${
                   s === status
                     ? "opacity-40 cursor-default"
-                    : "hover:bg-[#252535] cursor-pointer"
+                    : "hover:bg-zinc-50 cursor-pointer"
                 }`}
               >
                 <span
-                  className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-                    STATUS_BOJE[s]?.split(" ")[0] ?? "bg-zinc-600"
-                  }`}
-                />
-                <span className="text-zinc-200">{s}</span>
+                  className={`badge ${STATUS_BOJE[s] ?? "bg-zinc-100 text-zinc-700 border border-zinc-200"}`}
+                >
+                  {s}
+                </span>
               </button>
             ))}
           </div>,

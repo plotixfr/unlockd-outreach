@@ -32,16 +32,16 @@ export function StatusSelector({ prospectId, currentStatus }: Props) {
   return (
     <div className="flex items-center gap-2">
       {saving && (
-        <span className="inline-block w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin" />
+        <span className="inline-block w-3.5 h-3.5 border-2 border-zinc-300 border-t-zinc-500 rounded-full animate-spin" />
       )}
       <select
         value={status}
         onChange={(e) => handleChange(e.target.value)}
         disabled={saving}
-        className={`text-xs font-medium px-3 py-1.5 rounded-full border-0 outline-none cursor-pointer appearance-none ${STATUS_BOJE[status] ?? "bg-zinc-700 text-zinc-200"}`}
+        className={`text-xs font-medium px-3 py-1.5 rounded-full outline-none cursor-pointer appearance-none ${STATUS_BOJE[status] ?? "bg-zinc-100 text-zinc-700 border border-zinc-200"}`}
       >
         {STATUSI.map((s) => (
-          <option key={s} value={s} className="bg-[#111118] text-zinc-200">
+          <option key={s} value={s} className="bg-white text-zinc-800">
             {s}
           </option>
         ))}

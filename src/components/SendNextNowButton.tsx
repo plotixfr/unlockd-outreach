@@ -40,7 +40,7 @@ export function SendNextNowButton({ prospectId, currentStatus }: Props) {
 
   const fire = async () => {
     if (busy) return;
-    if (!confirm(`Pošaljem sad sljedeći email? (${label})`)) return;
+    if (!confirm(`Send the next email now? (${label})`)) return;
     setBusy(true);
     setError(null);
     try {
@@ -65,7 +65,7 @@ export function SendNextNowButton({ prospectId, currentStatus }: Props) {
 
   if (done) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-emerald-400 text-sm px-3 py-2">
+      <span className="inline-flex items-center gap-1.5 text-emerald-600 text-sm px-3 py-2">
         <CheckCircle2 className="w-3.5 h-3.5" />
         Sent · {done}
       </span>
@@ -77,13 +77,13 @@ export function SendNextNowButton({ prospectId, currentStatus }: Props) {
       <button
         onClick={fire}
         disabled={busy}
-        className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors disabled:opacity-50"
         title="Bypass the cron — fire the next email now"
       >
         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
         {busy ? "Sending…" : label}
       </button>
-      {error && <p className="text-rose-400 text-[11px] mt-1 max-w-xs text-right">{error}</p>}
+      {error && <p className="text-red-600 text-[11px] mt-1 max-w-xs text-right">{error}</p>}
     </div>
   );
 }
