@@ -172,7 +172,7 @@ export async function runRedrivePass(limit: number = DEFAULT_BATCH): Promise<Red
         const emailCount = await prisma.email.count({ where: { prospectId: p.id } });
         if (emailCount === 0) {
           const generated = await generateEmailsInline(p.id, ctx);
-          if (generated === 0) throw new Error("generate: returned 0 emails (Claude error/timeout/parse)");
+          if (generated.count === 0) throw new Error(`generate: ${generated.failure ?? "unknown failure"}`);
         }
       } else {
         await prisma.prospect.update({ where: { id: p.id }, data: { lastError: null } });

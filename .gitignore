@@ -49,3 +49,6 @@ next-env.d.ts
 UNLOCKD-OUTREACH-*.html
 UNLOCKD-OUTREACH-*.pdf
 
+
+# production data backups from one-off repair scripts — never commit
+scripts/backups/

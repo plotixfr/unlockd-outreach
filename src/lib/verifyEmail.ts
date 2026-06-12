@@ -34,18 +34,28 @@ export async function verifyEmail(email: string): Promise<VerifyResult> {
     return { result: "invalid", domain, reason: "empty local or domain" };
   }
 
-  // 1) MX lookup
+  // 1) MX lookup. RFC 5321 implicit MX: a domain with NO MX record but a
+  // resolvable A/AAAA record can still receive mail (common for small
+  // businesses on shared hosting) — treating those as invalid silently
+  // dropped deliverable addresses, so they pass as "unknown" and bounce
+  // handling (Resend webhook → suppression) catches the genuinely dead ones.
   let mxRecords: MxRecord[];
   try {
     mxRecords = await dnsPromises.resolveMx(domain);
   } catch (e: unknown) {
     const code = (e as { code?: string }).code;
     if (code === "ENOTFOUND" || code === "ENODATA") {
+      if (await hasAddressRecord(domain)) {
+        return { result: "unknown", domain, reason: "no MX, but A record (implicit MX)" };
+      }
       return { result: "invalid", domain, reason: "no MX record" };
     }
     return { result: "unknown", domain, reason: `dns error ${code ?? ""}` };
   }
   if (!mxRecords || mxRecords.length === 0) {
+    if (await hasAddressRecord(domain)) {
+      return { result: "unknown", domain, reason: "empty MX, but A record (implicit MX)" };
+    }
     return { result: "invalid", domain, reason: "empty MX list" };
   }
   const mx = mxRecords.sort((a, b) => a.priority - b.priority)[0];
@@ -70,6 +80,21 @@ export async function verifyEmail(email: string): Promise<VerifyResult> {
     return { result: "invalid", domain, reason: real.reason };
   }
   return { result: "unknown", domain, reason: real.reason };
+}
+
+async function hasAddressRecord(domain: string): Promise<boolean> {
+  try {
+    const a = await dnsPromises.resolve4(domain);
+    if (a.length > 0) return true;
+  } catch {
+    // fall through to AAAA
+  }
+  try {
+    const aaaa = await dnsPromises.resolve6(domain);
+    return aaaa.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 interface SmtpProbeResult {
