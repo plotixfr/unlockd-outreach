@@ -31,7 +31,16 @@ export async function PUT(
       data.qualityThreshold = Math.max(1, Math.min(10, Math.round(body.qualityThreshold)));
     if (typeof body.autoGenerate === "boolean") data.autoGenerate = body.autoGenerate;
     if (typeof body.autoSchedule === "boolean") data.autoSchedule = body.autoSchedule;
-    if (typeof body.active === "boolean") data.active = body.active;
+    if (typeof body.active === "boolean") {
+      data.active = body.active;
+      // Re-enabling a brief is an operator's "run this again" — clear any
+      // cooldown/exhaustion so it's eligible on the next cron fire.
+      if (body.active) {
+        data.cooldownUntil = null;
+        data.exhaustedAt = null;
+        data.emptyRunStreak = 0;
+      }
+    }
 
     const brief = await prisma.searchBrief.update({ where: { id }, data });
     return NextResponse.json({ brief });

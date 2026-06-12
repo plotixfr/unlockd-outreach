@@ -139,6 +139,10 @@ model SearchBrief {
   autoGenerate     Boolean  @default(true)
   autoSchedule     Boolean  @default(true)
   active           Boolean  @default(true)
+  discoveryCursor  Json?
+  cooldownUntil    DateTime?
+  emptyRunStreak   Int      @default(0)
+  exhaustedAt      DateTime?
   lastRunAt        DateTime?
   totalDiscovered  Int      @default(0)
   totalQualified   Int      @default(0)

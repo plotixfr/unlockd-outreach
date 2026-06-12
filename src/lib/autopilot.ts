@@ -14,8 +14,10 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { searchPlaces, type DiscoveredPlace } from "@/lib/discovery";
 import { searchSirene } from "@/lib/discoverySirene";
+import { briefKey, parseCursor, cooldownMs, type BriefCursor } from "@/lib/discoveryCursor";
 import { findEmailForSite } from "@/lib/emailFinder";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
@@ -35,11 +37,19 @@ const EMAIL_MODEL = "claude-sonnet-4-6";
 //   AUTOPILOT_CONCURRENCY=5
 //   AUTOPILOT_TIME_BUDGET_MS=240000
 const MAX_PROSPECTS_PER_BRIEF = Number(process.env.AUTOPILOT_MAX_PER_BRIEF ?? 2);
+// How many raw candidates to pull from the discovery source per run — the
+// create cap above limits how many become prospects; the rest stay ahead of
+// the cursor for the next fire. Fetching wide is what lets dedupe hits stop
+// starving the pipeline.
+const DISCOVERY_FETCH_SIZE = Number(process.env.AUTOPILOT_FETCH_SIZE ?? 20);
 const RUN_TIME_BUDGET_MS = Number(process.env.AUTOPILOT_TIME_BUDGET_MS ?? 50_000);
 const BRIEF_CONCURRENCY = Number(process.env.AUTOPILOT_CONCURRENCY ?? 3);
-// After 3 consecutive zero-created runs, deactivate the brief to stop burning
-// Places quota + Claude tokens on something that's not delivering.
-const AUTO_PAUSE_AFTER_EMPTY_RUNS = 3;
+// Briefs whose runs create nothing back off exponentially (cooldownMs) and
+// are only marked exhausted when the source truly has no more pages/variants
+// — never permanently deactivated by the system (active is manual-only).
+// An exhausted brief gets recycled after this many days: rankings shift and
+// new businesses register, so the same queries yield fresh results.
+const EXHAUSTED_RECYCLE_DAYS = 30;
 // Look this many days ahead when finding the next send slot with capacity.
 const SCHEDULE_LOOKAHEAD_DAYS = 30;
 // A DiscoveryRun stuck in status="running" longer than this is treated as
@@ -589,26 +599,40 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
     errors: [],
   };
 
+  const cursor = parseCursor(brief.discoveryCursor, briefKey(brief));
+  let nextCursor: BriefCursor | null = null; // null = discovery failed, keep stored cursor
+  let exhaustedNow = false;
+
   try {
-    // Route to the right discovery adapter. Google Places for B2B services
-    // (Group A — consultancies, agencies, law firms via location search).
-    // Sirene for FR tech startups / SaaS (Group B — NAF-code-driven from
-    // the gov registry, free, no API key).
+    // Route to the right discovery adapter. Google Places for location
+    // searches (Group A in CH/NL + all Group B lifestyle niches). Sirene for
+    // FR industrial SMEs (Group A — NAF-code-driven gov registry, free).
     const search = brief.source === "sirene_api" ? searchSirene : searchPlaces;
-    const places = await search({
-      niche: brief.niche,
-      city: brief.city,
-      country: brief.country,
-      customQuery: brief.query,
-      minRating: brief.minRating,
-      minReviews: brief.minReviews,
-      pageSize: Math.min(brief.maxPerRun, MAX_PROSPECTS_PER_BRIEF),
-    });
+    const outcome = await search(
+      {
+        niche: brief.niche,
+        city: brief.city,
+        country: brief.country,
+        customQuery: brief.query,
+        minRating: brief.minRating,
+        minReviews: brief.minReviews,
+        pageSize: DISCOVERY_FETCH_SIZE,
+      },
+      cursor
+    );
+    const places = outcome.places;
     summary.found = places.length;
 
+    // The create cap bounds prospects per run; everything consumed (created
+    // OR skipped — dupes especially) advances the cursor so the next fire
+    // starts on fresh candidates instead of re-fetching page 1.
+    const createCap = Math.max(1, Math.min(brief.maxPerRun, MAX_PROSPECTS_PER_BRIEF));
+    let consumed = 0;
     for (const place of places) {
+      if (summary.created >= createCap) break;
       try {
         const result = await processPlace(place, brief, run.id);
+        consumed++;
         if (result.status === "created" || result.status === "qualified" || result.status === "scheduled") {
           summary.created++;
         }
@@ -616,8 +640,21 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
         if (result.status === "scheduled") summary.scheduled++;
         if (place.website) summary.emailsFound++;
       } catch (e) {
+        consumed++;
         summary.errors.push(`${place.name}: ${e instanceof Error ? e.message : "error"}`);
       }
+    }
+
+    if (consumed >= places.length) {
+      // Whole slice consumed — take the adapter's cursor (incl. variant
+      // rollover / exhaustion).
+      nextCursor = outcome.cursor;
+      exhaustedNow = outcome.exhausted;
+    } else {
+      // Cut short by the create cap — resume mid-slice next run, and never
+      // mark exhausted while unprocessed candidates remain.
+      nextCursor =
+        consumed > 0 ? { ...cursor, position: outcome.positions[consumed - 1] } : cursor;
     }
   } catch (e) {
     summary.errors.push(e instanceof Error ? e.message : "discovery failed");
@@ -633,14 +670,23 @@ export async function runBrief(briefId: string): Promise<BriefRunSummary> {
         qualified: summary.qualified,
         scheduled: summary.scheduled,
         errors: summary.errors.length > 0 ? summary.errors : undefined,
+        notes: `variant=${(nextCursor ?? cursor).variant} pos=${(nextCursor ?? cursor).position}${exhaustedNow ? " exhausted" : ""}`,
       },
     });
+    // Zero-created runs back off exponentially instead of pausing forever;
+    // any created prospect fully revives the brief.
+    const emptyRun = summary.created === 0;
+    const newStreak = emptyRun ? brief.emptyRunStreak + 1 : 0;
     await prisma.searchBrief.update({
       where: { id: briefId },
       data: {
         lastRunAt: new Date(),
         totalDiscovered: { increment: summary.created },
         totalQualified: { increment: summary.qualified },
+        ...(nextCursor ? { discoveryCursor: nextCursor as unknown as Prisma.InputJsonValue } : {}),
+        emptyRunStreak: newStreak,
+        cooldownUntil: emptyRun ? new Date(Date.now() + cooldownMs(newStreak)) : null,
+        exhaustedAt: exhaustedNow ? new Date() : null,
       },
     });
   }
@@ -696,11 +742,12 @@ function interleaveByCountry<T extends { country: string }>(briefs: T[]): T[] {
 }
 
 /**
- * Run every active brief in parallel waves of BRIEF_CONCURRENCY. Watches
+ * Run every eligible brief in parallel waves of BRIEF_CONCURRENCY. Watches
  * RUN_TIME_BUDGET_MS — when we approach Vercel's serverless ceiling, stops
  * launching new waves and returns what we have; the next cron picks up the
- * rest. Briefs that go 3 consecutive runs without creating anything get
- * auto-paused so they stop burning Places + Claude quota.
+ * rest. Eligible = active (manual switch), not in cooldown (zero-created
+ * runs back off exponentially, see runBrief), and not exhausted (source has
+ * pages/variants left). Exhausted briefs recycle after 30 days.
  *
  * Parallelism is essential for throughput: at ~95s/brief avg, sequential
  * processing only fits ~8 briefs in 4 minutes. With 30+ active briefs we'd
@@ -710,10 +757,20 @@ function interleaveByCountry<T extends { country: string }>(briefs: T[]): T[] {
 export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
   await recoverStaleRuns();
   const startedAt = Date.now();
+  // Recycle long-exhausted briefs: a month later the same queries surface
+  // new businesses and reshuffled rankings, so start them over.
+  await prisma.searchBrief.updateMany({
+    where: { exhaustedAt: { lt: new Date(Date.now() - EXHAUSTED_RECYCLE_DAYS * 86400000) } },
+    data: { exhaustedAt: null, emptyRunStreak: 0, cooldownUntil: null, discoveryCursor: Prisma.DbNull },
+  });
   // Rotate the order so the same briefs don't always get processed first
   // (and the same briefs aren't always cut off when we hit the time budget).
   const raw = await prisma.searchBrief.findMany({
-    where: { active: true },
+    where: {
+      active: true,
+      exhaustedAt: null,
+      OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: new Date() } }],
+    },
     orderBy: { lastRunAt: { sort: "asc", nulls: "first" } },
   });
   // Interleave by country so every cron fire balances FR + CH (and any future
@@ -724,24 +781,9 @@ export async function runAllActiveBriefs(): Promise<BriefRunSummary[]> {
 
   async function runOne(b: { id: string; name: string }): Promise<BriefRunSummary> {
     try {
-      const s = await runBrief(b.id);
-      if (s.created === 0) {
-        const recent = await prisma.discoveryRun.findMany({
-          where: { briefId: b.id, status: { in: ["done", "failed"] } },
-          orderBy: { startedAt: "desc" },
-          take: AUTO_PAUSE_AFTER_EMPTY_RUNS,
-          select: { created: true },
-        });
-        if (
-          recent.length >= AUTO_PAUSE_AFTER_EMPTY_RUNS &&
-          recent.every((r) => r.created === 0)
-        ) {
-          await prisma.searchBrief.update({ where: { id: b.id }, data: { active: false } });
-          console.log(`[autopilot] auto-paused brief "${b.name}" after ${AUTO_PAUSE_AFTER_EMPTY_RUNS} empty runs`);
-          s.errors.push(`auto-paused (${AUTO_PAUSE_AFTER_EMPTY_RUNS} empty runs in a row)`);
-        }
-      }
-      return s;
+      // Cooldown/exhaustion bookkeeping happens inside runBrief's finally, so
+      // manual single-brief triggers get the same treatment as cron waves.
+      return await runBrief(b.id);
     } catch (e) {
       return {
         briefId: b.id,
