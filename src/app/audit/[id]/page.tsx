@@ -138,7 +138,9 @@ export default async function PerProspectAuditPage({
         ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] relative">
+    // theme-dark-embed: this prospect-facing page keeps the dark look while
+    // the admin shell is light — the class rescopes all CSS vars to dark.
+    <div className="theme-dark-embed min-h-screen bg-[var(--bg)] text-[var(--text)] relative">
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"

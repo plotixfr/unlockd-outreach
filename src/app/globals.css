@@ -1,63 +1,78 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
- * Salvo design system v2 — cutting-edge dark, sharp edges, layered depth.
+ * Salvo design system v3 — light, neutral, one accent (docs/REDESIGN.md).
  *
- * Typography: Montserrat across the board (no serif, no Geist).
- * Radii: max 6px on cards, 4px on inputs/buttons. No pill-rounded surfaces
- *        outside of status dots and badges.
- * Surfaces: dark base + warm-charcoal ladder. Cards rendered with subtle
- *           gradient backgrounds + 1px borders with inner-highlight stroke.
- * Accent: emerald (money/conversion). Used SPARINGLY — only on CTAs, live
- *         status, and chart accents.
+ * Typography: Montserrat everywhere (700 page titles, 600 section labels,
+ *             400/500 body), JetBrains Mono for numbers/IDs.
+ * Surfaces:   zinc-50 page (--bg) + white cards (--surface), 1px borders,
+ *             shadow-sm, rounded-xl.
+ * Accent:     emerald #059669 — primary buttons, active nav, key metrics,
+ *             links. Nothing else is colored except status semantics.
+ *
+ * Legacy note: the dark-era variable names (--bg-elev-*, --border-1/2/3,
+ * --text-dim/faint, --accent-bg/ring/glow) are kept and remapped to light
+ * equivalents so pages not yet migrated (G1–G4) keep rendering. The
+ * prospect-facing /audit/[id] keeps the dark look via `.theme-dark-embed`.
  * ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surface ladder — pure black to warm graphite */
-  --bg:         #050507;
-  --bg-elev-1:  #0a0a0e;
-  --bg-elev-2:  #101015;
-  --bg-elev-3:  #16161d;
-  --bg-elev-4:  #1c1c25;
+  /* Core tokens (REDESIGN.md) */
+  --bg:            #fafafa;
+  --surface:       #ffffff;
+  --border:        #e4e4e7;
+  --border-strong: #d4d4d8;
 
-  /* Borders — three weights for layering */
-  --border-1: #1a1a23;
-  --border-2: #24242f;
-  --border-3: #2e2e3c;
+  --text:           #18181b;
+  --text-secondary: #52525b;
+  --text-muted:     #a1a1aa;
 
-  /* Text */
-  --text:        #f7f7fa;
-  --text-muted:  #9c9daa;
-  --text-dim:    #5a5b66;
-  --text-faint:  #3d3e48;
+  --accent:        #059669;
+  --accent-hover:  #047857;
+  --accent-soft:   #ecfdf5;
+  --accent-border: #a7f3d0;
 
-  /* Accent — single emerald, no other hues. Status colors use it tinted. */
-  --accent:        #10b981;
-  --accent-hover:  #34d399;
-  --accent-dim:    #064e3b;
-  --accent-bg:     rgba(16, 185, 129, 0.10);
-  --accent-bg-2:   rgba(16, 185, 129, 0.18);
-  --accent-ring:   rgba(16, 185, 129, 0.30);
-  --accent-glow:   rgba(16, 185, 129, 0.40);
+  /* Status semantics: ok=emerald, warn=amber, error=red, info=sky */
+  --ok:           #059669;
+  --ok-soft:      #ecfdf5;
+  --warning:      #d97706;
+  --warning-soft: #fffbeb;
+  --danger:       #dc2626;
+  --danger-soft:  #fef2f2;
+  --info:         #0284c7;
+  --info-soft:    #f0f9ff;
+  --positive:     #059669; /* legacy alias */
 
-  /* Status — tints */
-  --positive: #34d399;
-  --warning:  #f59e0b;
-  --danger:   #f43f5e;
-  --info:     #60a5fa;
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04), 0 1px 3px rgba(24, 24, 27, 0.06);
+
+  /* Legacy aliases (dark-era names) → light equivalents */
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #ffffff;
+  --bg-elev-3: #f4f4f5;
+  --bg-elev-4: #e4e4e7;
+  --border-1:  #e4e4e7;
+  --border-2:  #e4e4e7;
+  --border-3:  #d4d4d8;
+  --text-dim:   #a1a1aa;
+  --text-faint: #c2c2c9;
+  --accent-dim:  #a7f3d0;
+  --accent-bg:   rgba(5, 150, 105, 0.08);
+  --accent-bg-2: rgba(5, 150, 105, 0.14);
+  --accent-ring: rgba(5, 150, 105, 0.30);
+  --accent-glow: rgba(5, 150, 105, 0.18);
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-accent:     var(--accent);
-  --color-border:     var(--border-2);
+  --color-border:     var(--border);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }
 
 * {
-  border-color: var(--border-2);
+  border-color: var(--border);
 }
 
 html, body {
@@ -70,31 +85,23 @@ html, body {
   font-feature-settings: "ss01", "cv11";
 }
 
-body {
-  background-image:
-    radial-gradient(ellipse 800px 400px at 12% -10%, rgba(16, 185, 129, 0.07), transparent 60%),
-    radial-gradient(ellipse 600px 400px at 88% 110%, rgba(245, 158, 11, 0.025), transparent 60%);
-  background-attachment: fixed;
-}
-
 main { position: relative; z-index: 1; }
 
 h1, h2, h3, h4 {
-  letter-spacing: -0.028em;
+  letter-spacing: -0.025em;
   font-weight: 700;
 }
-h1 { font-weight: 800; }
 
-::selection { background: var(--accent-bg-2); color: #fff; }
+::selection { background: #a7f3d0; color: #064e3b; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-elev-4);
+  background: var(--border-strong);
   border-radius: 4px;
   border: 2px solid var(--bg);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--border-3); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -106,56 +113,44 @@ table { font-variant-numeric: tabular-nums; }
 
 /* ── Brand wordmark gradient ── */
 .text-gradient-brand {
-  background: linear-gradient(135deg, #ffffff 0%, #34d399 100%);
+  background: linear-gradient(135deg, #18181b 0%, #059669 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .text-gradient-accent {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* ── Cards — sharp + layered. Use `.card` as a base.
- *    Inset top-highlight + soft bottom shadow + 1px border.
- *    Border accents on hover via `.card-interactive`.
- * ── */
+/* ── Cards — white surface, 1px border, soft shadow, rounded-xl ── */
 .card {
   position: relative;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 30%),
-    linear-gradient(180deg, var(--bg-elev-2) 0%, var(--bg-elev-1) 100%);
-  border: 1px solid var(--border-2);
-  border-radius: 6px;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 1px 2px rgba(0, 0, 0, 0.35),
-    0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
 }
 
 .card-accent {
-  background:
-    linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, transparent 60%),
-    linear-gradient(180deg, var(--bg-elev-2) 0%, var(--bg-elev-1) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: 6px;
-  box-shadow:
-    inset 0 1px 0 rgba(16, 185, 129, 0.10),
-    0 1px 2px rgba(0, 0, 0, 0.35),
-    0 14px 30px -14px rgba(16, 185, 129, 0.18);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
 }
 
 .card-interactive {
   transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 .card-interactive:hover {
-  border-color: var(--border-3);
+  border-color: var(--border-strong);
   transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(24, 24, 27, 0.05), 0 8px 20px -8px rgba(24, 24, 27, 0.10);
 }
 
-/* Corner accent — a small emerald cut on top-left, used on hero cards */
+/* Corner accent — small emerald cut on top-left, used on hero cards */
 .corner-accent::before {
   content: "";
   position: absolute;
@@ -165,59 +160,71 @@ table { font-variant-numeric: tabular-nums; }
   height: 28px;
   border-top: 2px solid var(--accent);
   border-left: 2px solid var(--accent);
-  border-top-left-radius: 6px;
+  border-top-left-radius: 12px;
   pointer-events: none;
 }
 
-/* Etched divider — used inside cards instead of border-t */
+/* Divider — used inside cards instead of border-t */
 .etch-top {
-  border-top: 1px solid var(--border-2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--border);
 }
 
-/* ── Section header ── */
+/* ── Section header — 11px / 600 / uppercase / tracking-wide ── */
 .section-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: var(--text-muted);
 }
 
-/* ── Pills / badges — flat, sharp, no full-rounded ── */
+/* ── Badges — status chips. Pair with STATUS_BOJE color strings. ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+/* Legacy pills — restyled to light tints, same names */
 .pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 .pill-accent {
-  background: var(--accent-bg);
-  color: #6ee7b7;
-  border: 1px solid var(--accent-ring);
+  background: var(--accent-soft);
+  color: #047857;
+  border: 1px solid var(--accent-border);
 }
 .pill-muted {
-  background: rgba(255, 255, 255, 0.025);
-  color: var(--text-muted);
-  border: 1px solid var(--border-2);
+  background: #f4f4f5;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 .pill-warning {
-  background: rgba(245, 158, 11, 0.10);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.30);
+  background: var(--warning-soft);
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 .pill-danger {
-  background: rgba(244, 63, 94, 0.10);
-  color: #fda4af;
-  border: 1px solid rgba(244, 63, 94, 0.30);
+  background: var(--danger-soft);
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 /* Status dot — minimal pulsing indicator */
@@ -226,39 +233,75 @@ table { font-variant-numeric: tabular-nums; }
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--text-dim);
+  background: var(--border-strong);
 }
 .dot-live {
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg), 0 0 12px var(--accent-glow);
+  box-shadow: 0 0 0 3px var(--accent-bg);
   animation: dot-pulse 2.4s ease-in-out infinite;
 }
 @keyframes dot-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--accent-bg), 0 0 12px var(--accent-glow); }
-  50%      { box-shadow: 0 0 0 4px rgba(16,185,129,0.15), 0 0 18px var(--accent-glow); }
+  0%, 100% { box-shadow: 0 0 0 3px var(--accent-bg); }
+  50%      { box-shadow: 0 0 0 5px var(--accent-bg-2); }
 }
 
 /* ── Buttons ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  letter-spacing: -0.01em;
+  border: 1px solid var(--accent);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
+  transition: background 130ms ease, border-color 130ms ease, transform 130ms ease;
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.5; pointer-events: none; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.04);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.btn-secondary:hover { background: #f4f4f5; border-color: var(--border-strong); }
+.btn-secondary:disabled { opacity: 0.5; pointer-events: none; }
+
+/* Legacy button names — same look as the new pair */
 .btn-accent {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
-  color: #03261b;
+  background: var(--accent);
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   padding: 10px 18px;
-  border-radius: 4px;
+  border-radius: 8px;
   letter-spacing: -0.01em;
-  border: 1px solid rgba(16, 185, 129, 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.30),
-    0 1px 0 rgba(0, 0, 0, 0.2),
-    0 8px 22px -10px var(--accent-glow);
-  transition: transform 130ms ease, box-shadow 130ms ease, background 130ms ease;
+  border: 1px solid var(--accent);
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
+  transition: background 130ms ease, border-color 130ms ease, transform 130ms ease;
 }
-.btn-accent:hover { background: linear-gradient(180deg, #6ee7b7 0%, #34d399 100%); }
+.btn-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-accent:active { transform: translateY(1px); }
 
 .btn-ghost {
@@ -266,16 +309,69 @@ table { font-variant-numeric: tabular-nums; }
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--surface);
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
   padding: 10px 16px;
-  border-radius: 4px;
-  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
   transition: background 150ms ease, border-color 150ms ease;
 }
-.btn-ghost:hover { background: rgba(255, 255, 255, 0.05); border-color: var(--border-3); }
+.btn-ghost:hover { background: #f4f4f5; border-color: var(--border-strong); }
+
+/* ── Tables — h-11 rows, muted uppercase headers, row hover ── */
+.table-base {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.table-base thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+.table-base tbody td {
+  height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.table-base tbody tr:last-child td { border-bottom: none; }
+.table-base tbody tr:hover { background: var(--bg); }
+
+/* ── Empty state — centered + muted inside a dashed card ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 48px 24px;
+  background: var(--surface);
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--text-muted);
+}
+
+/* ── KPI numbers — JetBrains Mono, tabular ── */
+.kpi-value {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Mono numbers ── */
 .tabular { font-variant-numeric: tabular-nums; }
@@ -293,4 +389,63 @@ table { font-variant-numeric: tabular-nums; }
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Dark embed scope — prospect-facing /audit/[id] keeps its original dark
+ * look. Applied on the page's root wrapper; remaps every token (including
+ * legacy names) back to the dark v2 values so the shared classes above
+ * (.card, .card-accent, .etch-top, .btn-accent, …) render dark inside it.
+ * ───────────────────────────────────────────────────────────────────────── */
+.theme-dark-embed {
+  --bg:            #050507;
+  --surface:       #101015;
+  --border:        #24242f;
+  --border-strong: #2e2e3c;
+
+  --text:           #f7f7fa;
+  --text-secondary: #c2c3cc;
+  --text-muted:     #9c9daa;
+
+  --accent:        #10b981;
+  --accent-hover:  #34d399;
+  --accent-soft:   rgba(16, 185, 129, 0.08);
+  --accent-border: rgba(16, 185, 129, 0.28);
+
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    0 8px 24px -12px rgba(0, 0, 0, 0.5);
+
+  --bg-elev-1: #0a0a0e;
+  --bg-elev-2: #101015;
+  --bg-elev-3: #16161d;
+  --bg-elev-4: #1c1c25;
+  --border-1:  #1a1a23;
+  --border-2:  #24242f;
+  --border-3:  #2e2e3c;
+  --text-dim:   #5a5b66;
+  --text-faint: #3d3e48;
+  --accent-dim:  #064e3b;
+  --accent-bg:   rgba(16, 185, 129, 0.10);
+  --accent-bg-2: rgba(16, 185, 129, 0.18);
+  --accent-ring: rgba(16, 185, 129, 0.30);
+  --accent-glow: rgba(16, 185, 129, 0.40);
+
+  background: var(--bg);
+  color: var(--text);
+}
+.theme-dark-embed .text-gradient-brand {
+  background: linear-gradient(135deg, #ffffff 0%, #34d399 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.theme-dark-embed .btn-accent {
+  color: #03261b;
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+.theme-dark-embed .btn-accent:hover {
+  background: linear-gradient(180deg, #6ee7b7 0%, #34d399 100%);
 }

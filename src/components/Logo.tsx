@@ -1,7 +1,7 @@
 /**
  * Salvo logomark. Two abstract chevrons stacked — reads as both an "S"
- * silhouette and as an upward outbound trajectory. Emerald-on-dark by
- * default, monochrome on light surfaces.
+ * silhouette and as an upward outbound trajectory. Emerald gradient deep
+ * enough to hold contrast on white surfaces; also reads on dark embeds.
  */
 
 import { BRAND } from "@/lib/brand";
@@ -19,8 +19,8 @@ export function LogoMark({ size = 24, className = "" }: { size?: number; classNa
     >
       <defs>
         <linearGradient id="salvoMark" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#34d399" />
-          <stop offset="1" stopColor="#10b981" />
+          <stop offset="0" stopColor="#10b981" />
+          <stop offset="1" stopColor="#059669" />
         </linearGradient>
       </defs>
       <rect x="0" y="0" width="24" height="24" rx="6" fill="url(#salvoMark)" />

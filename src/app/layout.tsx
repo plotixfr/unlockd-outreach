@@ -46,7 +46,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en" className={`${montserrat.variable} ${mono.variable} h-full`}>
-      <body className="bg-[#07070a] text-[#f5f5f7] min-h-screen antialiased">
+      <body className="bg-[var(--bg)] text-[var(--text)] min-h-screen antialiased">
         {hasSession && !standalone ? (
           <div className="flex min-h-screen print:block">
             <div className="print:hidden">

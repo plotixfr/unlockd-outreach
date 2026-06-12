@@ -32,18 +32,18 @@ export const STATUSI = [
 export type Status = (typeof STATUSI)[number];
 
 export const STATUS_BOJE: Record<string, string> = {
-  New:          "bg-zinc-800/60 text-zinc-300 border border-zinc-700/40",
-  Scheduled:    "bg-sky-500/10 text-sky-300 border border-sky-500/20",
-  Emailed:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
-  Follow1:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
-  Follow2:      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25",
-  Follow3:      "bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/25",
-  Breakup:      "bg-amber-500/15 text-amber-300 border border-amber-500/25",
-  Replied:      "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20",
-  Converted:    "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
-  Unsubscribed: "bg-red-500/10 text-red-300 border border-red-500/20",
-  Bounced:      "bg-red-500/15 text-red-400 border border-red-500/30",
-  Failed:       "bg-orange-500/15 text-orange-300 border border-orange-500/30",
+  New:          "bg-zinc-100 text-zinc-700 border border-zinc-200",
+  Scheduled:    "bg-sky-50 text-sky-700 border border-sky-200",
+  Emailed:      "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Follow1:      "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Follow2:      "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Follow3:      "bg-violet-50 text-violet-700 border border-violet-200",
+  Breakup:      "bg-amber-50 text-amber-700 border border-amber-200",
+  Replied:      "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  Converted:    "bg-emerald-600 text-white border border-emerald-600",
+  Unsubscribed: "bg-red-50 text-red-700 border border-red-200",
+  Bounced:      "bg-red-50 text-red-700 border border-red-200",
+  Failed:       "bg-orange-50 text-orange-700 border border-orange-200",
 };
 
 export const PIPELINE_ORDER: Status[] = [
