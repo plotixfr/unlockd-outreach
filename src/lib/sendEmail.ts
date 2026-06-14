@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { signatureHtml, signatureText } from "@/lib/signature";
 import { lintForSpam, shouldBlock as shouldSpamBlock } from "@/lib/spamCheck";
 import { isDomainSuppressed } from "@/lib/suppression";
+import { sitePreviewEnabled } from "@/lib/flags";
 
 /**
  * Returns a thum.io screenshot URL for the prospect's site. We use thum.io's
@@ -97,10 +98,11 @@ function buildHtml(
     : `Si vous ne souhaitez plus recevoir nos messages, <a href="${SITE_URL}/api/unsubscribe/${prospectId}" style="color:#999;text-decoration:underline;">cliquez ici pour vous désabonner</a>.`;
   const unsubscribe = `<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">${unsubscribeCopy}</p>`;
 
-  // Inline site screenshot — only on the initial email. A visual reminder of
-  // their current site, sitting just below the message, dramatically lifts
-  // reply rate in our tests vs. a pure-text email.
-  const screenshotUrl = opts.includeScreenshot ? siteScreenshotUrl(opts.siteUrl) : null;
+  // Inline site screenshot — only on the initial email, and only when the
+  // site-preview flag is on. Default OFF keeps cold emails plain text (no
+  // inline images), per the go-live decision.
+  const screenshotUrl =
+    opts.includeScreenshot && sitePreviewEnabled() ? siteScreenshotUrl(opts.siteUrl) : null;
   const screenshotBlock = screenshotUrl
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;border-collapse:collapse;">
   <tr>
@@ -270,14 +272,18 @@ export async function sendOneEmail(
   // pointing to /audit/[id] (the audit landing page) so the F2 promise
   // actually delivers something. No-op when body already contains the link.
   const auditLandingUrl = `${SITE_URL}/audit/${email.prospect.id}`;
+  // The audit landing page (3 text findings) is a legit deliverable and stays.
+  // The mockup / "direction visuelle" mention is gated by the site-preview flag
+  // so a disabled preview never gets promised in the body.
+  const previewOn = sitePreviewEnabled();
   const shouldInjectAuditCta =
     email.tip === "follow2" &&
     !email.body.includes(`/audit/${email.prospect.id}`) &&
-    !!(email.prospect.mockupUrl || email.prospect.auditFindings);
+    !!(email.prospect.auditFindings || (previewOn && email.prospect.mockupUrl));
   const bodyToSend = shouldInjectAuditCta
     ? email.body +
       `<p style="margin-top:18px;">J'ai préparé un audit personnalisé pour vous — <a href="${auditLandingUrl}" style="color:#10b981;font-weight:600;">les 3 points concrets ici${
-        email.prospect.mockupUrl ? " + une direction visuelle" : ""
+        previewOn && email.prospect.mockupUrl ? " + une direction visuelle" : ""
       } →</a></p>`
     : email.body;
 

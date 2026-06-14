@@ -26,6 +26,7 @@ import { scoreProspect } from "@/lib/qualityScore";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import { classifyClaudeError } from "@/lib/claudeError";
+import { sitePreviewEnabled } from "@/lib/flags";
 import { verifyEmail } from "@/lib/verifyEmail";
 import { isDomainSuppressed } from "@/lib/suppression";
 import { generateAuditFindings } from "@/lib/auditFindings";
@@ -78,10 +79,11 @@ const GEN_TIMEOUT_MS = Number(process.env.AUTOPILOT_GEN_TIMEOUT_MS ?? 90_000);
 const VERIFY_TIMEOUT_MS = 9_000;
 const AUDIT_TIMEOUT_MS = 22_000;
 const MOCKUP_TIMEOUT_MS = 30_000;
-// Toggle: defaults true if REPLICATE_API_TOKEN is set. Skips when missing
-// so the autopilot doesn't error on every prospect when Replicate quota /
-// billing is off.
-const MOCKUP_ENABLED = !!process.env.REPLICATE_API_TOKEN;
+// Site-preview mockup generation in the pipeline. OFF unless BOTH the
+// ENABLE_SITE_PREVIEW flag is "true" AND a Replicate token exists. Default OFF:
+// the cold sequence is plain text and the operator offers a mockup manually on
+// reply. The Replicate module stays in the repo, just never runs here.
+const MOCKUP_ENABLED = sitePreviewEnabled() && !!process.env.REPLICATE_API_TOKEN;
 // Toggle: defaults true. Set EMAIL_VERIFY=false to disable (e.g. if a host
 // blocks outbound port 25 and every verify returns "unknown").
 const EMAIL_VERIFY_ENABLED = process.env.EMAIL_VERIFY !== "false";

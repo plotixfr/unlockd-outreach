@@ -23,6 +23,7 @@ import { decisionMakersToPromptFacts, pickGreetingName } from "@/lib/decisionMak
 import { buildVoiceGuideForPrompt } from "@/lib/voiceProfile";
 import type { AuditResult } from "@/lib/auditFindings";
 import { ICP, GROUP_A_NICHE_RE, GROUP_B_NICHE_RE } from "@/lib/icp";
+import { sitePreviewEnabled } from "@/lib/flags";
 
 export type Lang = "fr" | "nl";
 
@@ -234,6 +235,11 @@ function isStrongRating(rating: number | null, reviewCount: number | null): bool
 
 function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
   const blocks: string[] = [];
+  // Website-preview mockup is gated by ENABLE_SITE_PREVIEW (default OFF). When
+  // off, the prompt never references a mockup image or a "voici à quoi votre
+  // site pourrait ressembler" preview — the free mockup is offered as TEXT and
+  // delivered manually on reply.
+  const mockupUrl = sitePreviewEnabled() ? (opts.mockupUrl ?? null) : null;
   const siteFacts = snapshotToPromptFacts(opts.siteSnapshot);
   if (siteFacts) blocks.push(siteFacts);
   const psiFacts = pagespeedToPromptFacts(opts.pagespeed);
@@ -262,15 +268,15 @@ function buildFactsBlock(p: PromptProspect, opts: BuildPromptOpts): string {
     // The audit landing page renders findings + mockup + Calendly CTA. F2
     // links here; Claude must NOT try to reproduce all findings in the
     // email body (the landing page already does that, better).
-    const mockupHint = opts.mockupUrl
+    const mockupHint = mockupUrl
       ? " La page contient aussi une direction visuelle pour leur site (mockup)."
       : "";
     blocks.push(
       `Page d'audit DÉJÀ PRÉPARÉE pour ce prospect : ${opts.auditUrl}\n\nFollow2 doit se terminer par UNE phrase courte qui pointe vers cette URL, exemple : "J'ai préparé un audit personnalisé pour vous, <a href='${opts.auditUrl}'>les 3 points concrets ici</a>". Garde l'URL EXACTE dans un <a href>. Pas besoin de réécrire les findings dans le mail, la page les présente déjà.${mockupHint}\n\nFollow1 peut faire une légère allusion ("je vous prépare un audit ciblé, je vous l'envoie d'ici quelques jours") sans donner le lien, le lien tombe en Follow2.`
     );
-  } else if (opts.mockupUrl) {
+  } else if (mockupUrl) {
     blocks.push(
-      `Mockup visuel DÉJÀ GÉNÉRÉ (image hero premium du site refait) : ${opts.mockupUrl}\n\nFollow2 doit se terminer par UNE phrase qui pointe vers le mockup, exemple : "J'ai esquissé à quoi votre site pourrait ressembler, <a href='${opts.mockupUrl}'>première impression visuelle ici</a>." (adapte la formulation mais garde l'URL telle quelle, dans un <a href>).`
+      `Mockup visuel DÉJÀ GÉNÉRÉ (image hero premium du site refait) : ${mockupUrl}\n\nFollow2 doit se terminer par UNE phrase qui pointe vers le mockup, exemple : "J'ai esquissé à quoi votre site pourrait ressembler, <a href='${mockupUrl}'>première impression visuelle ici</a>." (adapte la formulation mais garde l'URL telle quelle, dans un <a href>).`
     );
   }
   return blocks.length === 0 ? "" : `\n\n${blocks.join("\n\n")}`;
@@ -367,7 +373,7 @@ Types à générer (adapte ton et arguments au secteur "${nicheLabel}"):
 Les 5 types doivent VRAIMENT différer (angle ET formulation de l'appel à l'action), pas seulement l'objet :
 1. "initial" — Accroche = le fait le plus fort sur EUX (score mobile bas, note Google, absence de site). UNE valeur concrète. CTA = PROPOSER la maquette gratuite ("je vous l'envoie ?").
 2. "follow1" — Relance brève qui SUPPOSE qu'ils ont vu le 1er email (ex. "je reviens vers vous"). UN angle concret EN PLUS, pas une répétition. Nudge léger, ne re-déroule pas tout le pitch ni la même phrase de CTA.
-3. "follow2" — Preuve sociale concrète (case study / mockup / page d'audit si fournis ci-dessus), ou "j'ai commencé à esquisser votre page" puis propose de l'envoyer. Décris au plus DEUX éléments concrets, jamais une liste de trois ("X, Y et Z").
+3. "follow2" — Preuve sociale concrète (case study / page d'audit si fournis ci-dessus), ou "j'ai commencé à esquisser votre page" puis propose de l'envoyer (la maquette est offerte par texte, jamais une image jointe). Décris au plus DEUX éléments concrets, jamais une liste de trois ("X, Y et Z").
 4. "follow3" — Très court : UNE seule question oui/non franche, sans nouvel argument ("c'est un sujet pour vous en ce moment, oui ou non ?").
 5. "breakup" — Dernier message, ton léger et SANS pression, AUCUN pitch ni CTA maquette (registre différent des autres). Format : "Bonjour ${greetingFirstName ?? "[Prénom]"}, c'est mon dernier message, aucun souci si ce n'est pas le moment. Dois-je clôturer ou c'est juste un mauvais timing ?" 35 mots max. Objet : 3-5 mots minuscules.
 
@@ -495,7 +501,7 @@ Types te genereren (pas toon en argumenten aan op de sector "${nicheLabel}"):
 De 5 types moeten ECHT verschillen (invalshoek ÉN formulering van de call-to-action), niet alleen het onderwerp:
 1. "initial" — Opening = het sterkste feit over HEN (lage mobiele score, Google-score, geen site). ÉÉN concreet voordeel. CTA = de gratis mockup AANBIEDEN ("zal ik 'm sturen?").
 2. "follow1" — Korte opvolging die AANNEEMT dat ze de eerste e-mail zagen (bv. "ik kom hier even op terug"). ÉÉN concrete extra invalshoek, geen herhaling. Lichte nudge, niet de hele pitch of dezelfde CTA-zin opnieuw.
-3. "follow2" — Concreet sociaal bewijs (case study / mockup / auditpagina indien hierboven gegeven), of "ik ben je homepage al gaan schetsen" en bied aan die te sturen. Beschrijf hooguit TWEE concrete elementen, nooit een rij van drie ("X, Y en Z").
+3. "follow2" — Concreet sociaal bewijs (case study / auditpagina indien hierboven gegeven), of "ik ben je homepage al gaan schetsen" en bied aan die te sturen (de mockup wordt als tekst aangeboden, nooit als bijgevoegde afbeelding). Beschrijf hooguit TWEE concrete elementen, nooit een rij van drie ("X, Y en Z").
 4. "follow3" — Heel kort: ÉÉN duidelijke ja/nee-vraag, geen nieuw argument ("is dit nu iets voor je, ja of nee?").
 5. "breakup" — Laatste bericht, luchtige toon ZONDER druk, GEEN pitch of mockup-CTA (ander register dan de rest). Formaat: "${isJe ? `Hoi ${greetingFirstName ?? "[Voornaam]"}, dit is mijn laatste bericht, geen zorgen als het nu niet uitkomt. Moet ik dit sluiten of is het gewoon verkeerde timing?` : `Beste ${greetingFirstName ?? "[Voornaam]"}, dit is mijn laatste bericht, geen zorgen als het nu niet uitkomt. Moet ik dit sluiten of is het gewoon verkeerde timing?`}" 35 woorden max. Onderwerp: 3-5 kleine letters.
 
