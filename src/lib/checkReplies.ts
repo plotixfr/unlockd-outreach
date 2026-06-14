@@ -36,6 +36,27 @@ export interface CheckRepliesResult {
   errors: string[];
 }
 
+/**
+ * Classifies a connection/scan-level IMAP failure so the log says WHY without
+ * ever revealing the password. AUTH_FAILED = the server rejected the
+ * credentials (fix GoDaddy access / password); CONN_TLS = handshake/socket/DNS
+ * (transport, not creds); TIMEOUT = connect or greeting timed out.
+ */
+function classifyImapError(e: unknown): { cls: "AUTH_FAILED" | "CONN_TLS" | "TIMEOUT" | "UNKNOWN"; reason: string } {
+  const err = e as { code?: string; authenticationFailed?: boolean; message?: string; responseText?: string };
+  const blob = `${err?.code ?? ""} ${err?.message ?? ""} ${err?.responseText ?? ""}`;
+  if (err?.authenticationFailed === true || /AUTHENTICATIONFAILED|authenticat|invalid credential|login failed|\bLOGIN\b|password|535|\[ALERT\]/i.test(blob)) {
+    return { cls: "AUTH_FAILED", reason: "invalid credentials / login rejected" };
+  }
+  if (/ETIMEDOUT|timed?\s?out|greeting/i.test(blob)) {
+    return { cls: "TIMEOUT", reason: "connect/greeting timeout" };
+  }
+  if (/ECONNREFUSED|ENOTFOUND|ECONNRESET|EPROTO|EHOSTUNREACH|ENETUNREACH|tls|ssl|handshake|certificate|self[-\s]signed|alt name|servername|socket/i.test(blob)) {
+    return { cls: "CONN_TLS", reason: "connection/TLS failure" };
+  }
+  return { cls: "UNKNOWN", reason: (err?.message ?? "imap error").slice(0, 80) };
+}
+
 export async function checkReplies(): Promise<CheckRepliesResult> {
   const host = process.env.IMAP_HOST ?? "imap.titan.email";
   const port = Number(process.env.IMAP_PORT ?? 993);
@@ -58,6 +79,12 @@ export async function checkReplies(): Promise<CheckRepliesResult> {
     secure: true,
     auth: { user, pass },
     logger: false,
+    // Explicit SNI + TLS floor. Some Node builds don't send the SNI
+    // `servername` on an implicit-TLS (993) socket, which can fail the
+    // handshake against Titan (the connection-level failure we saw locally).
+    // Pinning it removes TLS as a variable so any remaining failure is
+    // unambiguously authentication, not transport.
+    tls: { servername: host, minVersion: "TLSv1.2" },
   });
 
   try {
@@ -243,7 +270,14 @@ export async function checkReplies(): Promise<CheckRepliesResult> {
       lock.release();
     }
   } catch (e) {
-    errors.push(e instanceof Error ? e.message : "IMAP error");
+    // Self-describing failure: log the error CLASS so the operator can tell an
+    // auth rejection from a transport/TLS failure. Redact the password from any
+    // echoed server text before it ever reaches a log.
+    const { cls, reason } = classifyImapError(e);
+    const raw = e instanceof Error ? e.message : "IMAP error";
+    const safe = pass ? raw.split(pass).join("***") : raw;
+    console.error(`[check-replies] imap error: ${cls} (${reason}) host=${host}`);
+    errors.push(`imap ${cls}: ${reason} — ${safe.slice(0, 120)}`);
     // Connection/scan-level failure: the follow-up gate must NOT lift.
     connectionFailed = true;
   } finally {
