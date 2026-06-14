@@ -15,6 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
 import { ICP, GROUP_A_NICHE_RE, GROUP_B_NICHE_RE, countryName } from "@/lib/icp";
+import { classifyClaudeError, API_CREDIT_OR_AUTH_ERROR } from "@/lib/claudeError";
 
 const MODEL = "claude-haiku-4-5-20251001";
 
@@ -139,6 +140,11 @@ export async function scoreProspect(
     return applyBuyingTriggerBoosts(baseScore, baseNote, p);
   } catch (e) {
     console.warn("[qualityScore] failed:", e);
+    // A credit/auth/quota failure is fatal and run-wide, not a per-prospect
+    // flake — throw a distinct marker so it never masquerades as "scoring
+    // returned null". Callers (autopilot processPlace, redrive, score route)
+    // all catch per-prospect, so this surfaces loudly without crashing a run.
+    if (classifyClaudeError(e)) throw new Error(API_CREDIT_OR_AUTH_ERROR);
     return null;
   }
 }

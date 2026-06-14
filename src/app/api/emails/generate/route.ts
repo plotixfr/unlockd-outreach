@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
+import { classifyClaudeError } from "@/lib/claudeError";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
@@ -182,10 +183,11 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("[generate] Anthropic API error:", msg);
+      const sig = classifyClaudeError(err);
+      console.error("[generate] Anthropic API error:", sig ?? "", msg);
       return NextResponse.json(
-        { error: `Claude API error: ${msg}` },
-        { status: 502 }
+        { error: sig ? `${sig}: ${msg}` : `Claude API error: ${msg}` },
+        { status: sig ? 402 : 502 }
       );
     }
 

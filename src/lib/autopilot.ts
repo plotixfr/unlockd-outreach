@@ -25,6 +25,7 @@ import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMake
 import { scoreProspect } from "@/lib/qualityScore";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
 import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
+import { classifyClaudeError } from "@/lib/claudeError";
 import { verifyEmail } from "@/lib/verifyEmail";
 import { isDomainSuppressed } from "@/lib/suppression";
 import { generateAuditFindings } from "@/lib/auditFindings";
@@ -203,31 +204,43 @@ export async function generateEmailsInline(
     | null) ?? null;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://unlockd-outreach.vercel.app";
-  const message = await withTimeout(
-    anthropic.messages.create({
-      model: EMAIL_MODEL,
-      max_tokens: 4096,
-      system: await getEmailSystemPrompt(prospect.language),
-      messages: [
-        {
-          role: "user",
-          content: buildEmailPrompt(prospect, {
-            nicheHint: nicheTemplate?.promptHint,
-            siteSnapshot: ctx.site,
-            pagespeed: ctx.psi,
-            decisionMakers: ctx.dm,
-            caseStudy,
-            audit,
-            mockupUrl: prospect.mockupUrl,
-            auditUrl: `${siteUrl}/audit/${prospect.id}`,
-            lang: prospect.language,
-          }),
-        },
-      ],
-    }),
-    GEN_TIMEOUT_MS,
-    `generateEmails(${prospect.firmaNaziv})`
-  );
+  let message: Anthropic.Message | null;
+  try {
+    message = await withTimeout(
+      anthropic.messages.create({
+        model: EMAIL_MODEL,
+        max_tokens: 4096,
+        system: await getEmailSystemPrompt(prospect.language),
+        messages: [
+          {
+            role: "user",
+            content: buildEmailPrompt(prospect, {
+              nicheHint: nicheTemplate?.promptHint,
+              siteSnapshot: ctx.site,
+              pagespeed: ctx.psi,
+              decisionMakers: ctx.dm,
+              caseStudy,
+              audit,
+              mockupUrl: prospect.mockupUrl,
+              auditUrl: `${siteUrl}/audit/${prospect.id}`,
+              lang: prospect.language,
+            }),
+          },
+        ],
+      }),
+      GEN_TIMEOUT_MS,
+      `generateEmails(${prospect.firmaNaziv})`
+    );
+  } catch (err) {
+    // A thrown error here is an API failure (credit/auth/quota or transient),
+    // NOT a timeout — a timeout resolves to null below. Tag billing/auth
+    // distinctly so it never masquerades as a generation/timeout bug.
+    const sig = classifyClaudeError(err);
+    return {
+      count: 0,
+      failure: sig ?? `API error: ${err instanceof Error ? err.message.slice(0, 120) : "unknown"}`,
+    };
+  }
   if (!message) return { count: 0, failure: `timeout after ${GEN_TIMEOUT_MS}ms` };
   const block = message.content[0];
   if (!block || block.type !== "text") return { count: 0, failure: "no text block in response" };
@@ -508,19 +521,32 @@ async function processPlace(
 
   // Score for fit — the brief's targeting fields tell the scorer what the
   // hunt was for, so it never penalizes the niche/market it was sent to find.
-  const scoring = await scoreProspect(
-    {
-      firmaNaziv: place.name,
-      nisa: nicheLabel,
-      grad: place.city ?? brief.city ?? "Unknown",
-      website: place.website,
-      opisFirme: null,
-      napomena: prospect.napomena,
-      siteSnapshot: site,
-      pagespeed: psi,
-    },
-    { niche: brief.niche, city: brief.city, country: brief.country, language: brief.language }
-  );
+  let scoring: Awaited<ReturnType<typeof scoreProspect>> = null;
+  try {
+    scoring = await scoreProspect(
+      {
+        firmaNaziv: place.name,
+        nisa: nicheLabel,
+        grad: place.city ?? brief.city ?? "Unknown",
+        website: place.website,
+        opisFirme: null,
+        napomena: prospect.napomena,
+        siteSnapshot: site,
+        pagespeed: psi,
+      },
+      { niche: brief.niche, city: brief.city, country: brief.country, language: brief.language }
+    );
+  } catch (e) {
+    // scoreProspect only throws on a credit/auth/quota failure (everything
+    // else returns null). Tag the prospect distinctly so a billing problem
+    // is unmistakable and never reads as an ordinary scoring null.
+    const sig = classifyClaudeError(e) ?? `error: ${e instanceof Error ? e.message.slice(0, 120) : "unknown"}`;
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { lastError: `scoring: ${sig}` },
+    });
+    return { status: "created", reason: `scoring failed (${sig})` };
+  }
   if (scoring) {
     await prisma.prospect.update({
       where: { id: prospect.id },
