@@ -170,13 +170,16 @@ export async function checkReplies(): Promise<CheckRepliesResult> {
             // categories so the operator can respond fast — speed-to-reply
             // is the single biggest predictor of close on a warm prospect.
             if (analysis.classification === "Interested" || analysis.classification === "Question") {
-              void notifyHotReply({
+              // Fire-and-forget, but self-handle: this promise settles AFTER
+              // the surrounding try exits, so a Telegram/email reject here would
+              // otherwise become an unhandled rejection and abort the cron run.
+              notifyHotReply({
                 prospectId: prospect.id,
                 firmaNaziv: prospect.firmaNaziv,
                 classification: analysis.classification,
                 replyBody: body,
                 draft: analysis.draft || null,
-              });
+              }).catch((e) => console.warn("[checkReplies] notifyHotReply failed (non-fatal):", e));
             }
           }
         } catch (e) {

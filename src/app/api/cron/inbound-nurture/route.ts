@@ -101,19 +101,26 @@ async function sendNudge(
   });
   if (error) return { ok: false, error: error.message };
 
-  // Persist as a fake "email" so the activity timeline shows it.
-  await prisma.email.create({
-    data: {
-      prospectId,
-      tip,
-      subject,
-      body: copy.bodyHtml,
-      poslat: true,
-      poslatAt: new Date(),
-      resendId: data?.id ?? null,
-      activeSubject: "A",
-    },
-  });
+  // Persist as a fake "email" so the activity timeline shows it AND so the
+  // per-tip dedup check skips this prospect next run. A persist failure AFTER a
+  // successful send must NOT throw — that would crash the cron and (worse) risk
+  // a re-send next run. Log it loudly instead.
+  try {
+    await prisma.email.create({
+      data: {
+        prospectId,
+        tip,
+        subject,
+        body: copy.bodyHtml,
+        poslat: true,
+        poslatAt: new Date(),
+        resendId: data?.id ?? null,
+        activeSubject: "A",
+      },
+    });
+  } catch (e) {
+    console.error(`[inbound-nurture] sent ${tip} to ${prospectEmail} but FAILED to persist Email row (risk of re-send next run):`, e);
+  }
 
   // Operator copy
   try {
@@ -176,25 +183,31 @@ async function run(req: NextRequest) {
   const errors: string[] = [];
 
   for (const p of candidates) {
-    if (!p.datumOdgovora) continue;
-    const firstName = p.kontaktIme?.split(/\s+/)[0] ?? null;
-    const hadNudge1 = p.emails.some((e) => e.tip === "inbound_nudge1");
-    const hadNudge2 = p.emails.some((e) => e.tip === "inbound_nudge2");
-    const threadMessageId =
-      p.emails.find((e) => e.messageId)?.messageId ?? null;
+    // Per-candidate guard: one prospect's failure must never crash the run or
+    // throw an unhandled rejection that kills the whole cron.
+    try {
+      if (!p.datumOdgovora) continue;
+      const firstName = p.kontaktIme?.split(/\s+/)[0] ?? null;
+      const hadNudge1 = p.emails.some((e) => e.tip === "inbound_nudge1");
+      const hadNudge2 = p.emails.some((e) => e.tip === "inbound_nudge2");
+      const threadMessageId =
+        p.emails.find((e) => e.messageId)?.messageId ?? null;
 
-    // Nudge 2: 7 days after claim AND nudge 1 already went out
-    if (!hadNudge2 && hadNudge1 && p.datumOdgovora <= sevenDaysAgo) {
-      const res = await sendNudge(p.id, p.email, buildNudge2(firstName, p.id), "inbound_nudge2", threadMessageId);
-      if (res.ok) nudge2Sent++;
-      else errors.push(`${p.email} nudge2: ${res.error}`);
-      continue;
-    }
-    // Nudge 1: 3 days after claim, no nudge1 yet
-    if (!hadNudge1 && p.datumOdgovora <= threeDaysAgo) {
-      const res = await sendNudge(p.id, p.email, buildNudge1(firstName, p.id), "inbound_nudge1", threadMessageId);
-      if (res.ok) nudge1Sent++;
-      else errors.push(`${p.email} nudge1: ${res.error}`);
+      // Nudge 2: 7 days after claim AND nudge 1 already went out
+      if (!hadNudge2 && hadNudge1 && p.datumOdgovora <= sevenDaysAgo) {
+        const res = await sendNudge(p.id, p.email, buildNudge2(firstName, p.id), "inbound_nudge2", threadMessageId);
+        if (res.ok) nudge2Sent++;
+        else errors.push(`${p.email} nudge2: ${res.error}`);
+        continue;
+      }
+      // Nudge 1: 3 days after claim, no nudge1 yet
+      if (!hadNudge1 && p.datumOdgovora <= threeDaysAgo) {
+        const res = await sendNudge(p.id, p.email, buildNudge1(firstName, p.id), "inbound_nudge1", threadMessageId);
+        if (res.ok) nudge1Sent++;
+        else errors.push(`${p.email} nudge1: ${res.error}`);
+      }
+    } catch (e) {
+      errors.push(`${p.email}: ${e instanceof Error ? e.message : "error"}`);
     }
   }
 

@@ -15,8 +15,13 @@ export async function GET(req: NextRequest) {
   if (!(await isCronOrSessionAuthorized(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const summary = await runReengageBatch(30);
-  return NextResponse.json({ ok: true, ...summary });
+  try {
+    const summary = await runReengageBatch(30);
+    return NextResponse.json({ ok: true, ...summary });
+  } catch (e) {
+    console.error("[reengage] batch failed:", e);
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "reengage failed" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -29,6 +34,11 @@ export async function POST(req: NextRequest) {
   } catch {
     // empty
   }
-  const summary = await runReengageBatch(Math.max(1, Math.min(100, body.limit ?? 30)));
-  return NextResponse.json({ ok: true, ...summary });
+  try {
+    const summary = await runReengageBatch(Math.max(1, Math.min(100, body.limit ?? 30)));
+    return NextResponse.json({ ok: true, ...summary });
+  } catch (e) {
+    console.error("[reengage] batch failed:", e);
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "reengage failed" }, { status: 500 });
+  }
 }

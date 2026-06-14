@@ -15,8 +15,13 @@ export async function GET(req: NextRequest) {
   if (!(await isCronOrSessionAuthorized(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const summary = await runUpsellBatch(20);
-  return NextResponse.json({ ok: true, ...summary });
+  try {
+    const summary = await runUpsellBatch(20);
+    return NextResponse.json({ ok: true, ...summary });
+  } catch (e) {
+    console.error("[upsell] batch failed:", e);
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "upsell failed" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -29,6 +34,11 @@ export async function POST(req: NextRequest) {
   } catch {
     // empty
   }
-  const summary = await runUpsellBatch(Math.max(1, Math.min(50, body.limit ?? 20)));
-  return NextResponse.json({ ok: true, ...summary });
+  try {
+    const summary = await runUpsellBatch(Math.max(1, Math.min(50, body.limit ?? 20)));
+    return NextResponse.json({ ok: true, ...summary });
+  } catch (e) {
+    console.error("[upsell] batch failed:", e);
+    return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "upsell failed" }, { status: 500 });
+  }
 }
