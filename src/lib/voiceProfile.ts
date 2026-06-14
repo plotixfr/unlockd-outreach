@@ -149,16 +149,19 @@ export const ANTI_AI_GUARDRAILS = `Règles strictes pour ne JAMAIS ressembler à
   · "Je me permets de vous contacter"
   · "J'espère que vous allez bien" / "Tout d'abord, j'espère que…"
   · "N'hésitez pas à"
-  · "Dans l'attente de votre retour"
+  · "Dans l'attente de votre retour" / "Dans l'attente de votre réponse"
   · "Je reste à votre disposition"
+  · "N'hésitez pas à"
+  · "À l'ère du numérique" / "à l'heure du digital"
+  · "Salutations distinguées" / "Cordialement," seul comme sign-off cliché
   · "Très belle journée à vous"
   · "Bien à vous" (sauf si dans le voice profile)
   · "Solution", "valeur ajoutée", "synergie", "écosystème", "ROI" sans contexte
   · "transformer votre business" / "votre business"
 
 - PROSCRITS de structure :
-  · Pas d'énumération tricolore corporate ("X, Y et Z" trois fois dans un email)
-  · Pas plus d'UN em-dash (—) par email
+  · Pas d'énumération tricolore corporate ("X, Y et Z" trois fois dans un email ; ex. interdit : "moderne, rapide et optimisé")
+  · AUCUN tiret long, jamais : ni cadratin (—) ni demi-cadratin (–). Une virgule ou deux phrases à la place. Les traits d'union normaux (rendez-vous) restent autorisés.
   · Pas de longues énumérations de bénéfices
   · Pas de "Et si…" rhétorique en ouverture
 
@@ -167,16 +170,54 @@ export const ANTI_AI_GUARDRAILS = `Règles strictes pour ne JAMAIS ressembler à
   · Phrases courtes alternées avec une plus longue de temps en temps
   · Un mot direct, parfois familier (jamais vulgaire)
   · Quand on cite un fait sur leur site, citer LITTÉRALEMENT (entre guillemets si possible)
-  · Ne pas annoncer ce qu'on va dire — le dire`;
+  · Ne pas annoncer ce qu'on va dire, le dire`;
+
+/**
+ * Dutch counterpart of {@link ANTI_AI_GUARDRAILS}. NL prospects used to get the
+ * French guardrails verbatim (the only set that existed), which leaked French
+ * instructions into Dutch generations. These mirror the FR bans in Dutch.
+ */
+export const ANTI_AI_GUARDRAILS_NL = `Strikte regels om NOOIT op een geautomatiseerde e-mail te lijken:
+
+- ABSOLUUT VERBODEN (templateformuleringen die AI verraden):
+  · "Mag ik me even voorstellen"
+  · "Ik neem de vrijheid om contact op te nemen"
+  · "Ik hoop dat het goed met u/je gaat"
+  · "Aarzel niet om"
+  · "In afwachting van uw/je reactie"
+  · "Ik blijf tot uw beschikking"
+  · "In het digitale tijdperk" / "in deze digitale wereld"
+  · "Hoogachtend" als clichématige afsluiter
+  · "Oplossing", "toegevoegde waarde", "synergie", "ecosysteem", "ROI" zonder context
+  · "uw business transformeren"
+
+- VERBODEN qua structuur:
+  · Geen corporate drieslag ("X, Y en Z" drie keer in één e-mail; verboden voorbeeld: "modern, snel en geoptimaliseerd")
+  · GEEN lange streep, nooit: niet de em-streep (—) en niet de en-streep (–). Een komma of twee zinnen in plaats daarvan. Gewone koppeltekens (Google-score) blijven toegestaan.
+  · Geen lange opsommingen van voordelen
+  · Geen retorische "Wat als…" als opening
+
+- OM MENSELIJK TE KLINKEN:
+  · Eén heel precieze observatie in plaats van een generieke zin
+  · Korte zinnen, af en toe afgewisseld met een langere
+  · Direct, soms informeel taalgebruik (nooit vulgair)
+  · Een feit van hun site LETTERLIJK citeren (tussen aanhalingstekens indien mogelijk)
+  · Niet aankondigen wat je gaat zeggen, het gewoon zeggen`;
+
+const GUARDRAILS_BY_LANG: Record<string, string> = {
+  fr: ANTI_AI_GUARDRAILS,
+  nl: ANTI_AI_GUARDRAILS_NL,
+};
 
 /**
  * Returns the full style guide block to inject into the system prompt of any
  * email-generating call. Combines the operator-specific voice (if extracted)
- * with the always-on anti-AI guardrails. Returns just the guardrails when
- * no voice has been configured yet.
+ * with the always-on anti-AI guardrails in the prospect's language. Returns
+ * just the guardrails when no voice has been configured yet.
  */
-export async function buildVoiceGuideForPrompt(): Promise<string> {
+export async function buildVoiceGuideForPrompt(lang: string | null = "fr"): Promise<string> {
+  const guardrails = GUARDRAILS_BY_LANG[lang === "nl" ? "nl" : "fr"];
   const voice = await getActiveVoice();
-  if (!voice) return ANTI_AI_GUARDRAILS;
-  return `${voice.styleDescription}\n\n${ANTI_AI_GUARDRAILS}`;
+  if (!voice) return guardrails;
+  return `${voice.styleDescription}\n\n${guardrails}`;
 }

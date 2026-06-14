@@ -18,6 +18,7 @@ import {
   extractJsonArray,
   type PromptCaseStudy,
 } from "@/lib/emailPrompt";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
 import type { DecisionMakerResult } from "@/lib/decisionMakers";
@@ -177,9 +178,9 @@ Return ONLY this JSON shape:
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
     const e = parsed[0];
     return {
-      subject: typeof e.subject === "string" ? e.subject : "",
-      subjectB: typeof e.subjectB === "string" ? e.subjectB : null,
-      body: typeof e.body === "string" ? e.body : "",
+      subject: sanitizeDashes(typeof e.subject === "string" ? e.subject : ""),
+      subjectB: sanitizeDashes(typeof e.subjectB === "string" ? e.subjectB : null),
+      body: cleanEmailBody(typeof e.body === "string" ? e.body : ""),
     };
   } catch (err) {
     console.warn(`[reengage] generation failed for ${prospectId}:`, err);

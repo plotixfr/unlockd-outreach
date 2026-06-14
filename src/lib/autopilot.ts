@@ -24,6 +24,7 @@ import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
 import { scoreProspect } from "@/lib/qualityScore";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import { verifyEmail } from "@/lib/verifyEmail";
 import { isDomainSuppressed } from "@/lib/suppression";
 import { generateAuditFindings } from "@/lib/auditFindings";
@@ -247,9 +248,9 @@ export async function generateEmailsInline(
     data: parsed.map((e) => ({
       prospectId,
       tip: String(e.tip ?? "initial"),
-      subject: String(e.subject ?? ""),
-      subjectB: e.subjectB ? String(e.subjectB) : null,
-      body: String(e.body ?? ""),
+      subject: sanitizeDashes(String(e.subject ?? "")),
+      subjectB: e.subjectB ? sanitizeDashes(String(e.subjectB)) : null,
+      body: cleanEmailBody(String(e.body ?? "")),
       // For prospects with both variants, follow the niche-level winner.
       // If no winner data, pickSubjectVariant returns a fresh coin-flip.
       activeSubject: e.subjectB ? bias : "A",

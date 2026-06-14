@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray } from "@/lib/emailPrompt";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import { processDueEmails } from "@/lib/sendEmail";
 import { generateMockup } from "@/lib/mockup";
 
@@ -97,9 +98,9 @@ export async function POST(req: NextRequest) {
                   data: {
                     prospectId: prospect.id,
                     tip: e.tip,
-                    subject: e.subject,
-                    subjectB: e.subjectB ?? null,
-                    body: e.body,
+                    subject: sanitizeDashes(e.subject),
+                    subjectB: e.subjectB ? sanitizeDashes(e.subjectB) : null,
+                    body: cleanEmailBody(e.body),
                   },
                 })
               )

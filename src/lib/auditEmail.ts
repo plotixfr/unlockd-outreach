@@ -13,6 +13,7 @@ import { signatureHtml, signatureText } from "@/lib/signature";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 import type { PageSpeedSnapshot } from "@/lib/pagespeed";
 import { resendGate } from "@/lib/sendEmail";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 
 const MODEL = "claude-sonnet-4-6";
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -119,7 +120,13 @@ function fallbackCopy(input: AuditEmailInput): AuditCopy {
 }
 
 export async function sendAuditEmail(input: AuditEmailInput): Promise<{ ok: boolean; messageId?: string | null; error?: string }> {
-  const copy = (await generateCopy(input)) ?? fallbackCopy(input);
+  const rawCopy = (await generateCopy(input)) ?? fallbackCopy(input);
+  // Deterministic backstop to the prompt's no-long-dash rule.
+  const copy: AuditCopy = {
+    subject: sanitizeDashes(rawCopy.subject),
+    bodyHtml: cleanEmailBody(rawCopy.bodyHtml),
+    bodyText: sanitizeDashes(rawCopy.bodyText),
+  };
 
   const unsubUrl = `${SITE_URL}/api/unsubscribe/${input.prospectId}`;
   const html = `${copy.bodyHtml}${signatureHtml(input.prospectId)}<p style="font-size:11px;color:#999;margin-top:24px;border-top:1px solid #eee;padding-top:12px;">Vous avez reçu cet email après avoir demandé un audit gratuit sur unlockd.art. <a href="${unsubUrl}" style="color:#999;text-decoration:underline;">Se désabonner</a>.</p>`;

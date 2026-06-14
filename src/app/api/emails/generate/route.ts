@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { buildEmailPrompt, getEmailSystemPrompt, extractJsonArray, type PromptCaseStudy } from "@/lib/emailPrompt";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import { scrapeSite, type SiteSnapshot } from "@/lib/scrapeSite";
 import { fetchPageSpeed, type PageSpeedSnapshot } from "@/lib/pagespeed";
 import { findDecisionMakers, type DecisionMakerResult } from "@/lib/decisionMakers";
@@ -208,11 +209,13 @@ export async function POST(req: NextRequest) {
       if (!Array.isArray(emailData) || emailData.length === 0) {
         throw new Error("Parsed result is not a non-empty array");
       }
+      // sanitizeDashes is the deterministic backstop to the prompt's no-long-
+      // dash rule: every em/en dash becomes a comma before we persist.
       emailData = emailData.map((e) => ({
         tip: String(e.tip ?? "initial"),
-        subject: String(e.subject ?? ""),
-        subjectB: e.subjectB ? String(e.subjectB) : null,
-        body: String(e.body ?? ""),
+        subject: sanitizeDashes(String(e.subject ?? "")),
+        subjectB: e.subjectB ? sanitizeDashes(String(e.subjectB)) : null,
+        body: cleanEmailBody(String(e.body ?? "")),
       }));
       console.log("[generate] Parsed", emailData.length, "emails OK");
     } catch (parseErr) {

@@ -16,6 +16,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { getEmailSystemPrompt, extractJsonArray } from "@/lib/emailPrompt";
+import { sanitizeDashes, cleanEmailBody } from "@/lib/sanitizeDashes";
 import type { SiteSnapshot } from "@/lib/scrapeSite";
 
 const EMAIL_MODEL = "claude-sonnet-4-6";
@@ -184,13 +185,13 @@ Réponds UNIQUEMENT JSON :
     try {
       const arr = JSON.parse(extractJsonArray(raw)) as Array<{ subject?: string; body?: string }>;
       if (Array.isArray(arr) && arr[0]) {
-        return { subject: String(arr[0].subject ?? ""), body: String(arr[0].body ?? "") };
+        return { subject: sanitizeDashes(String(arr[0].subject ?? "")), body: cleanEmailBody(String(arr[0].body ?? "")) };
       }
     } catch {
       // fall through
     }
     const parsed = JSON.parse(objMatch[0]) as { subject?: string; body?: string };
-    return { subject: String(parsed.subject ?? ""), body: String(parsed.body ?? "") };
+    return { subject: sanitizeDashes(String(parsed.subject ?? "")), body: cleanEmailBody(String(parsed.body ?? "")) };
   } catch (e) {
     console.warn(`[upsell] generation failed for ${prospect.id}:`, e);
     return null;
