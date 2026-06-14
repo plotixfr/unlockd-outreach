@@ -24,3 +24,13 @@
   4. 4 prospects `generate: json parse failed` → redrive (cap 5) self-heals next fire.
   5. 10 pre-existing eslint errors in admin-UI components (prior redesign) — non-blocking (Next 16 doesn't lint-block build); cleanup later.
 - Morning health: `npx tsx scripts/db-inventory.ts`.
+- Update for `79f0716`: check-replies now logs a self-describing class — grep `[check-replies] imap error:` → AUTH_FAILED / CONN_TLS / TIMEOUT (none + `errors=0` = success). Explicit TLS servername/minVersion applied to prod ImapFlow client.
+
+## POST-FIRST-SEND REVIEW (resume here — "sutra posle prvog slanja")
+> Autopilot fires Mon–Fri only → first new-copy discovery+send batch = **Mon 2026-06-16** (weekend send-followups may ship an already-Scheduled initial; follow-ups stay gated until IMAP scan ok). Start: `npx tsx scripts/db-inventory.ts`, then investigate WHAT/HOW it sent + what it researched:
+- **Discovery/research:** /autopilot runs table — found/created/qualified/scheduled per brief (expect Group B/Places only; Group A Sirene still 0 = the known data-source gap). New prospects' qualityScore + qualityNote vs the real ICP; siteSnapshot/PSI present.
+- **Generated copy:** open 2–3 fresh auto-generated prospects → 5-email sequence: fact-first opener, correct site-presence branch, NL register (u=Group A / je=Group B), zero em/en dashes, greeting comma, NO preview/image refs, free-mockup CTA as text. (scripts/test-email-copy.ts to eyeball without sending.)
+- **What actually sent:** which initials shipped, to whom, subject A/B, threading, BCC operator copy, spam-lint pass, nothing to suppressed/bounced.
+- **Replies:** did check-replies authenticate (open item #1)? replies ingested/classified? gate lifted?
+- **Bounce:** Resend webhook deliveries 200; real bounces suppress; rate <~4%.
+- **Red flags:** created:0 across many briefs (cursor stalled) · `API_CREDIT_OR_AUTH_ERROR` in any lastError/run · 504s / failed-empty-error runs · follow-ups to already-answered prospects.
